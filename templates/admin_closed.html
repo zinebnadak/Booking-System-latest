@@ -1,0 +1,49 @@
+{{define "content"}}
+<div class="day-head"><h1>{{tr "Closed days"}}</h1></div>
+<p class="muted">{{tr "Close the restaurant for holidays or private events. Guests can't book tables or order takeaway on these days."}}</p>
+
+<section class="panel">
+  <h2>{{tr "Close a day"}}</h2>
+  <form method="post" action="/admin/closed" class="row">
+    <label class="field">{{tr "Date"}}<input type="date" name="date" min="{{.MinDate}}" required></label>
+    <label class="field grow"><span class="field-label">{{tr "Reason"}} <span class="hint">{{tr "shown to guests"}}</span></span><input name="reason" maxlength="120" placeholder="{{tr "Closed for Christmas"}}"></label>
+    <button class="btn btn-primary">{{tr "Close this day"}}</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>{{tr "Rooms guests can book online"}}</h2>
+  <p class="muted small">{{tr "Guests get the smallest free table with enough seats. Close a room for online bookings when it isn't in use, for example the terrace in winter. Staff can still seat people there."}}</p>
+  <ul class="room-online">
+    {{range .Rooms}}
+    <li>
+      <span><strong>{{.Name}}</strong> <span class="muted small">{{trf "%d tables" .Tables}}</span></span>
+      {{if .Online}}<span class="badge badge-ok">{{tr "Open for online bookings"}}</span>{{else}}<span class="badge badge-muted">{{tr "Closed for online bookings"}}</span>{{end}}
+      <form method="post" action="/admin/rooms/online">
+        <input type="hidden" name="room" value="{{.Name}}"><input type="hidden" name="on" value="{{if .Online}}0{{else}}1{{end}}">
+        <button class="btn btn-secondary btn-sm">{{if .Online}}{{tr "Close online"}}{{else}}{{tr "Open online"}}{{end}}</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>{{tr "Coming closed days"}}</h2>
+  {{if not .Closed}}
+  <div class="empty"><strong>{{tr "No extra closed days"}}</strong>{{tr "The restaurant follows its normal opening hours."}}</div>
+  {{else}}
+  <table class="list">
+    <tbody>
+    {{range .Closed}}
+    <tr>
+      <td class="nowrap"><strong>{{prettyDate .Date}}</strong></td>
+      <td>{{.Reason}}{{if .Bookings}}<br><span class="badge badge-wait">{{trf "%d paid booking(s) already, contact them" .Bookings}}</span>{{end}}</td>
+      <td style="text-align:right"><form method="post" action="/admin/closed/{{.Date}}/delete" data-confirm="{{trf "Open %s for bookings again?" (prettyDate .Date)}}" data-confirm-ok="{{tr "Open again"}}"><button class="btn btn-secondary btn-sm">{{tr "Open again"}}</button></form></td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</section>
+{{end}}

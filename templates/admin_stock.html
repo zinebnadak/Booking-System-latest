@@ -1,0 +1,92 @@
+{{define "content"}}
+<div class="day-head" data-live-screen="/admin/stock?part=list">
+  <h1>{{tr "Stock"}}</h1>
+  <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
+</div>
+<p class="muted small deal-line">{{tr "When something runs out, tap “Out of stock”. Waiters see it at once when they take an order, so they can tell the guest before they choose it, and guests can't order it on their phones. Or type how many are left: it counts down by itself as it's ordered."}}</p>
+<div data-search-scope>
+  <div class="od-search" data-dish-search hidden>
+    <input type="search" placeholder="{{tr "Search the menu"}}" aria-label="{{tr "Search the menu"}}" autocomplete="off" enterkeyhint="search">
+    <p class="muted small" data-search-none hidden>{{tr "Nothing on the menu matches."}}</p>
+  </div>
+  <div data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "stock-list" .}}</div>
+</div>
+{{end}}
+
+{{define "stock-list"}}
+<section class="panel stock-now" aria-labelledby="stock-out-h">
+  <h2 id="stock-out-h">{{tr "Out of stock now"}}</h2>
+  {{if .Out}}
+  <p class="stock-chips">{{range .Out}}<a class="badge badge-bad" href="#s-{{.ID}}">{{.Name}}</a> {{end}}</p>
+  {{else}}
+  <p class="muted small">{{tr "Nothing. Everything on the menu can be ordered."}}</p>
+  {{end}}
+  {{if .Low}}
+  <h3>{{tr "Running low"}}</h3>
+  <p class="stock-chips">{{range .Low}}<a class="badge badge-wait" href="#s-{{.ID}}">{{trf "%s: %d left" .Name .LeftNow}}</a> {{end}}</p>
+  {{end}}
+</section>
+
+<section class="panel ingredients" id="ingredients" aria-labelledby="ing-h">
+  <h2 id="ing-h">{{tr "Ingredients"}}</h2>
+  <p class="muted small">{{tr "Count what dishes are made of (spaghetti, cheese…). On the Menu page each dish says how much one portion takes; every order takes it from here, and when one runs out, all dishes with it are out of stock."}}</p>
+  {{if .Ingredients}}
+  <ul class="ing-list">
+    {{range .Ingredients}}
+    <li class="ing-row{{if le .Left 0}} gone{{else if .Low}} low{{end}}">
+      <div class="ing-text">
+        <strong>{{.Name}}</strong>
+        <span class="badge {{if le .Left 0}}badge-bad{{else if .Low}}badge-wait{{else}}badge-muted{{end}}">{{if le .Left 0}}{{tr "Out of stock"}}{{else}}{{.Left}} {{.Unit}} {{tr "left"}}{{end}}</span>
+        <span class="muted small">{{with .Dishes}}{{tr "Used in:"}} {{range $i, $d := .}}{{if $i}}, {{end}}{{$d}}{{end}}{{else}}{{tr "No dish uses it yet (Menu page)."}}{{end}}</span>
+      </div>
+      <form method="post" action="/admin/stock/ingredients/{{.ID}}" data-live class="ing-form">
+        <label>{{tr "Left"}} <input name="left" type="number" min="0" max="9999999" inputmode="numeric" value="{{.Left}}" required> <span class="ing-unit">{{.Unit}}</span></label>
+        <label>{{tr "Warn at"}} <input name="lowat" type="number" min="0" max="9999999" inputmode="numeric" value="{{if .LowAt}}{{.LowAt}}{{end}}" placeholder="–"></label>
+        <button class="btn btn-secondary btn-sm">{{tr "Save"}}</button>
+      </form>
+      <form method="post" action="/admin/stock/ingredients/{{.ID}}" data-live data-confirm="{{trf "Remove %s? Dishes stop using it." .Name}}" data-confirm-ok="{{tr "Remove"}}" data-danger>
+        <input type="hidden" name="do" value="remove"><button class="btn-link">{{tr "Remove"}}</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+  <form method="post" action="/admin/stock/ingredients" data-live class="ing-add">
+    <label class="field">{{tr "New ingredient"}}<input name="name" maxlength="60" required placeholder="{{tr "e.g. Spaghetti"}}"></label>
+    <label class="field">{{tr "Unit"}}<input name="unit" maxlength="12" list="units" placeholder="g"></label>
+    <label class="field">{{tr "How much there is"}}<input name="left" type="number" min="0" max="9999999" inputmode="numeric" required placeholder="5000"></label>
+    <label class="field">{{tr "Warn at"}}<input name="lowat" type="number" min="0" max="9999999" inputmode="numeric" placeholder="1000"></label>
+    <button class="btn btn-primary btn-sm">{{tr "Add"}}</button>
+    <datalist id="units"><option value="g"><option value="kg"><option value="st"><option value="l"><option value="cl"><option value="portioner"></datalist>
+  </form>
+</section>
+
+{{range $i, $c := .Menu}}
+<h3 class="od-cat">{{$c.Name}}</h3>
+<ul class="dish-list stock-list">
+  {{range .Items}}
+  <li class="dish od stock-row{{if .Gone $.Today}} gone{{else if .RunningLow}} low{{end}}" id="s-{{.ID}}">
+    <div class="dish-text">
+      <span class="od-name">{{.Name}}</span>
+      <span class="dish-meta">{{if .ShortOf}}<span class="badge badge-bad">{{trf "No %s left" .ShortOf}}</span>{{else if .OutOfStock}}<span class="badge badge-bad">{{tr "Out of stock"}}</span>{{else if .SoldOut $.Today}}<span class="badge badge-bad">{{tr "Sold out today"}}</span>{{else if or .Counted .Limited}}<span class="badge {{if .RunningLow}}badge-wait{{else}}badge-muted{{end}}">{{trf "%d left" .LeftNow}}</span>{{end}}{{if .Drink}}<span class="badge badge-muted">{{tr "Drink"}}</span>{{end}}</span>
+    </div>
+    <div class="stock-do">
+      <form method="post" action="/admin/stock/{{.ID}}" data-live class="stock-count">
+        <input type="hidden" name="do" value="count">
+        <label>{{tr "Left"}} <input type="number" name="left" min="0" max="{{$.Max}}" inputmode="numeric" value="{{if .Counted}}{{.Left}}{{end}}" placeholder="–" aria-label="{{trf "How many %s are left" .Name}}"></label>
+        <button class="btn btn-secondary btn-sm">{{tr "Save"}}</button>
+      </form>
+      {{if .ShortOf}}
+      <a class="btn btn-secondary btn-sm" href="#ingredients">{{trf "Add more %s" .ShortOf}}</a>
+      {{else if .Gone $.Today}}
+      <form method="post" action="/admin/stock/{{.ID}}" data-live><input type="hidden" name="do" value="back"><button class="btn btn-ok btn-sm">{{tr "Back in stock"}}</button></form>
+      {{else}}
+      <form method="post" action="/admin/stock/{{.ID}}" data-live><input type="hidden" name="do" value="out"><button class="btn btn-danger btn-sm">{{tr "Out of stock"}}</button></form>
+      {{end}}
+    </div>
+  </li>
+  {{end}}
+</ul>
+{{end}}
+<p class="muted small stock-help">{{tr "Empty box: not counted. Clear it and tap Save to stop counting."}}</p>
+{{end}}

@@ -1,0 +1,31 @@
+{{define "content"}}
+<div class="till">
+  <p class="till-brand">{{.Cfg.RestaurantName}} · {{.Now}}</p>
+  {{if not .IsTill}}
+  <div class="till-box">
+    <h1>{{tr "This device isn't a till yet"}}</h1>
+    <p class="muted">{{tr "The manager sets it up once: log in as the manager on this device, open Staff and tap “Make this device a till”."}}</p>
+    <a class="btn btn-primary" href="/login">{{tr "Log in"}}</a>
+  </div>
+  {{else}}
+  <form method="post" action="/till" class="till-box" data-till autocomplete="off">
+    <h1>{{tr "Servitör"}}</h1>
+    {{with .Msg}}<p class="notice info till-msg" role="status">{{.}}</p>{{end}}
+    {{with .Err}}<p class="notice till-err" role="alert">{{.}}</p>{{end}}
+    <div class="till-fields">
+      <label class="till-field">{{tr "Number"}}<input name="no" inputmode="numeric" pattern="[0-9]*" maxlength="3" required autofocus data-till-field></label>
+      <label class="till-field">{{tr "PIN"}}<input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" required data-till-field></label>
+    </div>
+    <div class="till-pad" aria-hidden="true" hidden data-till-pad>
+      {{range $k := tillKeys}}<button type="button" class="till-key{{if eq $k "C"}} till-c{{end}}" data-key="{{$k}}" tabindex="-1">{{$k}}</button>{{end}}
+    </div>
+    <button class="btn btn-primary btn-block till-ok" name="action" value="login">{{tr "Log in"}}</button>
+    <div class="till-clock">
+      <button class="btn btn-secondary btn-block" name="action" value="in">{{tr "Clock in"}}</button>
+      <button class="btn btn-secondary btn-block" name="action" value="out">{{tr "Clock out"}}</button>
+    </div>
+    <p class="muted small">{{tr "Your number and PIN are on the Staff page (ask the manager). Tap Lock at the top when you're done, so the next person logs in as themselves."}}</p>
+  </form>
+  {{end}}
+</div>
+{{end}}

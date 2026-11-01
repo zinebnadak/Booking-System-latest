@@ -1,0 +1,85 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>{{.T.ch_title}}</h1>
+  <p>{{printf .T.ch_lead .Current}}</p>
+</div>
+
+<form method="post" action="/b/{{.B.Ref}}/change" id="booking" class="book-layout" novalidate
+      data-times-url="/b/{{.B.Ref}}/change/times" data-pick-time="{{.T.pick_time}}" data-pick-day="{{.T.pick_day}}"{{if .Errors}} data-has-errors{{end}}>
+  <input type="hidden" name="size" value="{{.Size}}">
+  <input type="hidden" name="date" value="{{.Date}}">
+
+  <div class="book-main">
+    {{if .Errors}}<div class="notice error" role="alert">{{.T.err_summary}}</div>{{end}}
+
+    <section class="step" id="step-guests" aria-labelledby="h-guests">
+      <div class="step-head"><span class="step-num" aria-hidden="true">1</span><h2 id="h-guests">{{.T.step_guests}}</h2></div>
+      <div class="chips" role="list">
+        {{range .Sizes}}
+        <a role="listitem" class="chip" href="/b/{{$.B.Ref}}/change?size={{.}}&date={{$.Date}}" data-size="{{.}}" data-deposit="{{$.B.DepositCents}}"{{if eq . $.Size}} aria-current="true"{{end}} aria-label="{{guests $.Lang .}}">{{.}}</a>
+        {{end}}
+      </div>
+      {{with .Errors.size}}<p class="field-error">{{.}}</p>{{end}}
+      {{if .B.DepositCents}}<p class="step-note">{{.T.ch_size_note}}</p>{{end}}
+    </section>
+
+    <section class="step" id="step-date" aria-labelledby="h-date">
+      <div class="step-head"><span class="step-num" aria-hidden="true">2</span><h2 id="h-date">{{.T.step_date}}</h2></div>
+      <div class="days" role="list">
+        {{range .Days}}
+        {{if or (eq .State "open") (eq .State "full")}}
+        <a role="listitem" class="day{{if eq .State "full"}} is-full{{end}}" href="/b/{{$.B.Ref}}/change?size={{$.Size}}&date={{.Date}}#step-time" data-date="{{.Date}}"{{if .Selected}} aria-current="date"{{end}}>
+          <span class="day-wd">{{if .Label}}{{.Label}}{{else}}{{.Weekday}}{{end}}</span>
+          <span class="day-num">{{.Num}}</span>
+          <span class="day-mon">{{if eq .State "full"}}{{$.T.day_full}}{{else}}{{.Month}}{{end}}</span>
+        </a>
+        {{else}}
+        <span role="listitem" class="day off" aria-disabled="true">
+          <span class="day-wd">{{if .Label}}{{.Label}}{{else}}{{.Weekday}}{{end}}</span>
+          <span class="day-num">{{.Num}}</span>
+          <span class="day-mon">{{if eq .State "closed"}}{{$.T.day_closed}}{{else}}{{.Month}}{{end}}</span>
+        </span>
+        {{end}}
+        {{end}}
+      </div>
+      <label class="other-date">{{.T.other_date}}
+        <input type="date" id="other-date" value="{{.Date}}" min="{{.MinDate}}" max="{{.MaxDate}}">
+      </label>
+    </section>
+
+    <section class="step" id="step-time" aria-labelledby="h-time">
+      <div class="step-head"><span class="step-num" aria-hidden="true">3</span><h2 id="h-time">{{.T.step_time}} <span class="sub" id="when-label">{{with .When}}· {{.}}{{end}}</span></h2></div>
+      {{with .Errors.time}}<p class="field-error" role="alert">{{.}}</p>{{end}}
+      <div id="times" class="times" aria-live="polite">{{template "times" .}}</div>
+    </section>
+
+    <section class="step" id="step-details" aria-labelledby="h-save">
+      <div class="step-head"><span class="step-num" aria-hidden="true">4</span><h2 id="h-save">{{.T.ch_confirm}}</h2></div>
+      <p class="step-note" style="margin-top:0">{{.T.ch_confirm_note}}</p>
+      <button class="btn btn-primary btn-block inline-pay" style="margin-top:16px" data-pay data-loading="{{.T.saving}}">{{.T.ch_save}}</button>
+      <p class="step-note"><a href="/b/{{.B.Ref}}">{{.T.ch_keep}}</a></p>
+    </section>
+  </div>
+
+  <aside class="book-summary card summary" aria-label="{{.T.your_booking}}">
+    <h2>{{.T.ch_new}}</h2>
+    <dl class="sum-rows">
+      <dt>{{.T.lbl_date}}</dt><dd data-sum="date"{{if not .When}} class="empty"{{end}}>{{if .WhenShort}}{{.WhenShort}}{{else}}{{.T.pick_day}}{{end}}</dd>
+      <dt>{{.T.lbl_time}}</dt><dd data-sum="time"{{if not .Form.time}} class="empty"{{end}}>{{if .Form.time}}{{.Form.time}}{{else}}{{.T.pick_time}}{{end}}</dd>
+      <dt>{{.T.lbl_guests}}</dt><dd data-sum="guests">{{guests .Lang .Size}}</dd>
+    </dl>
+    <p class="sum-note">{{printf .T.ch_was .Current}}</p>
+    <button class="btn btn-primary btn-block" data-pay data-loading="{{.T.saving}}">{{.T.ch_save}}</button>
+  </aside>
+
+  <div class="paybar">
+    <div class="paybar-inner">
+      <div class="paybar-text">
+        <strong><span data-sum="date">{{if .WhenShort}}{{.WhenShort}}{{else}}{{.T.pick_day}}{{end}}</span> · <span data-sum="time">{{if .Form.time}}{{.Form.time}}{{else}}{{.T.pick_time}}{{end}}</span></strong>
+        <span data-sum="guests">{{guests .Lang .Size}}</span>
+      </div>
+      <button class="btn btn-primary" data-pay data-loading="…">{{.T.ch_save_short}}</button>
+    </div>
+  </div>
+</form>
+{{end}}

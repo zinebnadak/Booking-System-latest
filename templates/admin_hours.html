@@ -1,0 +1,42 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/hours?week={{.Prev}}" aria-label="{{tr "Previous week"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{tr "Hours"}} · {{.Week}}</h1>
+  <a class="icon-btn" href="/admin/hours?week={{.Next}}" aria-label="{{tr "Next week"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/staff">{{tr "Staff"}}</a>
+</div>
+<p class="muted small">{{tr "Waiters clock in and out at the till with their number and PIN (Klockkort). A shift still open long after closing was probably not clocked out: fix the times here."}}</p>
+
+<section class="panel">
+  <h2>{{tr "This week"}}</h2>
+  {{if .People}}
+  <dl class="sum-rows">{{range .People}}<dt>{{.Name}}</dt><dd>{{.Hours}}</dd>{{end}}</dl>
+  {{else}}
+  <p class="muted">{{tr "Nobody clocked in this week."}}</p>
+  {{end}}
+</section>
+
+{{if .Shifts}}
+<section class="panel">
+  <h2>{{tr "Shifts"}}</h2>
+  <ul class="shift-list">
+    {{range .Shifts}}
+    <li{{if or .Open .Long}} class="shift-warn"{{end}}>
+      <span class="shift-who"><strong>{{.Name}}</strong> <span class="muted small">{{.Day}}</span></span>
+      <span class="shift-time">{{.InClock}} – {{if .Open}}<span class="badge badge-wait">{{tr "still on shift"}}</span>{{else}}{{.OutClock}}{{end}} · {{.Hours}}{{if .Fixed}} <span class="muted small">{{tr "(changed by the manager)"}}</span>{{end}}</span>
+      <details class="staff-more">
+        <summary class="btn btn-secondary btn-sm">{{tr "Fix"}}</summary>
+        <form method="post" action="/admin/hours/{{.ID}}" class="shift-fix">
+          <input type="hidden" name="day" value="{{shiftDay .In}}"><input type="hidden" name="name" value="{{.Name}}">
+          <label>{{tr "In"}} <input name="in" type="time" value="{{.InClock}}" required></label>
+          <label>{{tr "Out"}} <input name="out" type="time" value="{{.OutClock}}" required></label>
+          <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+        </form>
+      </details>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{end}}

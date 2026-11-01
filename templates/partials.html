@@ -1,0 +1,129 @@
+{{/* Parts shared by several pages. */}}
+
+{{/* The list of start times for one day (booking page and change page). */}}
+{{define "times"}}
+{{if .DayMessage}}
+<div class="notice" role="status">{{.DayMessage}}</div>
+{{with .WaitURL}}<a class="btn btn-secondary wait-btn" href="{{.}}">{{$.T.wl_join}}</a>{{end}}
+{{else if .Periods}}
+<div data-when="{{.When}}" data-short="{{.WhenShort}}">
+  {{range .Periods}}
+  <h3 class="period">{{.Label}}</h3>
+  <div class="slots">
+    {{range .Slots}}
+    <label class="slot{{if .Full}} full{{end}}">
+      <input type="radio" name="time" value="{{.Time}}"{{if .Full}} disabled{{end}}{{if eq .Time $.Form.time}} checked{{end}}>
+      <span class="slot-time">{{.Time}}</span>
+      <small>{{if .Full}}{{$.T.full}}{{else if le .Free 2}}{{printf $.T.left .Free}}{{end}}</small>
+    </label>
+    {{end}}
+  </div>
+  {{end}}
+  <p class="step-note">{{.T.table_2h}}{{with .WaitURL}} {{$.T.wl_time_full}} <a href="{{.}}">{{$.T.wl_join_link}}</a>{{end}}</p>
+</div>
+{{end}}
+{{end}}
+
+{{/* One receipt: a whole bill, or one guest's part of a split bill (receiptView). */}}
+{{define "receipt-card"}}
+{{$r := .}}
+<div class="gb-head">
+  <strong class="gb-name">{{$r.Restaurant}}</strong>
+  {{if or $r.Address $r.Phone}}<span class="gb-addr">{{$r.Address}}{{if and $r.Address $r.Phone}} · {{end}}{{with $r.Phone}}{{tr "Tel."}} {{.}}{{end}}</span>{{end}}
+  <span>{{trf "Table %d" $r.Table}} · {{$r.When}}</span>
+  <span class="gb-no">{{if $r.No}}{{trf "Bill %d" $r.No}} · {{end}}{{if $r.Guest}}{{trf "Guest %d of %d" $r.Guest $r.Guests}}{{with $r.Name}} · {{.}}{{end}} · {{end}}#{{$r.BillID}}</span>
+</div>
+<table class="gb-lines">
+  <tbody>
+  {{range $r.Lines}}
+  <tr><td class="gb-q">{{if .SharedBy}}1/{{.SharedBy}}{{else}}{{.Qty}}×{{end}}</td><td>{{.Name}}{{if .SharedBy}}<span class="gb-each"> · {{trf "shared by %d" .SharedBy}}</span>{{else if .Each}}<span class="gb-each"> · {{euro .Each}}</span>{{end}}</td><td class="gb-p">{{euro .Cents}}</td></tr>
+  {{end}}
+  </tbody>
+</table>
+<dl class="gb-sum">
+  {{if $r.Deposit}}
+  <dt>{{tr "Food and drinks"}}</dt><dd>{{euro $r.Food}}</dd>
+  <dt>{{tr "Deposit paid online"}}</dt><dd>−{{euro $r.Deposit}}</dd>
+  {{end}}
+  <dt class="gb-total">{{if $r.Guest}}{{tr "Your part"}}{{else}}{{tr "To pay"}}{{end}}</dt><dd class="gb-total">{{euro $r.Total}}</dd>
+  {{if $r.Tip}}<dt>{{tr "Tip for the staff"}}</dt><dd>{{euro $r.Tip}}</dd>{{end}}
+  {{range $r.Payments}}<dt>{{method .Method}}{{with .Code}} · {{.}}{{end}}</dt><dd>−{{euro .Cents}}</dd>{{end}}
+  {{if and $r.Payments (not $r.Paid)}}<dt class="gb-total">{{tr "Left to pay"}}</dt><dd class="gb-total">{{euro $r.Left}}</dd>{{end}}
+</dl>
+{{if $r.Paid}}<p class="gb-paid">{{if eq $r.PaidBy "cash"}}{{tr "Paid in cash"}}{{else if eq $r.PaidBy "split"}}{{tr "Each guest paid their part"}}{{else if eq $r.PaidBy "online"}}{{tr "Paid online"}}{{else if eq $r.PaidBy "nothing"}}{{tr "Nothing to pay"}}{{else if eq $r.PaidBy "card"}}{{tr "Paid by card"}}{{else}}{{tr "Paid:"}} {{method $r.PaidBy}}{{end}}</p>{{end}}
+{{with $r.PaidByGuest}}<p class="gb-together">{{trf "Guest %d paid this for you." .}}</p>{{end}}
+{{if $r.PaidFor}}<p class="gb-together">{{trf "You also paid for %s: %s in total." (guestList $r.PaidFor) (euro $r.PaidForTotal)}}</p>{{end}}
+{{with $r.VAT}}
+<table class="gb-vat">
+  <thead><tr><th>{{tr "VAT %"}}</th><th>{{tr "Without VAT"}}</th><th>{{tr "VAT"}}</th><th>{{tr "With VAT"}}</th></tr></thead>
+  <tbody>{{range .}}<tr><td>{{vatRate .Rate}}</td><td>{{cents .Net}}</td><td>{{cents .VAT}}</td><td>{{cents .Gross}}</td></tr>{{end}}</tbody>
+</table>
+{{end}}
+<p class="gb-thanks">{{tr "Thank you for your visit, welcome back!"}}</p>
+{{with $r.BusinessID}}<p class="gb-fo">{{tr "Business ID"}} {{.}}</p>{{end}}
+{{end}}
+
+{{define "room-tabs"}}
+<div class="room-tabs" role="group" aria-label="{{tr "Rooms"}}">
+  <button type="button" class="room-tab" data-room-tab="all" aria-pressed="false">{{tr "All rooms"}}</button>
+  {{range .}}<button type="button" class="room-tab" data-room-tab="{{.ID}}" aria-pressed="false">{{.Name}}{{if .Busy}} <span class="rt-n">{{.Busy}}</span>{{end}}</button>{{end}}
+</div>
+{{end}}
+
+{{/* What's out of stock and running low, at the top of the waiters' screens. */}}
+{{define "stock-strip"}}
+<a class="stock-strip" href="/admin/stock">
+  {{if .Out}}<span class="stock-strip-out"><b>{{tr "Out of stock:"}}</b> {{range $i, $m := .Out}}{{if $i}}, {{end}}{{$m.Name}}{{end}}</span>{{end}}
+  {{if .Low}}<span class="stock-strip-low"><b>{{tr "Running low:"}}</b> {{range $i, $m := .Low}}{{if $i}}, {{end}}{{trf "%s (%d left)" $m.Name $m.LeftNow}}{{end}}</span>{{end}}
+</a>
+{{end}}
+
+{{/* "Uses from stock" rows: which ingredient, and how much one portion takes. */}}
+{{define "uses-rows"}}
+{{if .None}}<p class="muted small">{{tr "No ingredients in stock yet. Add them on the Stock page (for example Spaghetti, in g), then pick them here."}}</p>
+{{else}}
+<div class="uses-rows">
+  {{range .Rows}}
+  <div class="uses-row">
+    <select name="{{$.Prefix}}_ing" aria-label="{{tr "Ingredient"}}"><option value="">{{tr "Ingredient…"}}</option>{{range .Options}}<option value="{{.ID}}"{{if .Selected}} selected{{end}}>{{.Name}}{{with .Unit}} ({{.}}){{end}}</option>{{end}}</select>
+    <input name="{{$.Prefix}}_amt" type="number" min="1" max="9999999" inputmode="numeric" value="{{if .Amount}}{{.Amount}}{{end}}" placeholder="{{tr "how much"}}" aria-label="{{tr "How much one portion takes"}}">
+  </div>
+  {{end}}
+</div>
+<p class="muted small">{{tr "How much one portion takes, in the ingredient's unit (for example 120 for 120 g). Each order takes it from stock."}}</p>
+{{end}}
+{{end}}
+
+{{/* Phone payments the waiters haven't seen yet: chimes until someone taps OK. */}}
+{{define "ready-food"}}
+<section class="panel ready-food" aria-labelledby="rf-h">
+  <h2 id="rf-h">{{tr "Food ready to pick up"}}</h2>
+  <p class="muted small">{{tr "The kitchen has finished these. Take them to the table and tap Served."}}</p>
+  <ul class="bring-list">
+    {{range .}}
+    <li data-alert-key="ready-{{.ID}}"{{if .Late}} class="rf-late"{{end}}>
+      <span class="bring-table">{{trf "Table %d" .Table}}</span>
+      <span class="bring-items">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{$it.Qty}}× {{$it.Name}}{{if $it.Guest}} <small>({{trf "Guest %d" $it.Guest}}{{with $it.Who}} · {{.}}{{end}})</small>{{end}}{{end}}</span>
+      <span class="small rf-time">{{trf "ready %s · %d min" .At .Minutes}}</span>
+      <form method="post" action="/admin/kitchen/{{.ID}}/served" data-live><input type="hidden" name="back" value="orders"><button class="btn btn-ok btn-sm">{{tr "Served"}}</button></form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
+{{define "online-paid"}}
+<section class="panel online-paid" aria-labelledby="op-h">
+  <h2 id="op-h">{{tr "Paid on phones"}}</h2>
+  <ul class="bring-list">
+    {{range .}}
+    <li data-alert-key="paid-{{.Ref}}">
+      <span class="bring-table">{{trf "Table %d" .Table}}</span>
+      <span class="bring-items">{{trf "%s paid %s online" .Who (euro .Cents)}}{{if .Tip}} <small>{{trf "+ %s tip" (euro .Tip)}}</small>{{end}}{{if .All}} · {{tr "for the whole table"}}{{else if .Others}} · {{tr "for others too"}}{{end}} · {{if .Free}}<strong>{{tr "Table is free"}}</strong>{{else}}{{tr "others still to pay"}}{{end}}</span>
+      <span class="muted small">{{.At}}</span>
+      <form method="post" action="/admin/online/{{.Ref}}/seen" data-live><button class="btn btn-ok btn-sm">{{tr "OK"}}</button></form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}

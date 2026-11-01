@@ -1,0 +1,78 @@
+{{define "content"}}
+{{$t := .T}}
+{{with .Entry}}
+<div class="card status-card">
+  {{if .Removed}}
+    <div class="status-icon off" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>
+    <h1>{{$t.wl_removed_h}}</h1>
+    <p class="muted">{{$t.wl_removed_x}}</p>
+  {{else if .NotifiedAt}}
+    <div class="status-icon ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h1>{{$t.wl_notified_h}}</h1>
+    <p class="muted">{{printf $t.wl_notified_x $.When}}</p>
+    <div class="status-actions"><a class="btn btn-primary" href="/book?date={{.Date}}&size={{.PartySize}}">{{$t.wl_book_now}}</a></div>
+  {{else}}
+    <div class="status-icon wait" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg></div>
+    <h1>{{$t.wl_on_h}}</h1>
+    <p class="muted">{{printf $t.wl_on_x .Email}}</p>
+  {{end}}
+  <dl class="details">
+    <dt>{{$t.lbl_date}}</dt><dd>{{$.Day}}</dd>
+    <dt>{{$t.lbl_guests}}</dt><dd>{{.PartySize}}</dd>
+    <dt>{{$t.wl_pref}}</dt><dd>{{if .Time}}{{printf $t.wl_around .Time}}{{else}}{{$t.wl_any}}{{end}}</dd>
+    <dt>{{$t.lbl_name}}</dt><dd>{{.Name}}</dd>
+  </dl>
+  {{if not .Removed}}
+  <form method="post" action="/w/{{.Ref}}/remove" class="status-actions">
+    <button class="btn btn-ghost">{{$t.wl_leave}}</button>
+  </form>
+  {{else}}
+  <div class="status-actions"><a class="btn btn-primary" href="/book">{{$t.cta_book}}</a></div>
+  {{end}}
+</div>
+{{else}}
+<div class="page-head">
+  <h1>{{.T.wl_title}}</h1>
+  <p>{{printf .T.wl_lead .When}}</p>
+</div>
+
+<form method="post" action="/waitlist" class="card form-card" novalidate>
+  <input type="hidden" name="date" value="{{.Date}}">
+  {{if .Errors}}<div class="notice error" role="alert">{{.T.err_summary}}</div>{{end}}
+
+  <fieldset class="field">
+    <legend class="field-label">{{.T.step_guests}}</legend>
+    <div class="occ-row">
+      {{range .Sizes}}<label class="occ num"><input type="radio" name="size" value="{{.}}"{{if eq . $.Size}} checked{{end}}><span>{{.}}</span></label>{{end}}
+    </div>
+    {{with .Errors.size}}<span class="field-error">{{.}}</span>{{end}}
+  </fieldset>
+
+  <label class="field">{{.T.wl_pref}}
+    <select name="time">
+      <option value="">{{.T.wl_any}}</option>
+      {{range .Times}}<option value="{{.}}"{{if eq . $.Form.time}} selected{{end}}>{{printf $.T.wl_around .}}</option>{{end}}
+    </select>
+    {{with .Full}}<span class="hint">{{$.T.wl_full_now}} {{range $i, $c := .}}{{if $i}}, {{end}}{{$c}}{{end}}</span>{{end}}
+  </label>
+
+  <div class="fields">
+    <label class="field">{{.T.f_name}}
+      <input name="name" value="{{.Form.name}}" autocomplete="name" required{{with .Errors.name}} aria-invalid="true"{{end}}>
+      {{with .Errors.name}}<span class="field-error">{{.}}</span>{{end}}
+    </label>
+    <label class="field">{{.T.f_phone}}
+      <input name="phone" type="tel" value="{{.Form.phone}}" autocomplete="tel" inputmode="tel" required{{with .Errors.phone}} aria-invalid="true"{{end}}>
+      {{with .Errors.phone}}<span class="field-error">{{.}}</span>{{end}}
+    </label>
+    <label class="field wide">{{.T.f_email}}
+      <input name="email" type="email" value="{{.Form.email}}" autocomplete="email" inputmode="email" required{{with .Errors.email}} aria-invalid="true"{{end}}>
+      {{with .Errors.email}}<span class="field-error">{{.}}</span>{{end}}
+    </label>
+  </div>
+  <button class="btn btn-primary btn-block" style="margin-top:20px" data-loading="{{.T.saving}}">{{.T.wl_submit}}</button>
+  <p class="step-note">{{.T.wl_note}}</p>
+  <p class="consent"><a href="/privacy" target="_blank">{{.T.consent_privacy_cap}}</a></p>
+</form>
+{{end}}
+{{end}}

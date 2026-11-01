@@ -1,0 +1,317 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="btn btn-secondary btn-sm back-home" href="/admin/orders" aria-label="{{tr "Back to orders"}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/></svg>{{tr "Home"}}</a>
+  <h1>{{trf "Table %d" .Table}}</h1>
+  {{with .Who}}<span class="muted">{{.}}</span>{{end}}
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/orders/{{.Table}}/history">{{tr "History"}}</a>
+</div>
+
+{{with .Added}}
+<div class="added-bar" role="status">
+  <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{.}}</span>
+  <a class="btn btn-primary" href="/admin/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>{{tr "Back to orders"}}</a>
+</div>
+{{end}}
+<form method="post" action="/admin/orders/{{.Table}}/qr" class="qr-switch{{if .QROpen}} on{{end}}">
+  <input type="hidden" name="open" value="{{if .QROpen}}0{{else}}1{{end}}">
+  <span class="qr-switch-text">
+    <strong>{{if .QROpen}}{{tr "QR orders are on"}}{{else}}{{tr "QR orders are off"}}{{end}}</strong>
+    <span class="muted small">{{if .QROpen}}{{tr "Guests can scan the table's code, order and pay on their phones."}}{{else}}{{tr "Turn on to let guests order and pay from their phones with the table's QR code."}}{{end}}</span>
+  </span>
+  <button class="btn btn-sm {{if .QROpen}}btn-secondary{{else}}btn-ok{{end}}">{{if .QROpen}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
+</form>
+
+<div class="order-layout">
+  <section class="panel bill-panel" aria-labelledby="bill-h">
+    <div class="panel-head">
+      <h2 id="bill-h">{{tr "Bill"}}</h2>
+      {{if .Open}}<span class="muted small">{{trf "Open since %s" .Opened}}</span>{{end}}
+    </div>
+
+    {{if .Open}}
+    {{range .Holds}}<p class="notice info hold-note">{{if .All}}{{trf "%s is paying for the whole table on their phone." .Label}}{{else}}{{trf "%s is paying their part on their phone." .Label}}{{end}} <b data-countdown="{{.LeftS}}">{{.Left}}</b></p>{{end}}
+    <ul class="bill-lines">
+      {{range .Lines}}
+      <li class="bl">
+        <div class="bl-main">
+          <span class="bl-name">{{.Qty}}× {{.Name}}</span>
+          {{with .Note}}<span class="bl-note">{{.}}</span>{{end}}
+          <span class="bl-meta">
+            {{with .Who}}<span class="bl-who">{{.}}</span>{{end}}
+            {{if .Drink}}<span class="badge badge-muted">{{tr "Drink"}}</span>{{if eq .Status "bring"}} <span class="badge badge-wait">{{tr "To bring"}}</span>{{end}}
+            {{else if eq .Status "ready"}}<span class="badge badge-ok">{{trf "Ready %s · pick up" .Ready}}</span>
+            {{else if eq .Status "served"}}<span class="badge badge-muted">{{trf "Served %s" .Ready}}</span>
+            {{else if eq .Status "cooking"}}<span class="badge badge-wait">{{tr "With the chef"}}</span>
+            {{else if eq .Status "held"}}<span class="badge badge-muted">{{tr "Waits for your go"}}</span>{{end}}
+            {{if .PriceChanged}}<span class="bl-was">{{trf "menu price %s" (euro .ListCents)}}</span>{{end}}
+            {{if .DiscountPct}}<span class="badge badge-wait">{{if eq .DiscountPct 100}}{{tr "On the house"}}{{else}}{{trf "Discount %d %%" .DiscountPct}}{{end}}</span>{{end}}
+          </span>
+        </div>
+        <div class="bl-right">
+          <span class="bl-price">{{euro .Total}}</span>
+          <button type="button" class="btn-link" data-open="line-{{.ID}}">{{tr "Change"}}</button>
+        </div>
+      </li>
+      {{end}}
+    </ul>
+
+    <dl class="sum-rows bill-sum">
+      {{if .Bill.Deposit}}
+      <dt>{{tr "Food and drinks"}}</dt><dd>{{euro .Bill.Total}}</dd>
+      <dt>{{tr "Deposit paid online"}}</dt><dd>−{{euro .Bill.Deposit}}</dd>
+      {{end}}
+      {{if .Bill.Discounts}}<dt>{{tr "Discounts given"}}</dt><dd>−{{euro .Bill.Discounts}}</dd>{{end}}
+      {{if .Bill.Payments}}
+      <dt>{{tr "To pay"}}</dt><dd>{{euro .Bill.ToPay}}</dd>
+      {{range .Bill.Payments}}<dt class="paid-part">{{method .Method}}{{with .Code}} · {{.}}{{end}}{{if gt .Coupons 1}} · {{trf "%d coupons" .Coupons}}{{end}}</dt><dd class="paid-part">−{{euro .Cents}}</dd>{{end}}
+      <dt class="to-pay">{{tr "Left to pay"}}</dt><dd class="to-pay">{{euro .Bill.Left}}</dd>
+      {{else}}
+      <dt class="to-pay">{{tr "To pay"}}</dt><dd class="to-pay">{{euro .Bill.ToPay}}</dd>
+      {{end}}
+    </dl>
+
+    {{if .Held}}
+    <div class="fire-row">
+      {{range .Held}}
+      <form method="post" action="/admin/orders/{{$.Table}}/fire">
+        <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="course" value="{{.}}">
+        <button class="btn btn-primary btn-block">{{if eq . 3}}{{tr "Dessert now (Fram efterrätt)"}}{{else}}{{tr "Mains now (Varma fram)"}}{{end}}</button>
+      </form>
+      {{end}}
+    </div>
+    {{end}}
+    <div class="bill-actions">
+      {{if not .Lines}}
+      {{if .Bill.DepositCents}}<p class="notice info">{{trf "These guests paid a %s deposit online. It comes off their bill." (euro .Bill.DepositCents)}}</p>{{end}}
+      <p class="muted small">{{tr "Nothing ordered yet. Guests can order with the table's QR code, or add dishes here."}}</p>
+      {{else}}
+      <form method="post" action="/admin/orders/{{.Table}}/billed">
+        <input type="hidden" name="bill" value="{{.Bill.ID}}">
+        <button class="btn btn-secondary btn-block">{{tr "Show the bill"}}</button>
+      </form>
+      {{if .Bill.IsSplit}}
+      {{with .Bill.TableLeft}}
+      <p class="small table-left">{{trf "Still to pay at this table: %s" (euro .)}}</p>
+      <div class="pay-row">
+        <form method="post" action="/admin/orders/{{$.Table}}/paytable" data-confirm="{{trf "Table %d paid everything left, %s, at the terminal?" $.Table (euro .)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="method" value="card">
+          <button class="btn btn-ok btn-block">{{tr "All at the terminal"}}</button>
+        </form>
+        <form method="post" action="/admin/orders/{{$.Table}}/paytable" data-confirm="{{trf "Table %d paid everything left, %s, in cash?" $.Table (euro .)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="method" value="cash">
+          <button class="btn btn-ok btn-block">{{tr "All in cash"}}</button>
+        </form>
+      </div>
+      {{end}}
+      <a class="btn btn-secondary btn-block" href="/admin/orders/{{.Table}}/split#pay">{{trf "Split between %d · %d paid" (len .Bill.Split) .Bill.SharesPaid}}</a>
+      {{else}}
+      <div class="pay-row">
+        <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .Table (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+          <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="card">
+          <button class="btn btn-ok btn-block">{{if .Bill.Payments}}{{tr "Rest at the terminal"}}{{else}}{{tr "Paid at the terminal"}}{{end}}</button>
+        </form>
+        <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s in cash?" .Table (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+          <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="cash">
+          <button class="btn btn-ok btn-block">{{if .Bill.Payments}}{{tr "Rest in cash"}}{{else}}{{tr "Paid in cash"}}{{end}}</button>
+        </form>
+      </div>
+      <details class="pay-more"{{if .Bill.Payments}} open{{end}}>
+        <summary>{{tr "Other ways to pay"}} <span class="muted small">{{tr "lunch cards, gift cards, part of the bill"}}</span></summary>
+        <div class="pay-lunch">
+          {{range $m := lunchCards}}
+          <form method="post" action="/admin/orders/{{$.Table}}/pay" data-confirm="{{trf "Table %d paid %s with %s?" $.Table (euro $.Bill.Left) (method $m)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+            <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="method" value="{{$m}}">
+            <button class="btn btn-secondary btn-block">{{method $m}}</button>
+          </form>
+          {{end}}
+        </div>
+        <form method="post" action="/admin/orders/{{.Table}}/part" class="pay-part" data-pay-part>
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <p class="small muted">{{tr "Pay part of the bill (Kvar att betala): a gift card, a lunch booklet, or some in one way and the rest in another."}}</p>
+          <div class="dlg-grid">
+            <label class="field">{{tr "How"}}<select name="method" data-pay-method>
+              <option value="card">{{method "card"}}</option><option value="cash">{{method "cash"}}</option>
+              {{range $m := lunchCards}}<option value="{{$m}}">{{method $m}}</option>{{end}}
+              <option value="giftcard">{{method "giftcard"}}</option><option value="lunchcoupon">{{method "lunchcoupon"}}</option>
+            </select></label>
+            <label class="field" data-pay-amount>{{tr "Amount €"}}<input name="amount" inputmode="decimal" placeholder="{{euro .Bill.Left}}"></label>
+            <label class="field" data-pay-code hidden>{{tr "Code on the card"}}<input name="code" autocomplete="off" autocapitalize="characters" placeholder="PK-XXXX-XXXX"></label>
+            <label class="field" data-pay-coupons hidden>{{tr "Coupons"}}<input name="coupons" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
+          </div>
+          <p class="small muted" data-pay-gift-hint hidden>{{tr "Leave the amount empty to use what's on the card (up to what's left to pay)."}}</p>
+          <button class="btn btn-primary btn-sm">{{tr "Add payment"}}</button>
+        </form>
+        {{if .Bill.Payments}}
+        <form method="post" action="/admin/orders/{{.Table}}/undopay" data-confirm="{{tr "Take back the last payment? A gift card or lunch booklet gets it back."}}" data-confirm-ok="{{tr "Take back"}}" data-danger>
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <button class="btn-link">{{tr "Take back the last payment"}}</button>
+        </form>
+        {{end}}
+      </details>
+      {{if not .Bill.Payments}}<a class="btn btn-secondary btn-block" href="/admin/orders/{{.Table}}/split">{{tr "Split the bill"}}</a>{{end}}
+      {{end}}
+      {{end}}
+      <details class="bill-more">
+        <summary>{{tr "Discount, move or void"}}</summary>
+        <form method="post" action="/admin/orders/{{.Table}}/discount" class="row">
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <label class="field">{{tr "Discount on the whole bill (Rabatt)"}}
+            <select name="pct">{{range $p := discountSteps}}<option value="{{$p}}">{{if eq $p 0}}{{tr "No discount"}}{{else if eq $p 100}}{{tr "100 % · on the house"}}{{else}}{{$p}} %{{end}}</option>{{end}}</select>
+          </label>
+          <button class="btn btn-secondary btn-sm">{{tr "Give discount"}}</button>
+        </form>
+        {{if .FreeTables}}
+        <form method="post" action="/admin/orders/{{.Table}}/move" class="row">
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <label class="field">{{tr "Move this bill to"}}
+            <select name="to">{{range .FreeTables}}<option value="{{.}}">{{tableLabel .}}</option>{{end}}</select>
+          </label>
+          <button class="btn btn-secondary btn-sm">{{tr "Move"}}</button>
+        </form>
+        {{end}}
+        <form method="post" action="/admin/orders/{{.Table}}/void" data-confirm="{{trf "Void the bill for table %d? Use this only if it was opened by mistake or the guests left. It can't be undone." .Table}}" data-confirm-ok="{{tr "Void bill"}}" data-danger>
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <button class="btn btn-danger btn-sm">{{tr "Void bill"}}</button>
+        </form>
+      </details>
+    </div>
+
+    {{range .Lines}}
+    <dialog id="line-{{.ID}}" aria-labelledby="line-h-{{.ID}}">
+      <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/save">
+        <div class="dlg-head">
+          <h2 id="line-h-{{.ID}}">{{.Name}}</h2>
+          <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="dlg-body">
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}">
+          <div class="dlg-grid">
+            <label class="field">{{tr "Price each €"}}<input name="price" inputmode="decimal" value="{{euro .PriceCents}}" required></label>
+            <label class="field">{{tr "Discount (Rabatt)"}}<select name="discount">{{$cur := .DiscountPct}}{{range $p := discountSteps}}<option value="{{$p}}"{{if eq $p $cur}} selected{{end}}>{{if eq $p 0}}{{tr "No discount"}}{{else if eq $p 100}}{{tr "100 % · on the house"}}{{else}}{{$p}} %{{end}}</option>{{end}}{{if not (validDiscount $cur)}}<option value="{{$cur}}" selected>{{$cur}} %</option>{{end}}</select></label>
+            {{if .TicketID}}
+            <input type="hidden" name="qty" value="{{.Qty}}">
+            <p class="muted small wide">{{tr "The chef already has this, so only the price can change. To change the dish or how many, take it off and add it again."}}</p>
+            {{else}}
+            <label class="field">{{tr "How many"}}<input name="qty" type="number" min="1" max="50" value="{{.Qty}}" inputmode="numeric" required></label>
+            {{end}}
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button type="submit" class="btn btn-danger btn-sm" form="rm-{{.ID}}" style="margin-right:auto">{{tr "Take off the bill"}}</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-close>{{tr "Cancel"}}</button>
+          <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+        </div>
+      </form>
+      <form id="rm-{{.ID}}" method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/remove" data-confirm="{{if .TicketID}}{{trf "Take %s off the bill? The chef sees it crossed out." .Name}}{{else}}{{trf "Take %s off the bill?" .Name}}{{end}}" data-confirm-ok="{{tr "Take off the bill"}}" data-danger>
+        <input type="hidden" name="bill" value="{{$.Bill.ID}}">
+      </form>
+    </dialog>
+    {{end}}
+
+    {{else}}
+    <div class="empty"><strong>{{tr "No open bill"}}</strong>{{tr "Add the first dishes below. The bill opens by itself."}}</div>
+    {{if .NextDeposit}}<p class="notice info">{{trf "These guests paid a %s deposit online. It comes off their bill." (euro .NextDeposit)}}</p>{{end}}
+    {{end}}
+    <details class="kitchen-msg">
+      <summary>{{tr "Message to the kitchen"}} <span class="muted small">{{tr "(Fritt köksmeddelande)"}}</span></summary>
+      <form method="post" action="/admin/orders/{{.Table}}/message" class="row">
+        <input type="hidden" name="bill" value="{{if .Open}}{{.Bill.ID}}{{else}}0{{end}}">
+        <label class="field grow">{{tr "Shown on the kitchen screen with a chime"}}<input name="text" maxlength="200" required placeholder="{{tr "e.g. Guest 2 is allergic to nuts"}}"></label>
+        <button class="btn btn-secondary btn-sm">{{tr "Send"}}</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="panel add-panel" aria-labelledby="add-h">
+    <h2 id="add-h">{{if .Open}}{{tr "Add to the order"}}{{else}}{{tr "Take the order"}}{{end}}</h2>
+    {{with .Stock}}{{template "stock-strip" .}}{{end}}
+    <form method="post" action="/admin/orders/{{.Table}}/add" id="staff-order" class="staff-order" data-one="{{tr "1 item"}}" data-many="{{tr "%d items"}}">
+      <input type="hidden" name="bill" value="{{if .Open}}{{.Bill.ID}}{{else}}0{{end}}">
+      {{with .ForGuests}}
+      <fieldset class="for-guest">
+        <legend>{{tr "Who is it for?"}}</legend>
+        <label class="chip-g together-g"><input type="radio" name="for" value="0" checked><span>{{tr "The table"}}</span></label>
+        {{range .}}<label class="chip-g together-g"><input type="radio" name="for" value="{{.Guest}}"{{if .Off}} disabled{{end}}><span>{{.Label}}</span></label>{{end}}
+        <p class="muted small">{{tr "Pick a guest when one of them asked you instead of using their phone. Then it's on their part straight away."}}</p>
+      </fieldset>
+      {{end}}
+      <div class="od-search" data-dish-search hidden>
+        <input type="search" placeholder="{{tr "Search the menu"}}" aria-label="{{tr "Search the menu"}}" autocomplete="off" enterkeyhint="search">
+        <p class="muted small" data-search-none hidden>{{tr "Nothing on the menu matches. Use “Something not on the menu” at the bottom."}}</p>
+      </div>
+      {{if gt (len .Menu) 1}}
+      <nav class="od-jump" aria-label="{{tr "Sections"}}">{{range $i, $c := .Menu}}<a href="#cat-{{$i}}">{{$c.Name}}</a>{{end}}</nav>
+      <div class="od-tabs" data-cat-tabs hidden aria-label="{{tr "Sections"}}">
+        {{range $i, $c := .Menu}}<button type="button" data-cat="{{$i}}" aria-pressed="false">{{$c.Name}}<span class="od-tab-n" data-cat-count="{{$i}}"></span></button>{{end}}
+        <button type="button" data-cat="all" aria-pressed="false">{{tr "Everything"}}</button>
+      </div>
+      {{end}}
+      {{range $i, $c := .Menu}}
+      <section class="od-sec" data-cat-sec="{{$i}}">
+      <h3 class="od-cat" id="cat-{{$i}}">{{$c.Name}}</h3>
+      <ul class="dish-list od-grid">
+        {{range .Items}}
+        {{$gone := .Gone $.Today}}
+        <li class="dish od{{if $gone}} gone{{end}}">
+          <div class="dish-text">
+            <div class="od-tap">
+            <span class="od-name" lang="sv">{{.Name}}</span>
+            <span class="dish-meta">{{if .ShortOf}}<span class="badge badge-bad">{{trf "No %s left" .ShortOf}}</span>{{else if .OutOfStock}}<span class="badge badge-bad">{{tr "Out of stock"}}</span>{{else if .SoldOut $.Today}}<span class="badge badge-bad">{{tr "Sold out today"}}</span>{{else if .RunningLow}}<span class="badge badge-wait">{{trf "%d left" .LeftNow}}</span>{{end}}{{if .PriceMissing}}<span class="badge badge-wait">{{tr "Type the price"}}</span>{{else if .Included}}<span class="dish-price muted">{{tr "in the set menu"}}</span>{{else}}<span class="dish-price">{{euro .PriceCents}}</span>{{end}}{{if .Happy}}<span class="badge badge-wait">{{tr "Cocktail hour"}}</span>{{end}}{{if .Drink}}<span class="badge badge-muted">{{tr "Drink"}}</span>{{end}}</span>
+            {{with .Allergens}}<span class="dish-allergens"><b>{{tr "Contains:"}}</b> {{allergens .}}</span>{{end}}
+            </div>
+            {{if not $gone}}
+            <details class="od-more"{{if .PriceMissing}} open{{end}}>
+              <summary>{{if .PriceMissing}}{{tr "Price"}}{{else if .Drink}}{{tr "Other price"}}{{else}}{{tr "Note or other price"}}{{end}}</summary>
+              <div class="od-extra">
+                {{if not .Drink}}<label class="field">{{tr "Note for the chef"}}<input name="note_{{.ID}}" maxlength="120" placeholder="{{tr "e.g. no onions"}}"></label>{{end}}
+                <label class="field">{{tr "Price each €"}}<input name="price_{{.ID}}" inputmode="decimal" placeholder="{{euro .PriceCents}}" data-price-for="{{.ID}}"></label>
+              </div>
+            </details>
+            {{end}}
+          </div>
+          {{if not $gone}}
+          <div class="qty is-zero">
+            <button type="button" class="btn btn-secondary btn-sm add-btn" aria-label="{{trf "Add %s" .Name}}">+ {{tr "Add"}}</button>
+            <button type="button" class="qty-btn" data-step="-1" aria-label="{{trf "One less %s" .Name}}">&minus;</button>
+            <input type="number" name="qty_{{.ID}}" min="0" max="{{if and .Counted (lt .Left 50)}}{{.Left}}{{else}}50{{end}}" value="0" placeholder="0" data-id="{{.ID}}" data-price="{{.PriceCents}}" inputmode="numeric" aria-label="{{trf "How many %s" .Name}}">
+            <button type="button" class="qty-btn" data-step="1" aria-label="{{trf "One more %s" .Name}}">+</button>
+          </div>
+          {{end}}
+        </li>
+        {{end}}
+      </ul>
+      </section>
+      {{end}}
+
+      <details class="od-custom">
+        <summary>{{tr "Something not on the menu"}} <span class="muted small">{{tr "(Öppen mat, Öppen alkohol)"}}</span></summary>
+        <div class="dlg-grid">
+          <label class="field wide">{{tr "Name"}}<input name="custom_name" maxlength="80"></label>
+          <label class="field">{{tr "Price each €"}}<input name="custom_price" inputmode="decimal" placeholder="5,00"></label>
+          <label class="field">{{tr "How many"}}<input name="custom_qty" type="number" min="1" max="50" value="1" inputmode="numeric"></label>
+          <label class="field wide">{{tr "Type"}}<select name="custom_type"><option value="food">{{tr "Food: goes to the chef"}}</option><option value="drink">{{tr "Drink without alcohol: not to the chef"}}</option><option value="alcohol">{{tr "Drink with alcohol (25,5 % VAT): not to the chef"}}</option></select></label>
+          <label class="field wide">{{tr "Note for the chef"}}<input name="custom_note" maxlength="120"></label>
+          <label class="field wide">{{tr "Keep it on the menu?"}}<select name="custom_keep" data-keep>
+            <option value="">{{tr "No, only this order"}}</option>
+            <option value="today">{{tr "Yes, today only (a special)"}}</option>
+            <option value="until">{{tr "Yes, until a day I pick"}}</option>
+          </select></label>
+          <label class="field wide" data-keep-until hidden>{{tr "Last day on the menu"}}<input name="custom_until" type="date" min="{{.Today}}"></label>
+        </div>
+        <div class="keep-more" data-keep-more hidden>
+          <p class="small muted">{{tr "It goes in “Dagens special” at the top of the menu, and is off the menu by itself after its last day. Guests don't see it on their phones."}}</p>
+          <p class="small"><strong>{{tr "Uses from stock (one portion)"}}</strong></p>
+          {{template "uses-rows" (usesRows "custom_use" nil .Ingredients 3)}}
+        </div>
+      </details>
+
+      <label class="hold-box"><input type="checkbox" name="hold" value="1" checked> <span><strong>{{tr "Vänta varmt"}}</strong> · {{tr "with starters, the mains wait until you tap “Mains now”; desserts ordered now wait for “Dessert now”"}}</span></label>
+      <div class="order-bar">
+        <span class="order-sum" data-order-sum>{{tr "Pick dishes and drinks"}}</span>
+        <button class="btn btn-primary">{{tr "Add to bill"}}</button>
+      </div>
+    </form>
+  </section>
+</div>
+{{end}}

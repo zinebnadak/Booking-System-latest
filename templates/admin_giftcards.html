@@ -1,0 +1,78 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/orders" aria-label="{{tr "Orders"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{tr "Gift cards and lunch booklets"}}</h1>
+</div>
+<p class="muted small">{{tr "Sell a gift card (presentkort) or a lunch coupon booklet (lunchkuponghäfte), print it and hand it over. The code on it pays at the table: on the bill, under Other ways to pay."}}</p>
+
+<section class="panel">
+  <h2>{{tr "Look up a card"}}</h2>
+  <form method="get" action="/admin/giftcards" class="row">
+    <label class="field grow">{{tr "Code on the card"}}<input name="code" value="{{.Code}}" autocomplete="off" autocapitalize="characters" placeholder="PK-XXXX-XXXX" required></label>
+    <button class="btn btn-secondary">{{tr "Look up"}}</button>
+  </form>
+  {{if .NotFound}}<p class="notice">{{tr "No gift card or lunch booklet with that code. Check the code on the card."}}</p>{{end}}
+  {{with .Found}}
+  <div class="gc-found">
+    <p class="gc-code">{{.Code}}{{if .Void}} <span class="badge badge-bad">{{tr "Voided"}}</span>{{end}}</p>
+    {{if eq .Kind "lunch"}}
+    <p><strong>{{trf "%d of %d coupons left" .Left .Coupons}}</strong> · {{trf "each pays one lunch, up to %s" (euro .CouponCents)}}</p>
+    {{else}}
+    <p><strong>{{trf "%s left" (euro .Cents)}}</strong> · {{trf "of %s" (euro .Initial)}}</p>
+    {{end}}
+    <p class="muted small">{{trf "Sold %s for %s (%s)" .Sold (euro .SoldCents) (method .SoldWith)}}{{with .SoldBy}} · {{.}}{{end}}{{with .Note}} · {{.}}{{end}}</p>
+    <div class="row">
+      <a class="btn btn-secondary btn-sm" href="/admin/giftcards/{{.Code}}/print">{{tr "Print again"}}</a>
+      {{if and $.Manager (not .Uses) (not .Void)}}
+      <form method="post" action="/admin/giftcards/{{.Code}}/void" data-confirm="{{tr "Void this card? Only if it was sold by mistake: give the money back the way it was paid."}}" data-confirm-ok="{{tr "Void card"}}" data-danger><button class="btn btn-danger btn-sm">{{tr "Void card"}}</button></form>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</section>
+
+<div class="gc-sell">
+<section class="panel">
+  <h2>{{tr "Sell a gift card"}}</h2>
+  <form method="post" action="/admin/giftcards" class="form-grid">
+    <input type="hidden" name="kind" value="gift">
+    <label class="field">{{tr "Value €"}}<input name="amount" inputmode="decimal" placeholder="50,00" required></label>
+    <label class="field">{{tr "Paid with"}}<select name="method"><option value="card">{{method "card"}}</option><option value="cash">{{method "cash"}}</option></select></label>
+    <label class="field wide">{{tr "Note"}} <span class="hint">{{tr "optional, e.g. who it's for"}}</span><input name="note" maxlength="80"></label>
+    <button class="btn btn-primary">{{tr "Sell and print"}}</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>{{tr "Sell a lunch booklet"}}</h2>
+  <form method="post" action="/admin/giftcards" class="form-grid">
+    <input type="hidden" name="kind" value="lunch">
+    <label class="field">{{tr "Coupons"}}<input name="coupons" type="number" min="1" max="50" value="10" inputmode="numeric" required></label>
+    <label class="field">{{tr "One coupon pays a lunch up to €"}}<input name="coupon" inputmode="decimal" placeholder="12,90" required></label>
+    <label class="field">{{tr "Price of the booklet €"}}<input name="price" inputmode="decimal" placeholder="115,00" required></label>
+    <label class="field">{{tr "Paid with"}}<select name="method"><option value="card">{{method "card"}}</option><option value="cash">{{method "cash"}}</option></select></label>
+    <label class="field wide">{{tr "Note"}} <span class="hint">{{tr "optional, e.g. who it's for"}}</span><input name="note" maxlength="80"></label>
+    <button class="btn btn-primary">{{tr "Sell and print"}}</button>
+  </form>
+</section>
+</div>
+
+<section class="panel">
+  <h2>{{tr "Sold lately"}}</h2>
+  {{if .List}}
+  <table class="list gc-list">
+    <tbody>
+    {{range .List}}
+    <tr{{if .Void}} class="off"{{end}}>
+      <td><a href="/admin/giftcards?code={{.Code}}"><strong>{{.Code}}</strong></a><br><span class="muted small">{{.Sold}}{{with .Note}} · {{.}}{{end}}</span></td>
+      <td>{{if eq .Kind "lunch"}}{{tr "Lunch booklet"}}{{else}}{{tr "Gift card"}}{{end}}</td>
+      <td class="nowrap" style="text-align:right">{{if .Void}}{{tr "Voided"}}{{else if eq .Kind "lunch"}}{{trf "%d of %d left" .Left .Coupons}}{{else}}{{euro .Cents}} / {{euro .Initial}}{{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">{{tr "No gift cards or lunch booklets sold yet."}}</p>
+  {{end}}
+</section>
+{{end}}

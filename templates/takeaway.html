@@ -1,0 +1,137 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>{{.T.ta_page_title}}</h1>
+  <p>{{.T.ta_lead2}}</p>
+</div>
+
+{{if not .Days}}
+<div class="notice" role="status">{{.T.no_days}}</div>
+{{else}}
+<form method="post" action="/takeaway" id="order" class="ta-layout" novalidate
+      data-word-one="{{.T.cart_one}}" data-word-many="{{.T.cart_many}}" data-word-pay="{{.T.pay_deposit}}">
+  <div class="ta-main">
+    {{if .Errors}}<div class="notice error" role="alert">{{.T.err_summary}}</div>{{end}}
+
+    <nav class="cat-tabs" aria-label="{{.T.categories}}">
+      {{range $i, $c := .Categories}}<a href="#cat-{{$i}}" data-cat="{{$i}}"{{if eq $i 0}} class="on"{{end}}>{{$c.Name}}</a>{{end}}
+    </nav>
+
+    <section class="step" id="menu-start" aria-labelledby="h-food">
+      <div class="step-head"><span class="step-num" aria-hidden="true">1</span><h2 id="h-food">{{.T.ta_step_food}}</h2></div>
+      {{with .Errors.items}}<p class="field-error" role="alert">{{.}}</p>{{end}}
+      {{range $i, $c := .Categories}}
+      <h3 class="cat" id="cat-{{$i}}" data-cat="{{$i}}">{{$c.Name}}</h3>
+      <ul class="menu">
+        {{range $c.Items}}
+        {{$q := index $.Qty .ID}}
+        <li class="dish{{if $q}} picked{{end}}">
+          {{with .Photo}}<img class="dish-photo" src="/photos/{{.}}" alt="" loading="lazy" decoding="async">{{end}}
+          <div class="dish-text">
+            <span class="dish-name">{{.Name}}</span>
+            {{with .Description}}<span class="dish-desc">{{.}}</span>{{end}}
+            <span class="dish-meta"><span class="dish-price">{{euro .PriceCents}}</span>{{with .Tags}}<span class="dish-tags">{{.}}</span>{{end}}</span>
+            {{with .Allergens}}<span class="dish-allergens"><b>{{tr "Contains:"}}</b> {{allergens .}}</span>{{end}}
+          </div>
+          <div class="qty{{if not $q}} is-zero{{end}}">
+            <button type="button" class="btn btn-secondary btn-sm add-btn" aria-label="{{$.T.add}}: {{.Name}}">+ {{$.T.add}}</button>
+            <button type="button" class="qty-btn" data-step="-1" aria-label="{{$.T.less}}: {{.Name}}">&minus;</button>
+            <input type="number" name="qty_{{.ID}}" min="0" max="20" value="{{$q}}" placeholder="0" data-price="{{.PriceCents}}" data-name="{{.Name}}" inputmode="numeric" aria-label="{{$.T.how_many}}: {{.Name}}">
+            <button type="button" class="qty-btn" data-step="1" aria-label="{{$.T.more}}: {{.Name}}">+</button>
+          </div>
+        </li>
+        {{end}}
+      </ul>
+      {{end}}
+      <p class="legend-note">{{.T.legend}}</p>
+      <p class="allergy-note">{{if .Cfg.RestaurantPhone}}{{trf "Allergic to something? The main allergens are listed under each dish. If you're not sure, call us on %s before you order." .Cfg.RestaurantPhone}}{{else}}{{tr "Allergic to something? The main allergens are listed under each dish. Write any allergy in the notes so the kitchen knows."}}{{end}}</p>
+    </section>
+
+    <section class="step" id="when" aria-labelledby="h-when">
+      <div class="step-head"><span class="step-num" aria-hidden="true">2</span><h2 id="h-when">{{.T.ta_step_when}}</h2></div>
+      {{with .Errors.time}}<p class="field-error" role="alert">{{.}}</p>{{end}}
+      <div class="days" role="radiogroup" aria-labelledby="h-when">
+        {{range .Days}}
+        <label class="day">
+          <input type="radio" name="date" value="{{.Date}}"{{if .Selected}} checked{{end}}>
+          <span class="day-wd">{{if .Label}}{{.Label}}{{else}}{{.Weekday}}{{end}}</span>
+          <span class="day-num">{{.Num}}</span>
+          <span class="day-mon">{{.Month}}</span>
+        </label>
+        {{end}}
+      </div>
+      {{range $d := .Days}}
+      <div class="pickday" data-day="{{$d.Date}}"{{if not $d.Selected}} hidden{{end}}>
+        <p class="picked">{{cap (date $.Lang $d.Date)}}</p>
+        {{range $d.Periods}}
+        <h3 class="period">{{.Label}}</h3>
+        <div class="slots">
+          {{range .Slots}}
+          <label class="slot">
+            <input type="radio" name="time" value="{{.Time}}"{{if and (eq $.Form.time .Time) (eq $.Form.date $d.Date)}} checked{{end}}>
+            <span class="slot-time">{{.Time}}</span>
+          </label>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+      <noscript><style>.pickday[hidden]{display:block!important}</style></noscript>
+    </section>
+
+    <section class="step" id="checkout" aria-labelledby="h-details">
+      <div class="step-head"><span class="step-num" aria-hidden="true">3</span><h2 id="h-details">{{.T.step_details}}</h2></div>
+      <div class="fields">
+        <label class="field">{{.T.f_name}}
+          <input name="name" value="{{.Form.name}}" autocomplete="name" required{{with .Errors.name}} aria-invalid="true" aria-describedby="err-name"{{end}}>
+          {{with .Errors.name}}<span class="field-error" id="err-name">{{.}}</span>{{end}}
+        </label>
+        <label class="field">{{.T.f_phone}}
+          <input name="phone" type="tel" value="{{.Form.phone}}" autocomplete="tel" inputmode="tel" required{{with .Errors.phone}} aria-invalid="true" aria-describedby="err-phone"{{end}}>
+          {{with .Errors.phone}}<span class="field-error" id="err-phone">{{.}}</span>{{end}}
+        </label>
+        <label class="field wide">{{.T.f_email}}
+          <input name="email" type="email" value="{{.Form.email}}" autocomplete="email" inputmode="email" required{{with .Errors.email}} aria-invalid="true" aria-describedby="err-email"{{end}}>
+          {{with .Errors.email}}<span class="field-error" id="err-email">{{.}}</span>{{end}}
+        </label>
+        <label class="field wide"><span class="field-label">{{.T.f_notes_ta}} <span class="hint">{{.T.optional}}</span></span>
+          <textarea name="notes" rows="2" placeholder="{{.T.notes_ph_ta}}">{{.Form.notes}}</textarea>
+          {{with .Errors.notes}}<span class="field-error">{{.}}</span>{{end}}
+        </label>
+      </div>
+      <div class="inline-pay" style="margin-top:20px">
+        <div class="sum-line"><span>{{.T.food_total}}</span><strong data-sum="total">0,00 €</strong></div>
+        <div class="sum-line"><span>{{.T.pay_at_pickup}}</span><strong data-sum="rest">0,00 €</strong></div>
+        <div class="sum-line big"><span>{{.T.deposit_now}}</span><strong data-sum="deposit">0,00 €</strong></div>
+        <button class="btn btn-primary btn-block" style="margin-top:12px" data-pay data-loading="{{.T.opening_payment}}">{{.T.pay_deposit}}</button>
+        <p class="step-note">{{.T.ta_nonrefund}}</p>
+        <p class="consent">{{.T.consent_1}} <a href="/terms" target="_blank">{{.T.consent_terms}}</a> {{.T.consent_2}} <a href="/privacy" target="_blank">{{.T.consent_privacy}}</a>.</p>
+      </div>
+    </section>
+  </div>
+
+  <aside class="ta-cart card summary" aria-label="{{.T.your_order}}">
+    <h2>{{.T.your_order}}</h2>
+    <ul class="cart-lines" id="cart-lines">
+      {{range .Categories}}{{range .Items}}{{with index $.Qty .ID}}<li><span class="q">{{.}} ×</span><span></span><span class="p"></span></li>{{end}}{{end}}{{end}}
+    </ul>
+    <p class="cart-empty" id="cart-empty">{{.T.order_empty}}</p>
+    <div class="sum-line"><span>{{.T.food_total}}</span><strong data-sum="total">0,00 €</strong></div>
+    <div class="sum-line"><span>{{.T.pay_at_pickup}}</span><strong data-sum="rest">0,00 €</strong></div>
+    <div class="sum-line big"><span>{{.T.deposit_now}}</span><strong data-sum="deposit">0,00 €</strong></div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px" data-pay data-loading="{{.T.opening_payment}}">{{.T.pay_deposit}}</button>
+    <p class="sum-note">{{.T.ta_nonrefund}}</p>
+    <p class="consent">{{.T.consent_1}} <a href="/terms" target="_blank">{{.T.consent_terms}}</a> {{.T.consent_2}} <a href="/privacy" target="_blank">{{.T.consent_privacy}}</a>.</p>
+  </aside>
+
+  <div class="paybar" id="cartbar" hidden>
+    <div class="paybar-inner">
+      <div class="paybar-text">
+        <strong data-sum="count"></strong>
+        <span><span data-sum="total"></span> · {{.T.deposit}} <span data-sum="deposit"></span></span>
+      </div>
+      <a class="btn btn-primary" href="#when">{{.T.continue}}</a>
+    </div>
+  </div>
+</form>
+{{end}}
+{{end}}

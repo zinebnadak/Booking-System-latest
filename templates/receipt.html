@@ -1,0 +1,7 @@
+{{define "content"}}
+<div class="guest-bill rc-public">
+  {{template "receipt-card" .R}}
+  <p class="rc-note"><a href="/review?table={{.R.Table}}">★ {{tr "How was it? Tell us"}}</a></p>
+  <p class="rc-note">{{if .R.Paid}}{{if eq .R.PaidBy "online"}}{{tr "A copy of your bill, paid on your phone."}}{{else if eq .R.PaidBy "cash"}}{{tr "A copy of your bill, paid in cash."}}{{else if eq .R.PaidBy "card"}}{{tr "A copy of your bill. Your card payment also has its own receipt from the card terminal."}}{{else}}{{tr "A copy of your bill."}}{{end}}{{else}}{{tr "Not paid yet. This page updates when you've paid: open it again later."}}{{end}}</p>
+</div>
+{{end}}

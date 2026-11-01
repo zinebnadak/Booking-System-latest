@@ -1,0 +1,111 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>{{.T.book_title}}</h1>
+  <p>{{.T.book_lead}}</p>
+</div>
+
+<form method="post" action="/book" id="booking" class="book-layout" novalidate
+      data-times-url="/book/times" data-pick-time="{{.T.pick_time}}" data-pick-day="{{.T.pick_day}}"{{if .Errors}} data-has-errors{{end}}>
+  <input type="hidden" name="size" value="{{.Size}}">
+  <input type="hidden" name="date" value="{{.Date}}">
+
+  <div class="book-main">
+    {{if .Errors}}<div class="notice error" role="alert">{{.T.err_summary}}</div>{{end}}
+
+    <section class="step" id="step-guests" aria-labelledby="h-guests">
+      <div class="step-head"><span class="step-num" aria-hidden="true">1</span><h2 id="h-guests">{{.T.step_guests}}</h2></div>
+      <div class="chips" role="list">
+        {{range .Sizes}}
+        <a role="listitem" class="chip" href="/book?size={{.}}{{if $.Date}}&date={{$.Date}}{{end}}" data-size="{{.}}" data-deposit="{{tableDeposit .}}"{{if eq . $.Size}} aria-current="true"{{end}} aria-label="{{guests $.Lang .}}">{{.}}</a>
+        {{end}}
+      </div>
+      {{with .Errors.size}}<p class="field-error">{{.}}</p>{{end}}
+      <p class="step-note">{{if .Cfg.RestaurantPhone}}{{.T.big_group_phone}} <a href="tel:{{.Cfg.RestaurantPhone}}">{{.Cfg.RestaurantPhone}}</a>.{{else}}{{.T.big_group}}{{end}}</p>
+    </section>
+
+    <section class="step" id="step-date" aria-labelledby="h-date">
+      <div class="step-head"><span class="step-num" aria-hidden="true">2</span><h2 id="h-date">{{.T.step_date}}</h2></div>
+      <div class="days" role="list">
+        {{range .Days}}
+        {{if or (eq .State "open") (eq .State "full")}}
+        <a role="listitem" class="day{{if eq .State "full"}} is-full{{end}}" href="/book?size={{$.Size}}&date={{.Date}}#step-time" data-date="{{.Date}}"{{if .Selected}} aria-current="date"{{end}}>
+          <span class="day-wd">{{if .Label}}{{.Label}}{{else}}{{.Weekday}}{{end}}</span>
+          <span class="day-num">{{.Num}}</span>
+          <span class="day-mon">{{if eq .State "full"}}{{$.T.day_full}}{{else}}{{.Month}}{{end}}</span>
+        </a>
+        {{else}}
+        <span role="listitem" class="day off" aria-disabled="true">
+          <span class="day-wd">{{if .Label}}{{.Label}}{{else}}{{.Weekday}}{{end}}</span>
+          <span class="day-num">{{.Num}}</span>
+          <span class="day-mon">{{if eq .State "closed"}}{{$.T.day_closed}}{{else}}{{.Month}}{{end}}</span>
+        </span>
+        {{end}}
+        {{end}}
+      </div>
+      <label class="other-date">{{.T.other_date}}
+        <input type="date" id="other-date" value="{{.Date}}" min="{{.MinDate}}" max="{{.MaxDate}}">
+      </label>
+    </section>
+
+    <section class="step" id="step-time" aria-labelledby="h-time">
+      <div class="step-head"><span class="step-num" aria-hidden="true">3</span><h2 id="h-time">{{.T.step_time}} <span class="sub" id="when-label">{{with .When}}· {{.}}{{end}}</span></h2></div>
+      {{with .Errors.time}}<p class="field-error" role="alert">{{.}}</p>{{end}}
+      <div id="times" class="times" aria-live="polite">{{template "times" .}}</div>
+    </section>
+
+    <section class="step" id="step-details" aria-labelledby="h-details">
+      <div class="step-head"><span class="step-num" aria-hidden="true">4</span><h2 id="h-details">{{.T.step_details}}</h2></div>
+      <div class="fields">
+        <label class="field">{{.T.f_name}}
+          <input name="name" value="{{.Form.name}}" autocomplete="name" required{{with .Errors.name}} aria-invalid="true" aria-describedby="err-name"{{end}}>
+          {{with .Errors.name}}<span class="field-error" id="err-name">{{.}}</span>{{end}}
+        </label>
+        <label class="field">{{.T.f_phone}}
+          <input name="phone" type="tel" value="{{.Form.phone}}" autocomplete="tel" inputmode="tel" required{{with .Errors.phone}} aria-invalid="true" aria-describedby="err-phone"{{end}}>
+          {{with .Errors.phone}}<span class="field-error" id="err-phone">{{.}}</span>{{end}}
+        </label>
+        <label class="field wide">{{.T.f_email}}
+          <input name="email" type="email" value="{{.Form.email}}" autocomplete="email" inputmode="email" required{{with .Errors.email}} aria-invalid="true" aria-describedby="err-email"{{end}}>
+          {{with .Errors.email}}<span class="field-error" id="err-email">{{.}}</span>{{end}}
+        </label>
+        <fieldset class="field wide occasion">
+          <legend class="field-label">{{.T.f_occasion}} <span class="hint">{{.T.optional}}</span></legend>
+          <div class="occ-row">
+            <label class="occ"><input type="radio" name="occasion" value=""{{if not .Form.occasion}} checked{{end}}><span>{{.T.occ_none}}</span></label>
+            {{range .Occasions}}<label class="occ"><input type="radio" name="occasion" value="{{.}}"{{if eq . $.Form.occasion}} checked{{end}}><span>{{index $.T (printf "occ_%s" .)}}</span></label>{{end}}
+          </div>
+        </fieldset>
+        <label class="field wide"><span class="field-label">{{.T.f_notes_table}} <span class="hint">{{.T.optional}}</span></span>
+          <textarea name="notes" rows="2" placeholder="{{.T.notes_ph_table}}">{{.Form.notes}}</textarea>
+          {{with .Errors.notes}}<span class="field-error">{{.}}</span>{{end}}
+        </label>
+      </div>
+      <button class="btn btn-primary btn-block inline-pay" style="margin-top:20px" data-pay data-loading="{{.T.opening_payment}}">{{.T.pay_deposit}} · <span data-sum="deposit">{{euro .Deposit}}</span></button>
+      <p class="step-note">{{.T.deposit_note_tbl}}</p>
+      <p class="consent">{{.T.consent_1}} <a href="/terms" target="_blank">{{.T.consent_terms}}</a> {{.T.consent_2}} <a href="/privacy" target="_blank">{{.T.consent_privacy}}</a>.</p>
+    </section>
+  </div>
+
+  <aside class="book-summary card summary" aria-label="{{.T.your_booking}}">
+    <h2>{{.T.your_booking}}</h2>
+    <dl class="sum-rows">
+      <dt>{{.T.lbl_date}}</dt><dd data-sum="date"{{if not .When}} class="empty"{{end}}>{{if .WhenShort}}{{.WhenShort}}{{else}}{{.T.pick_day}}{{end}}</dd>
+      <dt>{{.T.lbl_time}}</dt><dd data-sum="time"{{if not .Form.time}} class="empty"{{end}}>{{if .Form.time}}{{.Form.time}}{{else}}{{.T.pick_time}}{{end}}</dd>
+      <dt>{{.T.lbl_guests}}</dt><dd data-sum="guests">{{guests .Lang .Size}}</dd>
+    </dl>
+    <div class="sum-total"><span>{{.T.deposit}}</span><strong data-sum="deposit">{{euro .Deposit}}</strong></div>
+    <button class="btn btn-primary btn-block" data-pay data-loading="{{.T.opening_payment}}">{{.T.pay_deposit}}</button>
+    <p class="sum-note">{{.T.deposit_note_tbl}}</p>
+  </aside>
+
+  <div class="paybar">
+    <div class="paybar-inner">
+      <div class="paybar-text">
+        <strong><span data-sum="date">{{if .WhenShort}}{{.WhenShort}}{{else}}{{.T.pick_day}}{{end}}</span> · <span data-sum="time">{{if .Form.time}}{{.Form.time}}{{else}}{{.T.pick_time}}{{end}}</span></strong>
+        <span><span data-sum="guests">{{guests .Lang .Size}}</span> · {{.T.deposit}} <span data-sum="deposit">{{euro .Deposit}}</span></span>
+      </div>
+      <button class="btn btn-primary" data-pay data-loading="…">{{.T.pay}}</button>
+    </div>
+  </div>
+</form>
+{{end}}

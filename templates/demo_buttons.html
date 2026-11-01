@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="demo-intro">
+  <h1>{{tr "Test buttons"}}</h1>
+  <p class="muted">{{tr "These act exactly like the real buttons on the tables. Press one, and that table lights up on the staff Tables screen. Only in demo mode."}}</p>
+</div>
+{{with .Result}}<p class="notice info" role="status">{{.}}</p>{{end}}
+<div class="push-grid">
+  {{range .Tables}}
+  <form method="post" action="/demo/buttons/{{.}}" class="push-box">
+    <button type="submit" class="push" aria-label="{{trf "Press the button on table %d" .}}"><span class="push-cap"></span></button>
+    <span class="push-label"><i class="led{{if eq . $.Pressed}} on{{end}}" aria-hidden="true"></i>{{trf "Table %d" .}}</span>
+  </form>
+  {{end}}
+</div>
+{{end}}

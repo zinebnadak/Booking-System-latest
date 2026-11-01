@@ -1,0 +1,62 @@
+{{define "content"}}
+<div class="day-head">
+  <h1>{{tr "Staff"}}</h1>
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/hours">{{tr "Hours (clock card)"}}</a>
+  <a class="btn btn-secondary btn-sm" href="/admin/activity">{{tr "Activity"}}</a>
+</div>
+<p class="muted small">{{tr "Each waiter logs in with their own username and password. They can use the tables, orders, kitchen and bookings, but not the menu, closed days or this page. Payments, voids and price changes are recorded with their name."}}</p>
+
+<section class="panel till-setup">
+  <h2>{{tr "Shared till"}}</h2>
+  <p class="muted small">{{tr "Like the old till: on the shared screen, a waiter types their number and a 4-digit PIN to log in, and taps Lock when done. The same keypad clocks them in and out. It only works on devices you make a till here, so nobody can try PINs from outside."}}</p>
+  {{if .IsTill}}
+  <p><span class="badge badge-ok">{{tr "This device is a till"}}</span> <a href="/till">{{tr "Open the keypad"}}</a></p>
+  <form method="post" action="/admin/staff/till"><input type="hidden" name="on" value="0"><button class="btn-link">{{tr "Stop using this device as a till"}}</button></form>
+  {{else}}
+  <form method="post" action="/admin/staff/till"><input type="hidden" name="on" value="1"><button class="btn btn-secondary btn-sm">{{tr "Make this device a till"}}</button></form>
+  {{end}}
+</section>
+
+<section class="panel">
+  <h2>{{tr "Add a waiter"}}</h2>
+  <form method="post" action="/admin/staff" class="form-grid staff-add">
+    <label class="field">{{tr "Name (shown on screens)"}}<input name="name" maxlength="40" required autocomplete="off"></label>
+    <label class="field">{{tr "Username"}}<input name="username" maxlength="40" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+    <label class="field">{{trf "Password (at least %d characters)" .Min}}<input name="password" type="password" minlength="{{.Min}}" required autocomplete="new-password"></label>
+    <div class="staff-add-btn"><button class="btn btn-primary">{{tr "Add waiter"}}</button></div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>{{tr "Waiters"}}</h2>
+  {{if .List}}
+  <ul class="staff-list">
+    {{range .List}}
+    <li>
+      <span><strong>{{if .No}}{{.No}} · {{end}}{{.Name}}</strong> <span class="muted small">{{.Username}}{{if .HasPIN}} · {{tr "PIN set"}}{{end}}</span></span>
+      <details class="staff-more">
+        <summary class="btn btn-secondary btn-sm">{{if .HasPIN}}{{tr "New PIN"}}{{else}}{{tr "Set a PIN"}}{{end}}</summary>
+        <form method="post" action="/admin/staff/{{.ID}}/pin" class="staff-pw">
+          <input name="pin" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" required autocomplete="off" aria-label="{{trf "PIN for %s" .Name}}" placeholder="{{tr "4–6 digits"}}">
+          <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+        </form>
+      </details>
+      <details class="staff-more">
+        <summary class="btn btn-secondary btn-sm">{{tr "New password"}}</summary>
+        <form method="post" action="/admin/staff/{{.ID}}/password" class="staff-pw">
+          <input name="password" type="password" minlength="{{$.Min}}" required autocomplete="new-password" aria-label="{{trf "New password for %s" .Name}}">
+          <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+        </form>
+      </details>
+      <form method="post" action="/admin/staff/{{.ID}}/remove" data-confirm="{{trf "Remove %s? They're logged out at once. Their name stays in the activity list." .Name}}" data-confirm-ok="{{tr "Remove"}}" data-danger>
+        <button class="btn-link">{{tr "Remove"}}</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="muted">{{tr "No waiters yet. Until you add some, staff can keep using the manager login."}}</p>
+  {{end}}
+</section>
+{{end}}

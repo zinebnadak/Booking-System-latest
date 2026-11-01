@@ -1,0 +1,24 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/activity?date={{.Prev}}" aria-label="{{tr "Previous day"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{tr "Activity"}} · {{prettyDate .Date}}</h1>
+  <a class="icon-btn" href="/admin/activity?date={{.Next}}" aria-label="{{tr "Next day"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <span class="spacer"></span>
+  {{if .Names}}
+  <form method="get" action="/admin/activity" class="act-who" data-autosubmit>
+    <input type="hidden" name="date" value="{{.Date}}">
+    <select name="who" aria-label="{{tr "Who"}}" data-autosubmit-select><option value="">{{tr "Everyone"}}</option>{{range .Names}}<option{{if eq . $.Who}} selected{{end}}>{{.}}</option>{{end}}</select>
+  </form>
+  {{end}}
+</div>
+<p class="muted small">{{tr "Who took payments, took them back, voided bills, changed prices or took things off a bill."}}</p>
+{{if .Rows}}
+<ul class="act-list panel">
+  {{range .Rows}}
+  <li><span class="act-time">{{.Time}}</span><strong>{{.Actor}}</strong> <span>{{tr .What}}{{if .Table}} · {{trf "Table %d" .Table}}{{end}}{{with .Detail}} · {{.}}{{end}}</span></li>
+  {{end}}
+</ul>
+{{else}}
+<div class="empty"><strong>{{tr "Nothing on this day"}}</strong></div>
+{{end}}
+{{end}}

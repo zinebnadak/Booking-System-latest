@@ -1,0 +1,125 @@
+{{define "content"}}
+<div class="day-head">
+  <h1>{{tr "Menu"}}</h1>
+  <span class="spacer"></span>
+  <button type="button" class="btn btn-primary btn-sm" data-open="dish-new">+ {{tr "Add dish"}}</button>
+</div>
+<p class="muted">{{tr "Changes show straight away when taking orders at the tables and on the takeaway page. Drinks are only for the tables and never go to the chef. Switch a dish off when it's sold out."}}</p>
+{{if .Missing}}<p class="notice">{{trf "%d items have no price yet (marked “Price missing”). Guests don't see them until you set one; staff type the price when they take the order." .Missing}}</p>{{end}}
+
+<datalist id="cats">{{range .CatNames}}<option value="{{.}}">{{end}}</datalist>
+
+{{range .Categories}}
+<section class="panel">
+  <div class="panel-head"><h2>{{.Name}}</h2><span class="muted small">{{trf "%d dishes" (len .Items)}}</span></div>
+  <ul class="menu-admin">
+    {{range .Items}}
+    <li{{if not .Available}} class="off"{{end}}>
+      {{with .Photo}}<img class="m-photo" src="/photos/{{.}}" alt="" loading="lazy" width="48" height="48">{{end}}
+      <div style="min-width:0">
+        <div class="m-name">{{.Name}}{{with .Tags}} <span class="muted small">· {{.}}</span>{{end}}{{if .Drink}} <span class="badge badge-muted">{{tr "Drink"}}</span>{{end}}{{with .Until}}{{if lt . $.Today}} <span class="badge badge-muted">{{tr "Ended"}}</span>{{else}} <span class="badge badge-wait">{{trf "Until %s" (shortDate .)}}</span>{{end}}{{end}}{{if .ShortOf}} <span class="badge badge-bad">{{trf "No %s left" .ShortOf}}</span>{{else if .OutOfStock}} <span class="badge badge-bad">{{tr "Out of stock"}}</span>{{else if .SoldOut $.Today}} <span class="badge badge-bad">{{tr "Sold out today"}}</span>{{else if .Counted}} <span class="badge {{if .RunningLow}}badge-wait{{else}}badge-muted{{end}}">{{trf "%d left" .Left}}</span>{{end}}{{if .Package}} <span class="badge badge-muted">{{tr "Set menu"}}</span>{{else if .Included}} <span class="badge badge-muted">{{tr "In the set menu"}}</span>{{else if .StaffOnly}} <span class="badge badge-muted">{{tr "Staff only"}}</span>{{end}}{{with .HappyCents}} <span class="badge badge-wait">{{trf "Cocktail hour %s" (euro .)}}</span>{{end}}</div>
+        {{with .Description}}<div class="m-desc">{{.}}</div>{{end}}
+        {{if not .Drink}}<div class="m-allergens">{{with .Allergens}}{{tr "Contains:"}} {{allergens .}}{{else}}<span class="muted">{{tr "No allergens ticked"}}</span>{{end}}</div>{{else}}{{with .Allergens}}<div class="m-allergens">{{tr "Contains:"}} {{allergens .}}</div>{{end}}{{end}}
+      </div>
+      <div class="m-right">
+        {{if .PriceMissing}}<span class="badge badge-wait">{{tr "Price missing"}}</span>{{else if .Included}}<span class="m-price muted">{{tr "included"}}</span>{{else}}<span class="m-price">{{euro .PriceCents}}</span>{{end}}
+        <form method="post" action="/admin/menu/{{.ID}}/available" data-autosubmit>
+          <label class="switch" title="{{tr "On the menu"}}"><input type="checkbox" name="available"{{if .Available}} checked{{end}} aria-label="{{trf "%s on the menu" .Name}}"><span class="track"></span></label>
+          <noscript><button class="btn btn-secondary btn-sm">{{tr "Save"}}</button></noscript>
+        </form>
+        {{if .OutOfStock}}<form method="post" action="/admin/stock/{{.ID}}"><input type="hidden" name="do" value="back"><button class="btn btn-secondary btn-sm">{{tr "Back in stock"}}</button></form>{{else if .SoldOut $.Today}}<form method="post" action="/admin/menu/{{.ID}}/soldout"><input type="hidden" name="soldout" value="0"><button class="btn btn-secondary btn-sm">{{tr "Back on"}}</button></form>{{end}}
+        <button type="button" class="btn btn-secondary btn-sm" data-open="dish-{{.ID}}">{{tr "Edit"}}</button>
+      </div>
+    </li>
+    {{end}}
+  </ul>
+</section>
+
+{{range .Items}}
+<dialog id="dish-{{.ID}}" aria-labelledby="dish-h-{{.ID}}">
+  <form method="post" action="/admin/menu">
+    <div class="dlg-head">
+      <h2 id="dish-h-{{.ID}}">{{tr "Edit dish"}}</h2>
+      <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <input type="hidden" name="id" value="{{.ID}}">
+      <div class="form-grid">
+        <label class="field wide">{{tr "Name"}}<input name="name" value="{{.Name}}" maxlength="80" required></label>
+        <label class="field wide">{{tr "Description"}}<textarea name="description" rows="2" maxlength="300">{{.Description}}</textarea></label>
+        <label class="field">{{tr "Price €"}}<input name="price" inputmode="decimal" value="{{if not .PriceMissing}}{{euro .PriceCents}}{{end}}"{{if not .Included}} required{{end}}></label>
+        <label class="field">{{tr "Tags"}}<input name="tags" value="{{.Tags}}" maxlength="60" placeholder="L, *G"></label>
+        <label class="field">{{tr "Section"}}<input name="category" list="cats" value="{{.Category}}" maxlength="60" required></label>
+        <label class="field">{{tr "Order in list"}}<input name="sort" type="number" value="{{.Sort}}"></label>
+        <label class="field wide">{{tr "Type"}}<select name="type"><option value="food"{{if not .Drink}} selected{{end}}>{{tr "Food: goes to the chef, also for takeaway"}}</option><option value="drink"{{if and .Drink (not .Alcohol)}} selected{{end}}>{{tr "Drink without alcohol: tables only, not to the chef"}}</option><option value="alcohol"{{if .Alcohol}} selected{{end}}>{{tr "Drink with alcohol (25,5 % VAT): tables only"}}</option></select></label>
+        <label class="field wide">{{tr "Course (food)"}}<select name="course"><option value="1"{{if eq .Course 1}} selected{{end}}>{{tr "Starter"}}</option><option value="2"{{if or (eq .Course 2) (and (not .Drink) (eq .Course 0))}} selected{{end}}>{{tr "Main course (also sides and kids' food)"}}</option><option value="3"{{if eq .Course 3}} selected{{end}}>{{tr "Dessert"}}</option></select></label>
+        <label class="field">{{tr "Cocktail-hour price €"}} <input name="happy" inputmode="decimal" value="{{with .HappyCents}}{{euro .}}{{end}}" placeholder="{{tr "none"}}"></label>
+        <label class="field">{{tr "Set menu"}}<select name="setmenu"><option value="">{{tr "No"}}</option><option value="package"{{if .Package}} selected{{end}}>{{tr "The set menu's price (not cooked)"}}</option><option value="included"{{if .Included}} selected{{end}}>{{tr "A dish in a set menu (price 0)"}}</option></select></label>
+        <label class="switch wide"><input type="checkbox" name="staffonly"{{if .StaffOnly}} checked{{end}}><span class="track"></span>{{tr "Only staff can add it (guests don't see it on their phones)"}}</label>
+        <fieldset class="field wide allergen-pick">
+          <legend>{{tr "Allergens: tick everything the dish contains"}}</legend>
+          <div class="allergen-grid">{{range allergenChoices .Allergens}}<label class="allergen-opt"><input type="checkbox" name="allergen" value="{{.Code}}"{{if .On}} checked{{end}}><span>{{.Label}}</span></label>{{end}}</div>
+          <p class="muted small">{{tr "Guests see these next to the dish. Check with the chef, also for sauces, dressings and the frying oil."}}</p>
+        </fieldset>
+        <label class="switch wide"><input type="checkbox" name="available"{{if .Available}} checked{{end}}><span class="track"></span>{{tr "On the menu"}}</label>
+        <label class="field">{{tr "Last day on the menu"}} <span class="hint">{{tr "empty: no end"}}</span><input type="date" name="until" value="{{.Until}}"></label>
+        <div class="field wide"><span>{{tr "Uses from stock (one portion)"}}</span>{{template "uses-rows" (usesRows "use" .Uses $.Ingredients 1)}}</div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="submit" class="btn btn-danger btn-sm" form="del-{{.ID}}" style="margin-right:auto">{{tr "Delete dish"}}</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-close>{{tr "Cancel"}}</button>
+      <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+    </div>
+  </form>
+  <div class="dlg-photo">
+    <h3>{{tr "Photo"}}</h3>
+    {{with .Photo}}<img class="m-photo-big" src="/photos/{{.}}" alt="">{{else}}<p class="muted small">{{tr "No photo yet. Guests see it next to the dish on their phone and on the takeaway page."}}</p>{{end}}
+    <form method="post" action="/admin/menu/{{.ID}}/photo/upload" enctype="multipart/form-data" class="photo-form">
+      <label class="field">{{tr "Choose a photo (JPEG or PNG)"}}<input type="file" name="photo" accept="image/jpeg,image/png" required></label>
+      <button class="btn btn-secondary btn-sm" data-loading="…">{{if .Photo}}{{tr "Change photo"}}{{else}}{{tr "Upload photo"}}{{end}}</button>
+    </form>
+    {{if .Photo}}<form method="post" action="/admin/menu/{{.ID}}/photo/remove"><button class="btn-link">{{tr "Remove photo"}}</button></form>{{end}}
+  </div>
+  <form id="del-{{.ID}}" method="post" action="/admin/menu/{{.ID}}/delete" data-confirm="{{trf "Delete %s from the menu? Old orders keep their copy." .Name}}" data-confirm-ok="{{tr "Delete dish"}}" data-danger></form>
+</dialog>
+{{end}}
+{{end}}
+
+<dialog id="dish-new" aria-labelledby="dish-h-new">
+  <form method="post" action="/admin/menu">
+    <div class="dlg-head">
+      <h2 id="dish-h-new">{{tr "Add a dish"}}</h2>
+      <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <input type="hidden" name="id" value="0">
+      <div class="form-grid">
+        <label class="field wide">{{tr "Name"}}<input name="name" maxlength="80" required></label>
+        <label class="field wide">{{tr "Description"}}<textarea name="description" rows="2" maxlength="300"></textarea></label>
+        <label class="field">{{tr "Price €"}}<input name="price" inputmode="decimal" placeholder="14,50"></label>
+        <label class="field">{{tr "Tags"}}<input name="tags" maxlength="60" placeholder="L, *G"></label>
+        <label class="field">{{tr "Section"}}<input name="category" list="cats" maxlength="60" required></label>
+        <label class="field">{{tr "Order in list"}}<input name="sort" type="number" value="{{.NextSort}}"></label>
+        <label class="field wide">{{tr "Type"}}<select name="type"><option value="food" selected>{{tr "Food: goes to the chef, also for takeaway"}}</option><option value="drink">{{tr "Drink without alcohol: tables only, not to the chef"}}</option><option value="alcohol">{{tr "Drink with alcohol (25,5 % VAT): tables only"}}</option></select></label>
+        <label class="field wide">{{tr "Course (food)"}}<select name="course"><option value="1">{{tr "Starter"}}</option><option value="2" selected>{{tr "Main course (also sides and kids' food)"}}</option><option value="3">{{tr "Dessert"}}</option></select></label>
+        <label class="field">{{tr "Cocktail-hour price €"}} <input name="happy" inputmode="decimal" placeholder="{{tr "none"}}"></label>
+        <label class="field">{{tr "Set menu"}}<select name="setmenu"><option value="">{{tr "No"}}</option><option value="package">{{tr "The set menu's price (not cooked)"}}</option><option value="included">{{tr "A dish in a set menu (price 0)"}}</option></select></label>
+        <label class="switch wide"><input type="checkbox" name="staffonly"><span class="track"></span>{{tr "Only staff can add it (guests don't see it on their phones)"}}</label>
+        <fieldset class="field wide allergen-pick">
+          <legend>{{tr "Allergens: tick everything the dish contains"}}</legend>
+          <div class="allergen-grid">{{range allergenChoices nil}}<label class="allergen-opt"><input type="checkbox" name="allergen" value="{{.Code}}"{{if .On}} checked{{end}}><span>{{.Label}}</span></label>{{end}}</div>
+          <p class="muted small">{{tr "Guests see these next to the dish. Check with the chef, also for sauces, dressings and the frying oil."}}</p>
+        </fieldset>
+        <label class="switch wide"><input type="checkbox" name="available" checked><span class="track"></span>{{tr "On the menu"}}</label>
+        <label class="field">{{tr "Last day on the menu"}} <span class="hint">{{tr "empty: no end"}}</span><input type="date" name="until"></label>
+        <div class="field wide"><span>{{tr "Uses from stock (one portion)"}}</span>{{template "uses-rows" (usesRows "use" nil $.Ingredients 3)}}</div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary btn-sm" data-close>{{tr "Cancel"}}</button>
+      <button class="btn btn-primary btn-sm">{{tr "Add dish"}}</button>
+    </div>
+  </form>
+</dialog>
+{{end}}

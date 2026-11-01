@@ -1,0 +1,168 @@
+{{define "content"}}
+<div class="day-head" data-live-screen="/admin/orders?part=tiles">
+  <h1>{{tr "Orders"}}</h1>
+  <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{tr "Table QR codes"}}</a>
+  <a class="btn btn-secondary btn-sm" href="/admin/kitchen" target="_blank" rel="noopener">{{tr "Kitchen screen"}}</a>
+  <a class="btn btn-secondary btn-sm" href="/admin/offline">{{tr "If the internet goes down"}}</a>
+</div>
+<p class="muted small deal-line">{{tr "Tap a table to take an order. Everything goes on the table's bill until it's paid."}}</p>
+<form method="post" action="/admin/phone-orders/check" class="qr-switch{{if .CheckPhoneOrders}} on{{end}}">
+  <input type="hidden" name="on" value="{{if .CheckPhoneOrders}}0{{else}}1{{end}}">
+  <span class="qr-switch-text">
+    <strong>{{if .CheckPhoneOrders}}{{tr "Phone orders are checked first"}}{{else}}{{tr "Phone orders go straight to the kitchen"}}{{end}}</strong>
+    <span class="muted small">{{if .CheckPhoneOrders}}{{tr "A waiter accepts each one before the chef sees it. If nobody does, it goes through by itself after 5 minutes."}}{{else}}{{tr "Turn on to accept each phone order before the chef sees it."}}{{end}}</span>
+  </span>
+  <button class="btn btn-sm {{if .CheckPhoneOrders}}btn-secondary{{else}}btn-ok{{end}}">{{if .CheckPhoneOrders}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
+</form>
+<div data-room-view="orders"><div data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "tiles" .}}</div></div>
+{{end}}
+
+{{define "tiles"}}
+{{with .ReadyFood}}{{template "ready-food" .}}{{end}}
+{{with .OnlinePaid}}{{template "online-paid" .}}{{end}}
+{{with .Stock}}{{template "stock-strip" .}}{{end}}
+{{if .PhoneOrders}}
+<section class="panel phone-orders" aria-labelledby="po-h">
+  <h2 id="po-h">{{tr "New phone orders"}}</h2>
+  <p class="muted small">{{tr "Check them before they go to the kitchen. If nobody taps, each goes through by itself after 5 minutes."}}</p>
+  <ul class="bring-list po-list">
+    {{range .PhoneOrders}}
+    <li data-alert-key="po-{{.ID}}">
+      <span class="bring-table">{{trf "Table %d" .Table}}</span>
+      <span class="bring-items"><small>{{.Label}}:</small> {{range $i, $l := .Lines}}{{if $i}}, {{end}}{{$l.Qty}}× {{$l.Name}}{{with $l.Note}} ({{.}}){{end}}{{end}}</span>
+      <span class="muted small po-auto">{{tr "by itself in"}} <b data-countdown="{{.AutoLeft}}">{{.AutoAt}}</b></span>
+      <span class="po-buttons">
+        <form method="post" action="/admin/phone-orders/{{.ID}}/accept" data-live><button class="btn btn-ok btn-sm">{{tr "Accept"}}</button></form>
+        <form method="post" action="/admin/phone-orders/{{.ID}}/reject" data-live><button class="btn btn-secondary btn-sm">{{tr "Reject"}}</button></form>
+      </span>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{if .Calls}}
+<section class="call-list" aria-label="{{tr "Waiting now"}}">
+  {{range .Calls}}
+  <a class="call call-{{.State}}" href="/admin/tables#t{{.No}}" data-alert-key="{{.CallKey}}">
+    <strong>{{trf "Table %d" .No}}</strong>
+    <span>{{if eq .State "next"}}{{trf "Ready for meal %d" .Next}}{{else if eq .State "last"}}{{tr "Finished all meals"}}{{else}}{{tr "Wants a waiter"}}{{end}}{{with .Caller}} · {{.}}{{end}}</span>
+    <span class="call-min">{{trf "%d min" .Minutes}}</span>
+  </a>
+  {{end}}
+</section>
+{{end}}
+{{if .Alerts}}
+<section class="panel unpaid-alert" aria-labelledby="unpaid-h">
+  <h2 id="unpaid-h">{{tr "Not paid yet"}}</h2>
+  <ul class="unpaid-list">
+    {{range .Alerts}}
+    <li data-alert-key="unpaid-{{.No}}-{{.PaidCents}}">
+      <a href="/admin/orders/{{.No}}/split">
+        <strong>{{trf "Table %d" .No}}</strong>
+        <span class="unpaid-who">
+          {{range .Unpaid}}<span class="{{if .Paying}}up-paying{{else}}up-due{{end}}">{{if .Paying}}{{trf "%s is paying now" .Label}}{{else}}{{trf "%s hasn't paid" .Label}}{{end}} · {{euro .Cents}}</span>{{end}}
+          {{if .Nobodys}}<span class="up-due">{{trf "%s isn't anyone's yet" (euro .Nobodys)}}</span>{{end}}
+        </span>
+        <span class="unpaid-sum">{{trf "%s of %s paid" (euro .PaidCents) (euro .TotalCents)}} ›</span>
+      </a>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{if .Receipts}}
+<section class="panel bring" aria-labelledby="rcpt-h">
+  <h2 id="rcpt-h">{{tr "Receipts to print"}}</h2>
+  <p class="muted small">{{tr "These guests paid on their phone and asked for a printed receipt."}}</p>
+  <ul class="bring-list">
+    {{range .Receipts}}
+    <li data-alert-key="rcpt-{{.BillID}}-{{.Guest}}">
+      <span class="bring-table">{{trf "Table %d" .Table}}</span>
+      <span class="bring-items">{{.Label}} · {{euro .Cents}}</span>
+      <a class="btn btn-secondary btn-sm" href="/admin/orders/{{.Table}}/receipts?bill={{.BillID}}&amp;guest={{.Guest}}" target="_blank" rel="noopener">{{tr "Print"}}</a>
+      <form method="post" action="/admin/receipts/{{.BillID}}/{{.Guest}}/given" data-live><button class="btn btn-ok btn-sm">{{tr "Given"}}</button></form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{if .Drinks}}
+<section class="panel bring" aria-labelledby="bring-h">
+  <h2 id="bring-h">{{tr "Drinks to bring"}}</h2>
+  <p class="muted small">{{tr "Guests ordered these on their phones. Tap Brought when they're on the table."}}</p>
+  <ul class="bring-list">
+    {{range .Drinks}}
+    <li data-alert-key="drink-{{.ID}}">
+      <span class="bring-table">{{trf "Table %d" .Table}}</span>
+      <span class="bring-items">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{$it.Qty}}× {{$it.Name}}{{if $it.Guest}} <small>({{trf "Guest %d" $it.Guest}}{{with $it.Who}} · {{.}}{{end}})</small>{{end}}{{end}}</span>
+      <span class="muted small">{{.At}}</span>
+      <form method="post" action="/admin/kitchen/{{.ID}}/done" data-live><input type="hidden" name="back" value="orders"><button class="btn btn-ok btn-sm">{{tr "Brought"}}</button></form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{template "room-tabs" .Rooms}}
+{{range .Rooms}}
+<section class="room" data-room="{{.ID}}" aria-label="{{.Name}}">
+<h2 class="room-h">{{.Name}}</h2>
+<div class="tt-grid">
+  {{range .Tiles}}
+  <a class="tt ot{{if .Bill}} ot-open{{else}} tt-free{{end}}{{if .Ready}} ot-ready{{else if .Served}} ot-served{{end}}{{if .Alert}} ot-alert{{end}}" href="/admin/orders/{{.No}}">
+    <div class="tt-top">
+      <span class="tt-no">{{trf "Table %d" .No}}</span>
+      {{if .Bill}}<span class="ot-total">{{euro .Bill.ToPay}}</span>{{end}}
+    </div>
+    {{with .Who}}<span class="tt-who">{{.}}</span>{{end}}
+    {{if .Bill}}
+      <span class="tt-sub">{{trf "%d items · open since %s" .Bill.Count .Opened}}</span>
+      <span class="ot-badges">
+        {{if .Cooking}}<span class="badge badge-wait">{{tr "With the chef"}}</span>{{end}}
+        {{if .Held}}<span class="badge badge-muted">{{tr "Waits for your go"}}</span>{{end}}
+        {{if .Ready}}<span class="badge badge-ok">{{trf "Food ready %s · pick up" .ReadyAt}}</span>{{end}}
+        {{if .Bring}}<span class="badge badge-wait">{{tr "Drinks to bring"}}</span>{{end}}
+        {{if .Paying}}<span class="badge badge-wait">{{tr "Paying on a phone"}}</span>
+        {{else if .Billed}}<span class="badge badge-pay">{{tr "Bill shown · waiting for payment"}}</span>
+        {{else if .Served}}<span class="badge badge-pay">{{tr "Served · waiting to pay"}}</span>{{end}}
+        {{if .Alert}}<span class="badge badge-bad">{{tr "Not everyone has paid"}}</span>{{end}}
+        {{if .Bill.IsSplit}}<span class="badge badge-wait">{{trf "Split · %d of %d paid" .Bill.SharesPaid (len .Bill.Split)}}</span>{{end}}
+        {{if .OldOpen}}<span class="badge badge-bad">{{tr "Open since an earlier day"}}</span>{{end}}
+      </span>
+    {{else}}
+      <span class="tt-sub">{{tr "No order"}}</span>
+    {{end}}
+    <span class="ot-go">{{if .Bill}}{{tr "Open the bill"}}{{else}}{{tr "Take an order"}}{{end}} ›</span>
+  </a>
+  {{end}}
+</div>
+</section>
+{{end}}
+
+<section class="panel">
+  <h2>{{tr "Paid today"}}</h2>
+  {{if or .Day.Bills .Day.Vouchers}}
+  <dl class="sum-rows">
+    <dt>{{tr "Bills"}}</dt><dd>{{.Day.Bills}}</dd>
+    {{range .Day.Rows}}<dt>{{.Name}}{{if .Prepaid}} <span class="muted small">{{tr "(paid when sold)"}}</span>{{end}}</dt><dd>{{euro .Cents}}</dd>{{end}}
+    <dt>{{tr "Total"}}</dt><dd>{{euro .Day.Total}}</dd>
+    {{if .Day.Tips}}<dt>{{tr "Tips on phones (for the staff)"}}</dt><dd>{{euro .Day.Tips}}</dd>{{end}}
+    {{if .Day.Vouchers}}<dt>{{trf "Gift cards and lunch booklets sold (%d)" .Day.Vouchers}}</dt><dd>{{euro .Day.VouchersSold}}</dd>{{end}}
+  </dl>
+  {{else}}
+  <p class="muted">{{tr "No bills paid yet today."}}</p>
+  {{end}}
+  <p class="muted small">{{tr "What guests paid at the tables, after online deposits. Gift cards and lunch coupons were paid for when they were sold, so they're listed apart."}}</p>
+  <p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a></p>
+</section>
+
+<section class="panel">
+  <h2>{{tr "Table history"}}</h2>
+  <p class="muted small">{{tr "Every bill each table has had, with the full order."}}</p>
+  <form method="get" action="/admin/orders/history" class="hist-pick">
+    <select name="table" aria-label="{{tr "Table"}}">{{range .Tiles}}<option value="{{.No}}">{{trf "Table %d" .No}} · {{.Room}}</option>{{end}}</select>
+    <button class="btn btn-secondary btn-sm">{{tr "Show history"}}</button>
+  </form>
+</section>
+{{end}}

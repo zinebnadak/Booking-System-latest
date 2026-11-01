@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="card status-card">
+  <p class="eyebrow">{{.T.dp_title}}</p>
+  <h1>{{euro .B.DepositCents}}</h1>
+  <p class="muted">{{.T.dp_lead}}</p>
+  {{if eq .Status "pending"}}
+  <form method="post" style="margin:24px 0 12px">
+    <button class="btn btn-primary btn-block" data-loading="…">{{printf .T.dp_pay (euro .B.DepositCents)}}</button>
+  </form>
+  {{else}}
+  <p class="notice">{{.T.dp_done}}</p>
+  {{end}}
+  <p><a href="/b/{{.B.Ref}}">{{.T.dp_back}}</a></p>
+</div>
+{{end}}

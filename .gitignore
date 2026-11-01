@@ -1,0 +1,15 @@
+# secrets
+.env
+
+# bookings data (back this up, but never commit it: it has guests' details)
+data/
+
+# built program
+/ozmo-booking
+*.exe
+
+# Each table button's Wi-Fi password and secret code
+button/**/secrets.h
+
+# Mac folder settings
+.DS_Store

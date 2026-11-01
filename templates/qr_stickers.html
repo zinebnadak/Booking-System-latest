@@ -1,0 +1,31 @@
+{{define "content"}}
+<div class="day-head no-print">
+  <a class="icon-btn" href="/admin/orders" aria-label="{{tr "Orders"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{tr "Table QR codes"}}</h1>
+  <span class="spacer"></span>
+  <button type="button" class="btn btn-primary btn-sm" data-print>{{tr "Print"}}</button>
+</div>
+<p class="muted small no-print">{{tr "Print these and stick one on each table. Guests scan it to order and pay from their phone, but only while the table has guests: it opens by itself when they arrive or the first order is taken. If a photo of a sticker gets around, make a new code for that table and print it again."}}</p>
+<div class="stickers">
+  {{range .Stickers}}
+  <article class="sticker">
+    <p class="sticker-brand">{{$.Cfg.RestaurantName}}</p>
+    <div class="sticker-qr" data-qr="{{.URL}}" aria-label="{{trf "QR code for table %d" .Table}}"></div>
+    <p class="sticker-table">{{trf "Table %d" .Table}}</p>
+    <p class="sticker-hint" lang="sv">Skanna för att beställa och betala</p>
+    <p class="sticker-hint" lang="en">Scan to order and pay</p>
+    <p class="sticker-small">Öppnas inte? Fråga din servitör · Doesn't open? Ask your waiter</p>
+    <form method="post" action="/admin/tables/qr/{{.Table}}/new" class="no-print" data-confirm="{{trf "New QR code for table %d? Its old sticker stops working: print the new one." .Table}}" data-confirm-ok="{{tr "New code"}}" data-danger>
+      <button class="btn-link">{{tr "New code"}}</button>
+    </form>
+  </article>
+  {{end}}
+  <article class="sticker sticker-review" id="review-sticker">
+    <p class="sticker-brand">{{$.Cfg.RestaurantName}}</p>
+    <div class="sticker-qr" data-qr="{{.ReviewURL}}" aria-label="{{tr "QR code for feedback"}}"></div>
+    <p class="sticker-table">★★★★★</p>
+    <p class="sticker-hint" lang="sv">Hur var det? Berätta för oss</p>
+    <p class="sticker-hint" lang="en">How was it? Tell us</p>
+  </article>
+</div>
+{{end}}

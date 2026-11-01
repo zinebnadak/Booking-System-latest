@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="card status-card tab-join">
+  <p class="eyebrow">{{.Cfg.RestaurantName}}</p>
+  <h1>{{trf "Table %d" .Table}}</h1>
+  {{if .Full}}
+  <p class="notice">{{tr "This table already has the most guests. Ask your waiter."}}</p>
+  {{else if .BookedAt}}
+  <p class="muted">{{trf "This table is booked for %s." .BookedAt}}</p>
+  <form method="post" action="/t/{{.Code}}/unlock" class="tab-join-form tab-unlock">
+    <label class="field">{{tr "Did you book it? Type your table code (4 digits, in your booking email)."}}
+      <input name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" required class="tc-input" placeholder="••••">
+    </label>
+    <button class="btn btn-primary btn-block" data-loading="…">{{tr "Open the table"}}</button>
+  </form>
+  <p class="small muted">{{tr "No code? Ask your waiter."}}</p>
+  {{else if .Open}}
+  <p class="muted">{{tr "Order from your phone and pay your part, or pay for the whole table. Each phone is one guest."}}</p>
+  <form method="post" action="/t/{{.Code}}" class="tab-join-form">
+    <button class="btn btn-primary btn-block" data-loading="…">{{tr "Start ordering"}}</button>
+  </form>
+  {{else}}
+  <p class="notice info">{{tr "This table isn't taking orders from phones yet. Your waiter will open it for you."}}</p>
+  <form method="get" action="/t/{{.Code}}"><button class="btn btn-secondary btn-block">{{tr "Try again"}}</button></form>
+  {{end}}
+</div>
+{{end}}

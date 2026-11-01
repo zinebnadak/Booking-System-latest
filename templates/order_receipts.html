@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="rc-bar no-print">
+  <a class="btn btn-secondary btn-sm" href="/admin/orders/{{.Table}}{{if .Bill.IsSplit}}/split{{end}}">{{if .Bill.IsSplit}}{{tr "Back to the split"}}{{else}}{{tr "Back to the table"}}{{end}}</a>
+  <button type="button" class="btn btn-primary btn-sm" data-print>{{if gt (len .Receipts) 1}}{{trf "Print all %d" (len .Receipts)}}{{else}}{{tr "Print"}}{{end}}</button>
+</div>
+{{range .Receipts}}
+<div class="guest-bill rc">
+  {{template "receipt-card" .}}
+  <div class="rc-qr">
+    <div class="qr" data-qr="{{.URL}}" aria-label="{{tr "QR code for this receipt"}}"></div>
+    <p>{{if .Guest}}{{trf "Guest %d: scan for your receipt" .Guest}}{{else}}{{tr "Scan for a copy of this bill"}}{{end}}</p>
+  </div>
+</div>
+{{end}}
+{{end}}

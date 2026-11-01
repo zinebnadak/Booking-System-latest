@@ -1,0 +1,94 @@
+{{define "chg"}}{{if .Text}}<span class="chg{{if .Up}} up{{else if .Down}} down{{end}}">{{if .Up}}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2l4 5H2z"/></svg>{{else if .Down}}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10L2 5h8z"/></svg>{{end}}{{tr .Text}}</span>{{end}}{{end}}
+
+{{define "content"}}
+<div class="day-head">
+  {{if eq .View "days"}}
+  <a class="icon-btn" href="/owner/charts?view=days&month={{.PrevMonth}}&metric={{.Metric.Key}}" aria-label="{{tr "Previous month"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{.PeriodLabel}}</h1>
+  <a class="icon-btn" href="/owner/charts?view=days&month={{.NextMonth}}&metric={{.Metric.Key}}" aria-label="{{tr "Next month"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  {{else}}
+  <a class="icon-btn" href="/owner/charts?view=months&month={{.PrevYear}}&metric={{.Metric.Key}}" aria-label="{{tr "Previous year"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{.PeriodLabel}}</h1>
+  <a class="icon-btn" href="/owner/charts?view=months&month={{.NextYear}}&metric={{.Metric.Key}}" aria-label="{{tr "Next year"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  {{end}}
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/owner/export.csv?month={{.MonthKey}}" download>{{if eq .View "days"}}{{tr "Download month as spreadsheet"}}{{else}}{{tr "Download this month as spreadsheet"}}{{end}}</a>
+</div>
+
+<div class="chart-controls">
+  <nav class="tabs" aria-label="{{tr "Compare"}}">
+    <a href="/owner/charts?view=days&month={{.MonthKey}}&metric={{.Metric.Key}}"{{if eq .View "days"}} aria-current="page"{{end}}>{{tr "Day by day"}}</a>
+    <a href="/owner/charts?view=months&month={{.MonthKey}}&metric={{.Metric.Key}}"{{if eq .View "months"}} aria-current="page"{{end}}>{{tr "Month by month"}}</a>
+  </nav>
+  <nav class="tabs" aria-label="{{tr "What to show"}}">
+    {{range .Metrics}}<a href="/owner/charts?view={{$.View}}&month={{$.MonthKey}}&metric={{.Key}}"{{if eq .Key $.Metric.Key}} aria-current="page"{{end}}>{{tr .Label}}</a>{{end}}
+  </nav>
+</div>
+
+<section class="panel">
+  <div class="chart-totals">
+    <div>
+      <div class="kpi-label">{{tr .Metric.Label}}, {{if eq .View "days"}}{{.ThisName}}{{else}}{{tr "last 12 months"}}{{end}}</div>
+      <div class="big">{{.ThisTotal}}</div>
+    </div>
+    <div class="vs">{{if .HasLast}}{{template "chg" .VsLast}} {{if eq .View "days"}}{{trf "vs %s" .LastName}}{{else}}{{tr "vs the 12 months before"}}{{end}} ({{.LastTotal}}){{else}}{{tr "Nothing earlier to compare with yet"}}{{end}}</div>
+  </div>
+  <div class="chart-legend" aria-hidden="true">
+    {{range .Chart.Series}}<span class="key"><span class="sw{{if eq .Kind "line"}} line{{end}}" style="{{if eq .Kind "line"}}border-color:{{.Color}}{{else}}background:{{.Color}}{{end}}"></span>{{.Name}}</span>{{end}}
+  </div>
+  <div class="chart" data-src="c-main" aria-label="{{tr .Metric.Label}}"></div>
+  <script type="application/json" id="c-main">{{.Chart}}</script>
+  <details class="as-table">
+    <summary>{{tr "Show as a table"}}</summary>
+    <div style="overflow-x:auto"><table class="data-table">
+      <thead><tr><th></th>{{range .Chart.Series}}<th class="n">{{.Name}}</th>{{end}}</tr></thead>
+      <tbody>{{range $i, $l := .Chart.Long}}<tr><td>{{$l}}</td>{{range $s, $_ := $.Chart.Series}}<td class="n">{{cell $.Chart $s $i}}</td>{{end}}</tr>{{end}}</tbody>
+    </table></div>
+  </details>
+</section>
+
+<div class="charts-grid">
+  <section class="panel">
+    <h2>{{tr "Busiest days"}}</h2>
+    <p class="muted small">{{trf "Table visits and takeaway pickups per weekday, %s." .PeriodLabel}}</p>
+    <div class="chart chart-sm" data-src="c-days" aria-label="{{tr "Visits per weekday"}}"></div>
+    <script type="application/json" id="c-days">{{.Weekdays}}</script>
+  </section>
+
+  <section class="panel">
+    <h2>{{tr "Busiest hours"}}</h2>
+    <p class="muted small">{{trf "When tables start and takeaway is picked up, %s." .PeriodLabel}}</p>
+    <div class="chart chart-sm" data-src="c-hours" aria-label="{{tr "Visits per hour"}}"></div>
+    <script type="application/json" id="c-hours">{{.Hours}}</script>
+  </section>
+
+  <section class="panel">
+    <h2>{{tr "Best-selling dishes"}}</h2>
+    <p class="muted small">{{tr "From takeaway orders. Table guests order in person, so their dishes aren't recorded here."}}</p>
+    {{if not .Dishes}}<div class="empty"><strong>{{tr "No takeaway orders yet"}}</strong>{{tr "Dishes show up here once people order."}}</div>{{end}}
+    <ol class="hbars">
+      {{range .Dishes}}
+      <li>
+        <div class="hbar-text"><span>{{.Name}}</span><span class="muted">{{trf "%d sold · %s" .Qty (euro .Revenue)}}</span></div>
+        <div class="hbar-track"><div class="hbar" style="width: {{printf "%.1f" .Pct}}%"></div></div>
+      </li>
+      {{end}}
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>{{tr "What happened to bookings"}}</h2>
+    <p class="muted small">{{trf "All table bookings and takeaway orders, %s." .PeriodLabel}}</p>
+    <ol class="hbars">
+      {{range .Outcomes}}
+      <li>
+        <div class="hbar-text"><span>{{tr .Label}}{{with .Note}} <span class="muted small">· {{tr .}}</span>{{end}}</span><strong class="num">{{.Count}}</strong></div>
+        <div class="hbar-track"><div class="hbar {{.Tone}}" style="width: {{printf "%.1f" .Pct}}%"></div></div>
+      </li>
+      {{end}}
+    </ol>
+  </section>
+</div>
+
+<p class="scope-note" style="margin-top:16px"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Money paid through the website only: table deposits and takeaway orders. Food and drinks paid at the table go through the restaurant's till."}}</span></p>
+{{end}}

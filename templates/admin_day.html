@@ -1,0 +1,329 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/day?date={{.Prev}}" aria-label="{{tr "Previous day"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{if .IsToday}}{{tr "Today"}}, {{end}}{{prettyDate .Date}}</h1>
+  <a class="icon-btn" href="/admin/day?date={{.Next}}" aria-label="{{tr "Next day"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <span class="spacer"></span>
+  {{if not .IsToday}}<a class="btn btn-secondary btn-sm" href="/admin/day">{{tr "Go to today"}}</a>{{end}}
+  <form method="get" action="/admin/day" data-autosubmit><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
+</div>
+
+{{if or .StaffSlots .OpenNow}}
+<div class="quick-actions">
+  {{if .OpenNow}}<button type="button" class="btn btn-ok" data-open="dlg-walkin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{tr "Walk-in"}}</button>{{end}}
+  {{if .StaffSlots}}<button type="button" class="btn btn-secondary" data-open="dlg-phone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5h2.6l1.5 4.2-2 1.4a12 12 0 0 0 6.2 6.2l1.4-2 4.2 1.5v2.6a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>{{tr "Phone booking"}}</button>{{end}}
+</div>
+{{end}}
+
+{{if .Closed}}<div class="notice">{{tr "Closed"}}{{with .ClosedNote}}: {{.}}{{end}}</div>{{end}}
+
+<div class="summary-strip" role="list">
+  <div class="sum-chip" role="listitem"><strong>{{len .Tables}}</strong><span>{{tr "table bookings"}}</span></div>
+  <div class="sum-chip" role="listitem"><strong>{{.Guests}}</strong><span>{{tr "guests expected"}}</span></div>
+  <div class="sum-chip" role="listitem"><strong>{{.Waiting}}</strong><span>{{tr "not here yet"}}</span></div>
+  <div class="sum-chip" role="listitem"><strong>{{.ArrivedN}}</strong><span>{{tr "arrived"}}</span></div>
+  <div class="sum-chip" role="listitem"><strong>{{.NoShows}}</strong><span>{{tr "no-shows"}}</span></div>
+  <div class="sum-chip" role="listitem"><strong>{{len .Takeaway}}</strong><span>{{tr "takeaway"}}</span></div>
+</div>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>{{if .IsToday}}{{tr "Tables right now"}}{{else}}{{tr "Tables"}}{{end}}</h2>
+    {{if .IsToday}}<span class="muted small">{{tr "Updates every minute"}}</span>{{end}}
+  </div>
+  <div class="tables-now">
+    {{if not .Cards}}<p class="muted">{{tr "No table bookings this day."}}</p>{{end}}
+    {{range .Cards}}
+    {{if .Ref}}<a class="tile {{if $.IsToday}}{{.State}}{{end}}" href="#b-{{.Ref}}">{{else}}<div class="tile">{{end}}
+      <div class="tile-top">
+        <span class="tile-no">{{trf "Table %d" .No}} <small class="tile-room">{{.Room}}</small></span>
+        {{if $.IsToday}}
+          {{if eq .State "seated"}}<span class="badge badge-ok">{{tr "Seated"}}</span>
+          {{else if eq .State "expected"}}<span class="badge badge-wait">{{tr "Expected"}}</span>
+          {{else if eq .State "holding"}}<span class="badge badge-muted">{{tr "Unpaid"}}</span>
+          {{else}}<span class="badge badge-muted">{{tr "Free"}}</span>{{end}}
+        {{else}}
+          <span class="muted small">{{trf "%d booked" (len .Bookings)}}</span>
+        {{end}}
+      </div>
+      {{if $.IsToday}}
+        {{with .Who}}<span class="tile-who">{{.}}</span>{{end}}
+        {{with .Detail}}<span class="tile-detail">{{.}}</span>{{end}}
+      {{else}}
+        {{range .Bookings}}<span class="tile-detail">{{.Time}} · {{.Name}}</span>{{end}}
+      {{end}}
+    {{if .Ref}}</a>{{else}}</div>{{end}}
+    {{end}}
+  </div>
+  {{if and .Cards .QuietTables}}<p class="muted small">{{trf "The other %d tables have no bookings this day." .QuietTables}}</p>{{end}}
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>{{tr "Table bookings"}}</h2>
+    {{if .Tables}}
+    <div class="tabs" role="tablist" data-filter-tabs>
+      <button type="button" role="tab" aria-selected="true" data-filter="all">{{tr "All"}} <span class="n">{{index .Counts "all"}}</span></button>
+      <button type="button" role="tab" aria-selected="false" data-filter="waiting">{{tr "Not here yet"}} <span class="n">{{index .Counts "waiting"}}</span></button>
+      <button type="button" role="tab" aria-selected="false" data-filter="arrived">{{tr "Arrived"}} <span class="n">{{index .Counts "arrived"}}</span></button>
+      <button type="button" role="tab" aria-selected="false" data-filter="noshow">{{tr "No-shows"}} <span class="n">{{index .Counts "noshow"}}</span></button>
+      <button type="button" role="tab" aria-selected="false" data-filter="cancelled">{{tr "Cancelled"}} <span class="n">{{index .Counts "cancelled"}}</span></button>
+    </div>
+    {{end}}
+  </div>
+  {{if not .Tables}}
+  <div class="empty"><strong>{{tr "No table bookings"}}</strong>{{tr "New bookings appear here as soon as the deposit is paid."}}</div>
+  {{else}}
+  <p class="muted small" style="margin-top:-4px">{{trf "Press Arrived when guests come in. Nobody checked in %d minutes after the start time means a no-show: the deposit is kept and the table is free again." .NoShowMin}}</p>
+  <div class="bk-list">
+    {{range .Tables}}
+    <article class="bk{{if or (eq .Group "cancelled") (eq .Group "noshow") .Past}} dim{{end}}{{if .Highlight}} flash{{end}}" id="b-{{.Ref}}" data-group="{{.Group}}">
+      <div class="bk-time">{{.Time}}<span>–{{.End}}</span></div>
+      <div class="bk-main">
+        <div class="bk-title">
+          <span class="bk-name">{{.Name}}</span>
+          {{if .TableNo}}<span class="pill">{{trf "Table %d" .TableNo}}</span>{{end}}
+          <span class="badge badge-{{.Status}}">{{statusText .Status}}</span>
+          {{if eq .Source "phone"}}<span class="pill pill-src">{{tr "Phone"}}</span>{{else if eq .Source "walkin"}}<span class="pill pill-src">{{tr "Walk-in"}}</span>{{end}}
+          {{with .OccasionText}}<span class="pill pill-occ">{{.}}</span>{{end}}
+          {{with .History.Visits}}<span class="pill pill-regular" title="{{tr "Earlier visits"}}">{{trf "Visited %d× before" .}}</span>{{end}}
+          {{with .History.NoShows}}<span class="badge badge-bad" title="{{tr "Earlier bookings they didn't come to"}}">{{if eq . 1}}{{tr "1 no-show before"}}{{else}}{{trf "%d no-shows before" .}}{{end}}</span>{{end}}
+        </div>
+        <div class="bk-meta">{{if eq .PartySize 1}}{{tr "1 guest"}}{{else}}{{trf "%d guests" .PartySize}}{{end}} · {{if .DepositCents}}{{trf "deposit %s" (euro .DepositCents)}}{{else}}{{tr "no deposit"}}{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}</div>
+        {{with .Notes}}<div class="bk-notes">{{.}}</div>{{end}}
+        {{if eq .Status "paid"}}<div class="bk-hint">{{trf "No-show at %s if not checked in" .NoShowAt}}</div>{{end}}
+      </div>
+      <div class="bk-actions">
+        {{if .CanCheckIn}}
+        <form method="post" action="/admin/bookings/{{.Ref}}/arrived" data-confirm="{{if .TableNo}}{{trf "Check in %s (%d guests) at table %d? This can't be undone." .Name .PartySize .TableNo}}{{else}}{{trf "Check in %s (%d guests)? This can't be undone." .Name .PartySize}}{{end}}" data-confirm-ok="{{tr "Yes, they're here"}}">
+          <button class="btn btn-ok btn-sm">{{tr "Arrived"}}</button>
+        </form>
+        {{end}}
+        {{if and (eq .Status "no_show") (not .Past)}}
+        <form method="post" action="/admin/bookings/{{.Ref}}/arrived" data-confirm="{{trf "%s came after all? Check them in. This can't be undone." .Name}}" data-confirm-ok="{{tr "Check in"}}">
+          <button class="btn btn-secondary btn-sm">{{tr "Arrived late"}}</button>
+        </form>
+        {{end}}
+        {{if or (eq .Status "paid") (eq .Status "arrived") (eq .Status "pending")}}
+        <button type="button" class="btn btn-secondary btn-sm" data-open="more-{{.Ref}}">{{tr "More"}}</button>
+        {{end}}
+      </div>
+    </article>
+
+    <dialog id="more-{{.Ref}}" aria-labelledby="more-h-{{.Ref}}">
+      <div class="dlg-head">
+        <div><h2 id="more-h-{{.Ref}}">{{.Name}}</h2><p>{{.Time}}–{{.End}} · {{if eq .PartySize 1}}{{tr "1 guest"}}{{else}}{{trf "%d guests" .PartySize}}{{end}}{{if .TableNo}} · {{trf "table %d" .TableNo}}{{end}}</p></div>
+        <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="dlg-body">
+        {{if or .Phone .Email}}
+        <div class="dlg-section">
+          <h3>{{tr "Contact"}}</h3>
+          <div class="dlg-row">
+            {{with .Phone}}<a class="btn btn-secondary btn-sm" href="tel:{{.}}">{{trf "Call %s" .}}</a>{{end}}
+            {{with .Email}}<a class="btn btn-secondary btn-sm" href="mailto:{{.}}">{{tr "Email"}}</a>{{end}}
+          </div>
+        </div>
+        {{end}}
+        {{if .MoveTo}}
+        <div class="dlg-section">
+          <h3>{{tr "Move to another table"}}</h3>
+          <form method="post" action="/admin/bookings/{{.Ref}}/table" class="dlg-row move-row">
+            <select name="table" aria-label="{{tr "Move to another table"}}">{{range .MoveTo}}<option value="{{.}}">{{tableLabel .}}</option>{{end}}</select>
+            <button class="btn btn-secondary btn-sm">{{tr "Move"}}</button>
+          </form>
+        </div>
+        {{end}}
+        {{if and (eq .Status "paid") (not .DepositCents)}}
+        <div class="dlg-section">
+          <h3>{{tr "Cancel booking"}}</h3>
+          <form method="post" action="/admin/bookings/{{.Ref}}/cancel" data-confirm="{{trf "Cancel %s's booking?" .Name}}{{if .Email}} {{tr "They get an email."}}{{end}}" data-confirm-ok="{{tr "Cancel booking"}}" data-danger>
+            <input type="hidden" name="refund" value="no">
+            <button class="btn btn-danger btn-sm">{{tr "Cancel booking"}}</button>
+          </form>
+        </div>
+        {{else if eq .Status "paid"}}
+        <div class="dlg-section">
+          <h3>{{tr "Cancel booking"}}</h3>
+          <p class="muted small" style="margin:0 0 10px">{{if .RefundPolicy}}{{tr "More than 24 hours before: the policy says refund the deposit."}}{{else}}{{tr "Less than 24 hours before: the policy says keep the deposit."}}{{end}}</p>
+          <div class="dlg-row">
+            <form method="post" action="/admin/bookings/{{.Ref}}/cancel" data-confirm="{{trf "Cancel %s's booking and refund %s?" .Name (euro .DepositCents)}}" data-confirm-ok="{{tr "Cancel and refund"}}" data-danger>
+              <input type="hidden" name="refund" value="yes">
+              <button class="btn btn-danger btn-sm{{if .RefundPolicy}} solid{{end}}">{{tr "Cancel and refund"}}</button>
+            </form>
+            <form method="post" action="/admin/bookings/{{.Ref}}/cancel" data-confirm="{{trf "Cancel %s's booking and keep the %s deposit?" .Name (euro .DepositCents)}}" data-confirm-ok="{{tr "Cancel, keep deposit"}}" data-danger>
+              <input type="hidden" name="refund" value="no">
+              <button class="btn btn-danger btn-sm{{if not .RefundPolicy}} solid{{end}}">{{tr "Cancel, keep deposit"}}</button>
+            </form>
+          </div>
+        </div>
+        {{else if eq .Status "arrived"}}
+        <p class="muted small" style="margin:0">{{tr "Checked in. A booking can't be cancelled after the guests arrived."}}</p>
+        {{else if eq .Status "pending"}}
+        <div class="dlg-section">
+          <h3>{{tr "Not paid yet"}}</h3>
+          <form method="post" action="/admin/bookings/{{.Ref}}/cancel" data-confirm="{{tr "Release this unpaid booking so the table is free?"}}" data-confirm-ok="{{tr "Release the table"}}" data-danger>
+            <button class="btn btn-danger btn-sm">{{tr "Release the table"}}</button>
+          </form>
+        </div>
+        {{end}}
+      </div>
+    </dialog>
+    {{end}}
+    <div class="empty" id="filter-empty" hidden><strong>{{tr "Nothing here"}}</strong>{{tr "No bookings match this filter."}}</div>
+  </div>
+  {{end}}
+</section>
+
+{{if .Waitlist}}
+<section class="panel">
+  <div class="panel-head"><h2>{{tr "Waiting list"}}</h2><span class="muted small">{{tr "Emailed automatically when a table frees up"}}</span></div>
+  <div class="bk-list">
+    {{range .Waitlist}}
+    <article class="bk wl">
+      <div class="bk-time">{{if .Time}}~{{.Time}}{{else}}{{tr "Any"}}{{end}}<span>{{if .Time}}{{tr "wanted"}}{{else}}{{tr "time"}}{{end}}</span></div>
+      <div class="bk-main">
+        <div class="bk-title">
+          <span class="bk-name">{{.Name}}</span>
+          {{if .NotifiedAt}}<span class="badge badge-ok">{{tr "Told a table is free"}}</span>{{else}}<span class="badge badge-wait">{{tr "Waiting"}}</span>{{end}}
+        </div>
+        <div class="bk-meta">{{if eq .PartySize 1}}{{tr "1 guest"}}{{else}}{{trf "%d guests" .PartySize}}{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}{{with .Email}} · <a href="mailto:{{.}}">{{.}}</a>{{end}}</div>
+      </div>
+      <div class="bk-actions">
+        <form method="post" action="/admin/waitlist/{{.Ref}}/remove" data-confirm="{{trf "Take %s off the waiting list?" .Name}}" data-confirm-ok="{{tr "Remove"}}">
+          <button class="btn btn-secondary btn-sm">{{tr "Remove"}}</button>
+        </form>
+      </div>
+    </article>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+<section class="panel">
+  <div class="panel-head"><h2>{{tr "Takeaway"}}</h2></div>
+  {{if not .Takeaway}}
+  <div class="empty"><strong>{{tr "No takeaway orders"}}</strong>{{tr "Orders appear here once the deposit is paid."}}</div>
+  {{else}}
+  <div class="bk-list">
+    {{range .Takeaway}}
+    <article class="bk{{if ne .Status "paid"}} dim{{end}}{{if .Highlight}} flash{{end}}" id="b-{{.Ref}}">
+      <div class="bk-time">{{.Time}}<span>{{tr "pickup"}}</span></div>
+      <div class="bk-main">
+        <div class="bk-title">
+          <span class="bk-name">{{.Name}}</span>
+          <span class="badge badge-{{.Status}}">{{statusText .Status}}</span>
+        </div>
+        <ul class="bk-items">{{range .Items}}<li>{{.Quantity}} × {{.Name}}</li>{{end}}</ul>
+        <div class="bk-meta">{{trf "Total %s" (euro .TotalCents)}} · {{trf "deposit %s" (euro .DepositCents)}} · {{if eq .Status "picked_up"}}{{tr "rest paid at pickup"}}{{else}}<strong style="color:var(--ink)">{{trf "%s to pay at pickup" (euro .RemainingCents)}}</strong>{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}</div>
+        {{with .Notes}}<div class="bk-notes">{{.}}</div>{{end}}
+      </div>
+      <div class="bk-actions">
+        {{if eq .Status "paid"}}
+        <form method="post" action="/admin/bookings/{{.Ref}}/pickedup" data-confirm="{{trf "%s picked up the order and paid the %s left?" .Name (euro .RemainingCents)}}" data-confirm-ok="{{tr "Yes, picked up"}}">
+          <button class="btn btn-ok btn-sm">{{tr "Picked up"}}</button>
+        </form>
+        <form method="post" action="/admin/bookings/{{.Ref}}/cancel" data-confirm="{{trf "Cancel %s's order? The %s deposit is non-refundable and will be kept." .Name (euro .DepositCents)}}" data-confirm-ok="{{tr "Cancel order"}}" data-danger>
+          <input type="hidden" name="refund" value="no">
+          <button class="btn btn-danger btn-sm">{{tr "Cancel order"}}</button>
+        </form>
+        {{else if eq .Status "pending"}}
+        <form method="post" action="/admin/bookings/{{.Ref}}/cancel"><button class="btn btn-secondary btn-sm">{{tr "Release"}}</button></form>
+        {{end}}
+      </div>
+    </article>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+
+{{if .StaffSlots}}
+<dialog id="dlg-phone" aria-labelledby="dlg-phone-h">
+  <form method="post" action="/admin/bookings/new" class="dlg-form">
+    <div class="dlg-head">
+      <div><h2 id="dlg-phone-h">{{tr "Phone booking"}}</h2><p>{{prettyDate .Date}} · {{tr "no deposit, confirmed straight away"}}</p></div>
+      <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <input type="hidden" name="date" value="{{.Date}}">
+      {{if not .StaffFree}}
+      <p class="notice" style="margin:0">{{tr "Every table is booked for the rest of this day. Offer another day, or the waiting list on the website."}}</p>
+      {{else}}
+      <div class="dlg-grid">
+        <label class="field">{{tr "Time"}}
+          <select name="time" required>
+            {{range .StaffSlots}}<option value="{{.Time}}"{{if le .Free 0}} disabled{{end}}>{{.Time}} · {{if le .Free 0}}{{tr "full"}}{{else if eq .Free 1}}{{tr "1 table free"}}{{else}}{{trf "%d tables free" .Free}}{{end}}</option>{{end}}
+          </select>
+        </label>
+        <label class="field">{{tr "Guests"}}
+          <select name="size">{{range .Sizes}}<option value="{{.}}"{{if eq . 2}} selected{{end}}>{{.}}</option>{{end}}</select>
+        </label>
+        <label class="field wide">{{tr "Name"}}
+          <input name="name" required autocomplete="off" maxlength="80">
+        </label>
+        <label class="field">{{tr "Phone"}}
+          <input name="phone" type="tel" inputmode="tel" autocomplete="off">
+        </label>
+        <label class="field">{{tr "Table"}}
+          <select name="table"><option value="0">{{tr "Smallest free table that fits"}}</option>{{range .TableNos}}<option value="{{.No}}">{{tableLabel .No}}</option>{{end}}</select>
+        </label>
+        <label class="field wide"><span class="field-label">{{tr "Email"}} <span class="hint">{{tr "optional · they get a confirmation with a link to change or cancel"}}</span></span>
+          <input name="email" type="email" inputmode="email" autocomplete="off">
+        </label>
+        <label class="field">{{tr "Occasion"}}
+          <select name="occasion"><option value="">{{tr "None"}}</option>{{range .Occasions}}<option value="{{.}}">{{occasion .}}</option>{{end}}</select>
+        </label>
+        <label class="field">{{tr "Email language"}}
+          <select name="lang"><option value="sv">{{tr "Swedish"}}</option><option value="en">{{tr "English"}}</option></select>
+        </label>
+        <label class="field wide"><span class="field-label">{{tr "Notes"}} <span class="hint">{{tr "optional"}}</span></span>
+          <textarea name="notes" rows="2" maxlength="500" placeholder="{{tr "Allergies, high chair, window table"}}"></textarea>
+        </label>
+      </div>
+      {{end}}
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>{{tr "Close"}}</button>
+      {{if .StaffFree}}<button class="btn btn-primary" data-loading="{{tr "Saving…"}}">{{tr "Save booking"}}</button>{{end}}
+    </div>
+  </form>
+</dialog>
+{{end}}
+
+{{if .OpenNow}}
+<dialog id="dlg-walkin" aria-labelledby="dlg-walkin-h">
+  <form method="post" action="/admin/bookings/walkin" class="dlg-form">
+    <div class="dlg-head">
+      <div><h2 id="dlg-walkin-h">{{tr "Walk-in"}}</h2><p>{{tr "Seated now and checked in straight away"}}</p></div>
+      <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <fieldset class="field">
+        <legend class="field-label">{{tr "Guests"}}</legend>
+        <div class="occ-row">{{range .Sizes}}<label class="occ num"><input type="radio" name="size" value="{{.}}"{{if eq . 2}} checked{{end}}><span>{{.}}</span></label>{{end}}</div>
+      </fieldset>
+      <fieldset class="field">
+        <legend class="field-label">{{tr "Table"}} <span class="hint">{{tr "free right now"}}</span></legend>
+        {{if .WalkIn}}
+        <select name="table" class="walkin-table">
+          <option value="0">{{tr "Smallest free table that fits"}}</option>
+          {{range .WalkIn}}<option value="{{.No}}">{{trf "Table %d" .No}} · {{.Room}} · {{trf "%d seats" .Seats}} · {{if lt .Minutes 120}}{{trf "until %s" .Until}}{{else}}{{tr "2 hours"}}{{end}}</option>{{end}}
+        </select>
+        {{else}}
+        <p class="notice" style="margin:0">{{tr "No table is free right now. Check the tables above for one that frees up soon."}}</p>
+        {{end}}
+      </fieldset>
+      <div class="dlg-grid">
+        <label class="field"><span class="field-label">{{tr "Name"}} <span class="hint">{{tr "optional"}}</span></span><input name="name" autocomplete="off" maxlength="80"></label>
+        <label class="field"><span class="field-label">{{tr "Phone"}} <span class="hint">{{tr "optional"}}</span></span><input name="phone" type="tel" inputmode="tel" autocomplete="off"></label>
+        <label class="field wide"><span class="field-label">{{tr "Notes"}} <span class="hint">{{tr "optional"}}</span></span><textarea name="notes" rows="2" maxlength="500"></textarea></label>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>{{tr "Close"}}</button>
+      {{if .WalkIn}}<button class="btn btn-ok" data-loading="{{tr "Seating…"}}">{{tr "Seat them"}}</button>{{end}}
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{end}}

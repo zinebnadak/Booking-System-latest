@@ -1,0 +1,220 @@
+{{define "content"}}
+<div class="tab" data-live-screen="/g/{{.Key}}?part=live" data-live-events="/g/{{.Key}}/events">
+  <header class="tab-head">
+    <p class="eyebrow">{{trf "Table %d" .Table}}</p>
+    <h1>{{.MyLabel}}</h1>
+    {{if .Open}}
+    <details class="tab-name" id="tab-name">
+      <summary>{{if .Name}}{{tr "Change your name"}}{{else}}{{tr "Add your name"}}{{end}}</summary>
+      <form method="post" action="/g/{{.Key}}/name" class="tab-name-form">
+        <label class="field">{{tr "So the waiter knows whose plate is whose"}}<input name="name" maxlength="30" value="{{.Name}}" autocomplete="given-name" placeholder="{{tr "Your first name"}}"></label>
+        <button class="btn btn-secondary">{{tr "Save"}}</button>
+      </form>
+    </details>
+    {{end}}
+  </header>
+
+  <div data-live-box data-offline="{{tr "No connection"}}">{{template "live" .}}</div>
+
+  {{with .Menu}}
+  <section class="card tab-menu" data-guest-menu aria-labelledby="menu-h">
+    <h2 id="menu-h">{{tr "Order"}}</h2>
+    <p class="small muted">{{tr "What you order is yours on the bill. Food goes straight to the chef, drinks to your waiter."}}</p>
+    <p class="allergy-note">{{tr "Allergic to something? The main allergens are listed under each dish. If you're not sure, ask your waiter before you order."}}</p>
+    <form method="post" action="/g/{{$.Key}}/order" id="guest-order" data-one="{{tr "1 item"}}" data-many="{{tr "%d items"}}">
+      {{if gt (len .) 1}}<nav class="od-jump" aria-label="{{tr "Sections"}}">{{range $i, $c := .}}<a href="#cat-{{$i}}">{{$c.Name}}</a>{{end}}</nav>{{end}}
+      {{range $i, $c := .}}
+      <h3 class="cat" id="cat-{{$i}}">{{$c.Name}}</h3>
+      <ul class="menu">
+        {{range .Items}}
+        <li class="dish">
+          {{with .Photo}}<img class="dish-photo" src="/photos/{{.}}" alt="" loading="lazy" decoding="async">{{end}}
+          <div class="dish-text">
+            <span class="dish-name">{{.Name}}</span>
+            {{with .Description}}<span class="dish-desc">{{.}}</span>{{end}}
+            <span class="dish-meta"><span class="dish-price">{{euro .PriceCents}}</span>{{if .Happy}}<span class="badge badge-wait">{{tr "Cocktail hour"}}</span>{{end}}{{with .Tags}}<span class="dish-tags">{{.}}</span>{{end}}</span>
+            {{with .Allergens}}<span class="dish-allergens"><b>{{tr "Contains:"}}</b> {{allergens .}}</span>{{end}}
+            {{if not .Drink}}
+            <details class="od-more">
+              <summary>{{tr "Add a note"}}</summary>
+              <div class="od-extra"><label class="field">{{tr "Note for the chef"}}<input name="note_{{.ID}}" maxlength="120" placeholder="{{tr "e.g. no onions"}}"></label></div>
+            </details>
+            {{end}}
+          </div>
+          <div class="qty is-zero">
+            <button type="button" class="btn btn-secondary btn-sm add-btn" aria-label="{{trf "Add %s" .Name}}">+ {{tr "Add"}}</button>
+            <button type="button" class="qty-btn" data-step="-1" aria-label="{{trf "One less %s" .Name}}">&minus;</button>
+            <input type="number" name="qty_{{.ID}}" min="0" max="20" value="0" placeholder="0" data-id="{{.ID}}" data-price="{{.PriceCents}}" inputmode="numeric" aria-label="{{trf "How many %s" .Name}}">
+            <button type="button" class="qty-btn" data-step="1" aria-label="{{trf "One more %s" .Name}}">+</button>
+          </div>
+        </li>
+        {{end}}
+      </ul>
+      {{end}}
+      <div class="order-bar">
+        <span class="order-sum" data-order-sum>{{tr "Pick dishes and drinks"}}</span>
+        <button class="btn btn-primary" data-loading="…">{{tr "Send order"}}</button>
+      </div>
+    </form>
+  </section>
+  {{end}}
+</div>
+{{end}}
+
+{{define "live"}}
+<span hidden data-menu-state="{{if .CanOrder}}open{{else}}shut{{end}}" data-bill-open="{{if .Open}}1{{else}}0{{end}}"></span>
+{{if .Voided}}
+<section class="card tab-state">
+  <h2>{{tr "This bill was closed by the staff"}}</h2>
+  <p class="muted">{{tr "If something isn't right, ask your waiter."}}</p>
+</section>
+{{else if not .Open}}
+<section class="card tab-state tab-done">
+  <svg class="tab-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+  <h2>{{tr "The table is paid. Thank you!"}}</h2>
+  {{if and .Payer (ne .Payer .Me)}}<p class="muted">{{trf "Guest %d paid for you." .Payer}}</p>{{end}}
+  {{if .MyTip}}<p class="muted">{{trf "And thank you for the %s tip!" (euro .MyTip)}}</p>{{end}}
+  <a class="btn btn-secondary" href="/review?table={{.Table}}">★ {{tr "How was it? Tell us"}}</a>
+</section>
+{{if .Receipt}}{{template "receipt-choice" .}}{{end}}
+{{else}}
+
+{{with .Hold}}
+<div class="tab-hold{{if .Mine}} mine{{end}}" role="status">
+  {{if .Mine}}
+  <strong>{{if .All}}{{tr "You're paying for the whole table"}}{{else}}{{tr "You're paying your part"}}{{end}}</strong>
+  <p>{{tr "The others have to wait until you finish. Time left:"}} <b data-countdown="{{.LeftS}}">{{.Left}}</b></p>
+  <div class="tab-hold-actions">
+    {{if .URL}}<a class="btn btn-ok" href="{{.URL}}">{{tr "Continue paying"}}</a>{{end}}
+    <form method="post" action="/g/{{$.Key}}/cancel"><input type="hidden" name="a" value="{{.Ref}}"><button class="btn btn-secondary">{{tr "Cancel payment"}}</button></form>
+  </div>
+  {{else}}
+  <span class="tab-spin" aria-hidden="true"></span>
+  <strong>{{if .All}}{{trf "%s is paying for the whole table…" .Label}}{{else}}{{trf "%s is paying their part…" .Label}}{{end}}</strong>
+  <p>{{if .Covers}}{{tr "Please wait. If they don't finish, you can pay yourself in"}}{{else}}{{tr "You can still pay your own part. Paying for everyone opens again in"}}{{end}} <b data-countdown="{{.LeftS}}">{{.Left}}</b></p>
+  {{end}}
+</div>
+{{end}}
+
+{{with .Waiting}}
+<section class="card tab-waiting" role="status" aria-labelledby="wait-h">
+  <h2 id="wait-h">{{tr "Waiting for your waiter"}}</h2>
+  <ul class="tab-lines">{{range .}}{{range .Lines}}<li><span class="tl-q">{{.Qty}}×</span><span class="tl-n">{{.Name}}{{with .Note}}<small>{{.}}</small>{{end}}</span><span class="tl-p"></span></li>{{end}}{{end}}</ul>
+  <p class="small muted">{{tr "Your waiter checks your order, then it goes to the kitchen. If they don't get to it, it goes through by itself in"}} <b data-countdown="{{(index . 0).AutoLeft}}">{{(index . 0).AutoAt}}</b>. {{tr "You can pay once it's confirmed."}}</p>
+</section>
+{{end}}
+{{with .Rejected}}
+<p class="notice">{{tr "Your waiter didn't put this order through:"}} {{range $i, $o := .}}{{range $j, $l := $o.Lines}}{{if or $i $j}}, {{end}}{{$l.Qty}}× {{$l.Name}}{{end}}{{end}}. {{tr "They'll come and talk to you."}}</p>
+{{end}}
+
+{{with .Call}}
+<section class="card tab-call" aria-label="{{tr "Call the waiter"}}">
+  {{if .Deal}}
+    {{if .Coming}}<p class="tab-ok">✓ {{if .Last}}{{tr "Your waiter is coming to clear the table."}}{{else}}{{trf "Meal %d is on its way." .Next}}{{end}}</p>
+    {{else}}
+    <form method="post" action="/g/{{$.Key}}/call"><input type="hidden" name="kind" value="next">
+      <button class="btn btn-primary btn-block" data-loading="…">{{if .Last}}{{tr "We're done with all 3 meals"}}{{else}}{{trf "Ready for meal %d" .Next}}{{end}}</button>
+    </form>
+    {{end}}
+  {{end}}
+  {{if and .Called .Waiter}}
+    <p class="tab-ok">✓ {{trf "Your waiter is on the way (called %s)." .At}}</p>
+    <form method="post" action="/g/{{$.Key}}/call"><input type="hidden" name="kind" value="waiter"><button class="btn-link">{{tr "Call again"}}</button></form>
+  {{else}}
+    <form method="post" action="/g/{{$.Key}}/call"><input type="hidden" name="kind" value="waiter">
+      <button class="btn btn-secondary btn-block" data-loading="…">{{tr "Call the waiter"}}</button>
+    </form>
+  {{end}}
+</section>
+{{end}}
+
+<section class="card tab-mine" aria-labelledby="mine-h">
+  <h2 id="mine-h">{{tr "Your order"}}</h2>
+  {{if .Mine}}
+  <ul class="tab-lines">
+    {{range .Mine}}
+    <li>
+      <span class="tl-q">{{if .SharedBy}}1/{{.SharedBy}}{{else}}{{.Qty}}×{{end}}</span>
+      <span class="tl-n">{{.Name}}{{with .Note}}<small>{{.}}</small>{{end}}
+        {{if eq .Status "ready"}}<span class="badge badge-ok">{{tr "Ready"}}</span>{{else if eq .Status "cooking"}}<span class="badge badge-wait">{{tr "Being made"}}</span>{{else if eq .Status "later"}}<span class="badge badge-muted">{{tr "Comes after the starter"}}</span>{{end}}</span>
+      <span class="tl-p">{{euro .Cents}}</span>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="muted">{{if .QROpen}}{{tr "Nothing yet. Pick something from the menu below."}}{{else}}{{tr "Nothing yet."}}{{end}}</p>
+  {{end}}
+  {{if .MyDeposit}}<p class="small muted">{{trf "The %s paid online when booking is taken off." (euro .MyDeposit)}}</p>{{end}}
+  <div class="tab-part"><span>{{tr "Your part"}}</span><strong>{{euro .MyPart}}</strong></div>
+  {{if .WithWaiter}}<p class="small tab-partpaid">{{trf "You've paid %s of it with your waiter. Left to pay: %s, with your waiter too." (euro .MyPartPaid) (euro .MyLeft)}}</p>{{end}}
+  {{if .MyPaid}}
+  <p class="tab-paid">✓ {{if eq .PaidBy "online"}}{{tr "Paid online"}}{{else if eq .PaidBy "cash"}}{{tr "Paid in cash"}}{{else if eq .PaidBy "nothing"}}{{tr "Nothing to pay"}}{{else if eq .PaidBy "card"}}{{tr "Paid by card"}}{{else}}{{tr "Paid"}}{{end}}{{if and .Payer (ne .Payer .Me)}} · {{trf "Guest %d paid for you." .Payer}}{{end}}{{if .MyTip}} · {{trf "with a %s tip. Thank you!" (euro .MyTip)}}{{end}}</p>
+  {{else if not .QROpen}}
+  <p class="small muted">{{tr "Want something more? Ask your waiter."}}</p>
+  {{end}}
+</section>
+
+{{if .Receipt}}{{template "receipt-choice" .}}{{end}}
+
+{{if .TableWaiting}}<p class="small muted tab-note">{{tr "Someone at your table has an order waiting for the waiter. Paying for the whole table opens once it's confirmed."}}</p>{{end}}
+{{if or .CanPay .CanPayAll}}
+<section class="card tab-pay" aria-labelledby="pay-h">
+  <h2 id="pay-h">{{tr "Pay here"}}</h2>
+  <p class="small muted">{{tr "With Apple Pay, Google Pay or a card. Or pay your waiter at the end, as usual."}}</p>
+  {{if .CanPay}}
+    {{if lt .MyPart .Min}}{{if .MyPart}}<p class="small muted">{{tr "Your part is too small to pay online: pay your waiter."}}</p>{{end}}
+    {{else}}
+    <a class="btn btn-ok btn-block tab-paybtn" href="/g/{{.Key}}/tip">{{trf "Pay my part · %s" (euro .MyPart)}}</a>
+    {{end}}
+  {{end}}
+  {{if .CanPayAll}}
+  <details class="tab-all" id="tab-all">
+    <summary class="btn btn-secondary btn-block">{{trf "Pay for the whole table · %s" (euro .Rest)}}</summary>
+    <div class="tab-all-body">
+      <p>{{trf "You pay %s and everyone else at the table is marked as paid." (euro .Rest)}}</p>
+      <a class="btn btn-ok btn-block" href="/g/{{.Key}}/tip?all=1">{{trf "Yes, pay %s for everyone" (euro .Rest)}}</a>
+    </div>
+  </details>
+  {{end}}
+</section>
+{{end}}
+
+<section class="card tab-table" aria-labelledby="table-h">
+  <div class="tab-table-head"><h2 id="table-h">{{trf "Table %d" .Table}}</h2><strong>{{euro .Bill.ToPay}}</strong></div>
+  <ul class="tab-guests">
+    {{range .Guests}}
+    <li{{if .Me}} class="me"{{end}}>
+      <span class="tg-n">{{.Label}}{{if .Me}} <small>({{tr "you"}})</small>{{end}}</span>
+      <span class="tg-p">{{euro .Pay}}</span>
+      {{if .Paid}}<span class="badge badge-ok">{{if eq .PaidBy "nothing"}}{{tr "Nothing"}}{{else}}{{tr "Paid"}}{{end}}</span>{{else}}<span class="badge badge-muted">{{tr "Not paid"}}</span>{{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{if .Unassigned}}<p class="small muted">{{trf "Plus %s ordered for the table by your waiter (not anyone's yet)." (euro .Unassigned)}}</p>{{end}}
+</section>
+{{end}}
+{{end}}
+
+{{define "receipt-choice"}}
+<section class="card tab-receipt" aria-labelledby="rc-h">
+  <h2 id="rc-h">{{tr "Your receipt"}}</h2>
+  <p class="small muted">{{tr "How would you like it?"}}</p>
+  <a class="btn btn-secondary btn-block" href="/r/{{.ReceiptRef}}">{{tr "Show it on my phone"}}</a>
+  {{if .CanEmail}}
+  <details class="tab-email" id="tab-email">
+    <summary class="btn btn-secondary btn-block">{{if .Emailed}}{{tr "Email it again"}}{{else}}{{tr "Email it to me"}}{{end}}</summary>
+    <form method="post" action="/g/{{.Key}}/receipt/email" class="tab-email-form">
+      <label class="field">{{tr "Your email"}}<input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email"></label>
+      <button class="btn btn-primary" data-loading="…">{{tr "Send"}}</button>
+    </form>
+    <p class="small muted">{{tr "Used only to send this receipt, not saved."}}</p>
+  </details>
+  {{end}}
+  {{if .Emailed}}<p class="tab-ok">✓ {{tr "Sent to your email."}}</p>{{end}}
+  {{if .PaperAsked}}<p class="tab-ok">✓ {{tr "A waiter is bringing your printed receipt."}}</p>
+  {{else if .PaperGiven}}<p class="tab-ok">✓ {{tr "You got your printed receipt."}}</p>
+  {{else}}
+  <form method="post" action="/g/{{.Key}}/receipt/paper"><button class="btn btn-secondary btn-block" data-loading="…">{{tr "Bring me a printed receipt"}}</button></form>
+  {{end}}
+</section>
+{{end}}

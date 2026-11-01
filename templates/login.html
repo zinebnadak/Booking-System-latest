@@ -1,0 +1,16 @@
+{{define "content"}}
+<div class="login-wrap">
+  <div class="card login">
+    <h1>{{tr "Staff login"}}</h1>
+    <p class="muted">{{tr "For the manager and the head manager."}}</p>
+    {{with .Error}}<div class="notice error" role="alert">{{.}}</div>{{end}}
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="{{.Next}}">
+      <label class="field">{{tr "Username"}}<input name="username" value="{{.User}}" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></label>
+      <label class="field">{{tr "Password"}}<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn btn-primary btn-block" data-loading="{{tr "Logging in…"}}">{{tr "Log in"}}</button>
+    </form>
+    <p class="muted small" style="margin:16px 0 0">{{tr "You stay logged in on this device for 14 days, or until you press Log out."}}</p>
+  </div>
+</div>
+{{end}}

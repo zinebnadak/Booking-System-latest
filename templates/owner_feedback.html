@@ -1,0 +1,29 @@
+{{define "content"}}
+<div class="day-head">
+  <h1>{{tr "Feedback"}}</h1>
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/tables/qr#review-sticker">{{tr "Review QR code"}}</a>
+</div>
+<p class="muted small">{{tr "What guests told you after their visit. It's private: nothing here is published. After giving feedback, every guest is offered your Google review link."}}{{if not .Google}} {{tr "(Add your Google review link as GOOGLE_REVIEW_URL in the settings file to offer it.)"}}{{end}}</p>
+
+<section class="panel fb-sum">
+  {{if .Count}}
+  <div><span class="fb-avg">{{.Avg}}</span> <span class="fb-star">★</span></div>
+  <p class="muted small">{{trf "Average of %d ratings in the last 30 days" .Count}}{{if .Low}} · {{trf "%d under 4 stars" .Low}}{{end}}</p>
+  {{else}}
+  <p class="muted">{{tr "No feedback in the last 30 days yet."}}</p>
+  {{end}}
+</section>
+
+{{if .List}}
+<ul class="fb-list">
+  {{range .List}}
+  <li class="panel{{if lt .Stars 4}} fb-low{{end}}">
+    <div class="fb-top"><span class="fb-stars" aria-label="{{trf "%d of 5 stars" .Stars}}">{{.StarText}}</span><span class="muted small">{{.When}}{{if .Table}} · {{trf "Table %d" .Table}}{{end}}</span></div>
+    {{if .Text}}<p class="fb-text">{{.Text}}</p>{{else if .Done}}<p class="muted small">{{tr "No comment, just the stars."}}</p>{{else}}<p class="muted small">{{tr "Only the stars so far."}}</p>{{end}}
+    {{with .Email}}<p class="small">{{tr "Would like a reply:"}} <a href="mailto:{{.}}">{{.}}</a></p>{{end}}
+  </li>
+  {{end}}
+</ul>
+{{end}}
+{{end}}

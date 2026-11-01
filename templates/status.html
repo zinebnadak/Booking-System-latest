@@ -1,0 +1,81 @@
+{{define "content"}}
+{{$t := .T}}
+{{with .B}}
+<div class="card status-card">
+  {{if eq $.Status "paid"}}
+    <div class="status-icon ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h1>{{if eq .Kind "table"}}{{$t.st_booked_table}}{{else}}{{$t.st_booked_ta}}{{end}}</h1>
+    <p class="muted">{{printf $t.st_sent_to .Email}}</p>
+  {{else if eq $.Status "arrived"}}
+    <div class="status-icon ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h1>{{$t.st_booked_table}}</h1>
+  {{else if eq $.Status "pending"}}
+    <div class="status-icon wait" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg></div>
+    <h1>{{$t.st_pending_h}}</h1>
+    <p class="muted">{{if eq .Kind "table"}}{{printf $t.st_hold_table $.HoldUntil}}{{else}}{{printf $t.st_hold_ta $.HoldUntil}}{{end}}</p>
+    {{with $.PayURL}}<div class="status-actions"><a class="btn btn-primary" href="{{.}}">{{printf $t.st_pay (euro $.B.DepositCents)}}</a></div>{{end}}
+    <p class="small muted">{{$t.st_just_paid}} <a href="">{{$t.st_refresh}}</a>.</p>
+  {{else if eq $.Status "expired"}}
+    <div class="status-icon off" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>
+    <h1>{{$t.st_expired_h}}</h1>
+    <p class="muted">{{if eq .Kind "table"}}{{$t.st_expired_table}}{{else}}{{$t.st_expired_ta}}{{end}}</p>
+    <div class="status-actions"><a class="btn btn-primary" href="{{if eq .Kind "table"}}/book{{else}}/takeaway{{end}}">{{$t.st_start_again}}</a></div>
+  {{else}}
+    <div class="status-icon off" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>
+    <h1>{{$t.st_cancelled_h}}</h1>
+    <p class="muted">{{if eq $.Status "refunded"}}{{printf $t.st_refunded_text (euro .DepositCents)}}{{else}}{{$t.st_cancelled_text}}{{end}}</p>
+  {{end}}
+
+  <dl class="details">
+    <dt>{{$t.lbl_booking}}</dt><dd>#{{.ID}}</dd>
+    {{if eq .Kind "table"}}
+    <dt>{{$t.lbl_date}}</dt><dd>{{cap (date $.Lang .Date)}}</dd>
+    <dt>{{$t.lbl_time}}</dt><dd>{{.Time}}–{{$.End}}</dd>
+    <dt>{{$t.lbl_guests}}</dt><dd>{{.PartySize}}</dd>
+    {{with $.Occasion}}<dt>{{$t.lbl_occasion}}</dt><dd>{{.}}</dd>{{end}}
+    {{else}}
+    <dt>{{$t.lbl_pickup}}</dt><dd>{{cap (date $.Lang .Date)}} {{$t.at}} {{.Time}}</dd>
+    <dt>{{$t.lbl_order}}</dt><dd><ul class="plain">{{range .Items}}<li>{{.Quantity}} × {{.Name}} <span class="muted">{{euro .LineTotal}}</span></li>{{end}}</ul></dd>
+    <dt>{{$t.lbl_total}}</dt><dd>{{euro .TotalCents}}</dd>
+    {{end}}
+    {{if .DepositCents}}<dt>{{$t.lbl_deposit}}</dt><dd>{{euro .DepositCents}}</dd>{{end}}
+    {{if eq .Kind "takeaway"}}<dt>{{$t.lbl_pay_pickup}}</dt><dd><strong>{{euro .RemainingCents}}</strong></dd>{{end}}
+    <dt>{{$t.lbl_name}}</dt><dd>{{.Name}}</dd>
+    <dt>{{$t.lbl_phone}}</dt><dd>{{.Phone}}</dd>
+    {{with .Notes}}<dt>{{$t.lbl_notes}}</dt><dd>{{.}}</dd>{{end}}
+  </dl>
+
+  {{if and (eq .Kind "table") (eq $.Status "paid") .TableCode}}
+  <div class="table-code">
+    <span class="tc-label">{{$t.st_code}}</span>
+    <strong class="tc-digits">{{.TableCode}}</strong>
+    <p class="small muted">{{$t.st_code_x}}</p>
+  </div>
+  {{end}}
+
+  {{if eq $.Status "paid"}}
+  <div class="status-actions">
+    <a class="btn btn-secondary" href="/b/{{.Ref}}/calendar.ics">{{$t.add_calendar}}</a>
+    {{if $.CanChange}}<a class="btn btn-secondary" href="/b/{{.Ref}}/change">{{$t.change_booking}}</a>{{end}}
+    <a class="btn btn-ghost" href="{{if eq .Kind "table"}}/book{{else}}/takeaway{{end}}">{{$t.new_booking}}</a>
+  </div>
+  <p class="policy">
+    {{if eq .Kind "takeaway"}}{{$t.st_policy_ta}}{{else if not .DepositCents}}{{$t.st_policy_nodep}}{{else}}{{printf $t.st_policy_table $.FreeCancelUntil}}{{end}}
+    {{if eq .Kind "table"}}{{if not $.CanChange}}{{$t.st_change_call}}{{end}}{{end}}
+    {{$t.st_questions}}{{with $.Cfg.RestaurantPhone}} <a href="tel:{{.}}">{{.}}</a>{{end}}{{with $.Cfg.RestaurantEmail}} · <a href="mailto:{{.}}">{{.}}</a>{{end}}
+  </p>
+  {{if $.CanCancel}}
+  <details class="manage">
+    <summary>{{if eq .Kind "table"}}{{$t.cancel_booking}}{{else}}{{$t.cancel_order}}{{end}}</summary>
+    <div class="manage-body">
+      <p>{{if eq .Kind "takeaway"}}{{printf $t.cancel_ta_kept (euro .DepositCents)}}{{else if not .DepositCents}}{{$t.cancel_free}}{{else if $.RefundNow}}{{printf $t.cancel_refund (euro .DepositCents)}}{{else}}{{printf $t.cancel_kept (euro .DepositCents)}}{{end}}</p>
+      <form method="post" action="/b/{{.Ref}}/cancel">
+        <button class="btn btn-danger solid" data-loading="…">{{if eq .Kind "table"}}{{$t.cancel_yes}}{{else}}{{$t.cancel_yes_ta}}{{end}}</button>
+      </form>
+    </div>
+  </details>
+  {{end}}
+  {{end}}
+</div>
+{{end}}
+{{end}}

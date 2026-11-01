@@ -1,0 +1,7 @@
+{{define "content"}}
+<div class="card status-card">
+  <h1>{{.Heading}}</h1>
+  <p class="muted">{{.Text}}</p>
+  {{with .LinkHref}}<div class="status-actions"><a class="btn btn-primary" href="{{.}}">{{$.LinkText}}</a></div>{{end}}
+</div>
+{{end}}

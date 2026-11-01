@@ -1,0 +1,197 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/orders/{{.Table}}" aria-label="{{trf "Back to table %d" .Table}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{trf "Split the bill · table %d" .Table}}</h1>
+  <span class="spacer"></span>
+  <strong class="split-total">{{euro .Bill.ToPay}}</strong>
+</div>
+
+{{if not .Bill.IsSplit}}
+<section class="panel">
+  <h2>{{tr "How many are paying?"}}</h2>
+  <p class="muted small">{{tr "Then tap who had what. Each guest gets their own receipt; the table's bill keeps the full amount."}}</p>
+  <div class="split-count">
+    {{range .Counts}}
+    <form method="post" action="/admin/orders/{{$.Table}}/split/guests">
+      <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guests" value="{{.}}">
+      <button class="btn btn-secondary">{{.}}</button>
+    </form>
+    {{end}}
+    <form method="post" action="/admin/orders/{{.Table}}/split/guests" class="split-more">
+      <input type="hidden" name="bill" value="{{.Bill.ID}}">
+      <select name="guests" aria-label="{{tr "More guests"}}">{{range .More}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+      <button class="btn btn-secondary btn-sm">{{tr "OK"}}</button>
+    </form>
+  </div>
+</section>
+
+{{else}}
+{{range .Holds}}<p class="notice info hold-note">{{if .All}}{{trf "%s is paying for the whole table on their phone." .Label}}{{else}}{{trf "%s is paying their part on their phone." .Label}}{{end}} {{tr "Wait before taking a payment for them."}} <b data-countdown="{{.LeftS}}">{{.Left}}</b></p>{{end}}
+<section class="panel" id="who" data-swap>
+  <div class="panel-head">
+    <h2>{{tr "Who had what?"}}</h2>
+    <div class="split-tools">
+      {{if and (not .AnyPaid) (not .Phones)}}
+      <form method="post" action="/admin/orders/{{.Table}}/split/even"><input type="hidden" name="bill" value="{{.Bill.ID}}"><button class="btn btn-secondary btn-sm">{{tr "Split evenly"}}</button></form>
+      <form method="post" action="/admin/orders/{{.Table}}/split/guests" class="split-n">
+        <input type="hidden" name="bill" value="{{.Bill.ID}}">
+        <label class="sr-only" for="split-n">{{tr "Guests"}}</label>
+        <select id="split-n" name="guests" data-autosubmit-select>{{range $n := seq 2 $.Max}}<option value="{{$n}}"{{if eq $n (len $.Bill.Split)}} selected{{end}}>{{trf "%d guests" $n}}</option>{{end}}</select>
+        <noscript><button class="btn btn-secondary btn-sm">{{tr "OK"}}</button></noscript>
+      </form>
+      {{end}}
+      {{if lt (len .Bill.Split) .Max}}
+      <form method="post" action="/admin/orders/{{.Table}}/split/guests">
+        <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="guests" value="{{add (len .Bill.Split) 1}}">
+        <button class="btn btn-secondary btn-sm">+ {{tr "Add a guest"}}</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+  <p class="muted small">{{tr "Tap the guest who had each thing. Tap more than one to share it: it's divided equally."}}</p>
+
+  <ul class="split-lines">
+    {{range .Lines}}
+    <li class="sl{{if not .Guests}} sl-open{{end}}">
+      <div class="sl-top">
+        <span class="sl-name">{{.Qty}}× {{.Name}}{{if .Drink}} <span class="badge badge-muted">{{tr "Drink"}}</span>{{end}}</span>
+        <span class="sl-price">{{euro .Total}}</span>
+      </div>
+      <form method="post" action="/admin/orders/{{$.Table}}/split/assign" class="sl-chips" data-autosave>
+        <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="line" value="{{.ID}}">
+        {{$line := .}}
+        {{range .Chips}}
+        <label class="chip-g{{if .On}} on{{end}}{{if .Locked}} locked{{end}}">
+          <input type="checkbox" name="g" value="{{.G}}"{{if .On}} checked{{end}}{{if or .Locked $line.Locked}} disabled{{end}}>
+          <span>{{.G}}</span>
+        </label>
+        {{end}}
+        <noscript><button class="btn btn-secondary btn-sm">{{tr "Save"}}</button></noscript>
+      </form>
+      {{if and (gt .Qty 1) (not .Locked)}}
+      <form method="post" action="/admin/orders/{{$.Table}}/split/separate" class="sl-sep">
+        <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="line" value="{{.ID}}">
+        <button class="btn-link">{{trf "Not the same person? Make %d lines" .Qty}}</button>
+      </form>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{if .Unassigned}}<p class="notice">{{if eq .Unassigned 1}}{{trf "1 thing (%s) isn't given to anyone yet." (euro .UnassignedCents)}}{{else}}{{trf "%d things (%s) aren't given to anyone yet." .Unassigned (euro .UnassignedCents)}}{{end}}</p>{{end}}
+</section>
+
+<section class="panel" id="pay" data-swap>
+  <div class="panel-head">
+    <h2>{{tr "Each guest pays"}}</h2>
+    <a class="btn btn-secondary btn-sm" href="/admin/orders/{{.Table}}/receipts?bill={{.Bill.ID}}">{{tr "All receipts (print / QR)"}}</a>
+  </div>
+  <div class="guest-grid">
+    {{range .Guests}}
+    <article class="gp{{if .Paid}} gp-paid{{else if and $.AnyPaid (not .Held) .Items}} gp-due{{end}}" id="g{{.Guest}}">
+      <div class="gp-top">
+        <strong>{{.Label}}{{if .Phone}} <span class="gp-phone" title="{{tr "Ordering on their phone"}}" aria-label="{{tr "Ordering on their phone"}}">📱</span>{{end}}</strong>
+        <span class="gp-amount">{{euro .Pay}}</span>
+      </div>
+      <p class="gp-items">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{if $it.SharedBy}}{{trf "%s (shared by %d)" $it.Name $it.SharedBy}}{{else}}{{$it.Qty}}× {{$it.Name}}{{end}}{{else}}<span class="muted">{{tr "Nothing yet"}}</span>{{end}}</p>
+      {{if .Deposit}}<p class="gp-dep">{{trf "Online deposit %s taken off" (euro .Deposit)}}</p>{{end}}
+      {{if .Paid}}
+        <p class="gp-status">✓ {{if eq .PaidBy "cash"}}{{trf "Paid in cash %s" .PaidAt}}{{else if eq .PaidBy "online"}}{{trf "Paid online %s" .PaidAt}}{{else if eq .PaidBy "nothing"}}{{tr "Had nothing"}}{{else if eq .PaidBy "card"}}{{trf "Paid at the terminal %s" .PaidAt}}{{else}}{{method .PaidBy}} · {{.PaidAt}}{{end}}</p>
+        {{if and .Payer (ne .Payer .Guest)}}<p class="gp-dep">{{trf "Guest %d paid for them" .Payer}}</p>{{end}}
+        {{if gt (len .Together) 1}}<p class="gp-dep">{{trf "Paid for %s together" (guestList .Together)}}</p>{{end}}
+        {{with .Parts}}{{template "gp-parts" .}}{{end}}
+        {{if eq .PaidBy "online"}}
+        <p class="gp-dep">{{tr "To give it back, refund it in Stripe."}}</p>
+        {{else if ne .PaidBy "nothing"}}
+        <form method="post" action="/admin/orders/{{$.Table}}/split/undo" data-confirm="{{trf "Take back guest %d's payment? Only if it was pressed by mistake." .Guest}}" data-confirm-ok="{{tr "Take back"}}" data-danger>
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guest" value="{{.Guest}}">
+          <button class="btn-link">{{tr "Undo"}}</button>
+        </form>
+        {{end}}
+      {{else if .Held}}
+        <p class="gp-status gp-held">{{tr "Paying on their phone…"}}</p>
+      {{else}}
+        {{if .Parts}}
+        {{template "gp-parts" .Parts}}
+        <p class="gp-left"><span>{{tr "Left to pay"}}</span><strong>{{euro .Left}}</strong></p>
+        <form method="post" action="/admin/orders/{{$.Table}}/split/undopart" class="gp-undo" data-confirm="{{tr "Take back the last payment? A gift card or lunch booklet gets it back."}}" data-confirm-ok="{{tr "Take back"}}" data-danger>
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guest" value="{{.Guest}}">
+          <button class="btn-link">{{tr "Take back the last payment"}}</button>
+        </form>
+        {{end}}
+        <div class="pay-row">
+          <form method="post" action="/admin/orders/{{$.Table}}/split/pay" data-confirm="{{trf "Guest %d paid %s at the terminal?" .Guest (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+            <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guest" value="{{.Guest}}"><input type="hidden" name="method" value="card">
+            <button class="btn btn-ok btn-block"{{if $.Unassigned}} disabled{{end}}>{{tr "Terminal"}}</button>
+          </form>
+          <form method="post" action="/admin/orders/{{$.Table}}/split/pay" data-confirm="{{trf "Guest %d paid %s in cash?" .Guest (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+            <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guest" value="{{.Guest}}"><input type="hidden" name="method" value="cash">
+            <button class="btn btn-ok btn-block"{{if $.Unassigned}} disabled{{end}}>{{tr "Cash"}}</button>
+          </form>
+        </div>
+        <form method="post" action="/admin/orders/{{$.Table}}/split/pay" class="pay-other" data-confirm="{{trf "Guest %d paid %s with a lunch card?" .Guest (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guest" value="{{.Guest}}">
+          <select name="method" aria-label="{{tr "Lunch card"}}">{{range $m := lunchCards}}<option value="{{$m}}">{{method $m}}</option>{{end}}</select>
+          <button class="btn btn-secondary btn-sm"{{if $.Unassigned}} disabled{{end}}>{{tr "Paid"}}</button>
+        </form>
+        <details class="gp-more" id="gp-more-{{.Guest}}">
+          <summary>{{tr "Gift card, lunch coupons or part of it"}}</summary>
+          <form method="post" action="/admin/orders/{{$.Table}}/split/part" class="pay-part" data-pay-part>
+            <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="guest" value="{{.Guest}}">
+            <div class="dlg-grid">
+              <label class="field">{{tr "How"}}<select name="method" data-pay-method>
+                <option value="giftcard">{{method "giftcard"}}</option><option value="lunchcoupon">{{method "lunchcoupon"}}</option>
+                <option value="card">{{method "card"}}</option><option value="cash">{{method "cash"}}</option>
+                {{range $m := lunchCards}}<option value="{{$m}}">{{method $m}}</option>{{end}}
+              </select></label>
+              <label class="field" data-pay-amount>{{tr "Amount €"}}<input name="amount" inputmode="decimal" placeholder="{{euro .Left}}"></label>
+              <label class="field" data-pay-code>{{tr "Code on the card"}}<input name="code" autocomplete="off" autocapitalize="characters" placeholder="PK-XXXX-XXXX"></label>
+              <label class="field" data-pay-coupons hidden>{{tr "Coupons"}}<input name="coupons" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
+            </div>
+            <p class="small muted" data-pay-gift-hint>{{tr "Leave the amount empty to use what's on the card (up to what's left to pay)."}}</p>
+            <button class="btn btn-primary btn-sm"{{if $.Unassigned}} disabled{{end}}>{{tr "Add payment"}}</button>
+          </form>
+        </details>
+      {{end}}
+    </article>
+    {{end}}
+  </div>
+  <p class="muted small">{{tr "The parts always add up to the table's bill. When the last guest pays, the table is free."}}</p>
+</section>
+
+{{if gt .Unpaid 1}}
+<section class="panel" id="together">
+  <h2>{{tr "One payment for several guests"}}</h2>
+  <p class="muted small">{{tr "Someone paying for friends, or the rest paying in one go: tick who's included, then one payment on the card terminal."}}</p>
+  <form method="post" action="/admin/orders/{{.Table}}/split/pay" class="together" data-together
+        data-confirm="{{tr "Paid together?"}}" data-confirm-ok="{{tr "Yes, paid"}}"
+        data-tpl-card="{{tr "Guests %s paid %s together at the terminal?"}}" data-tpl-cash="{{tr "Guests %s paid %s together in cash?"}}">
+    <input type="hidden" name="bill" value="{{.Bill.ID}}">
+    <div class="together-list">
+      {{range .Guests}}{{if and (not .Paid) (not .Held) (not .Parts)}}
+      <label class="chip-g together-g"><input type="checkbox" name="guest" value="{{.Guest}}" data-cents="{{.Pay}}" checked><span>{{.Label}} · {{euro .Pay}}</span></label>
+      {{end}}{{end}}
+    </div>
+    <p class="together-sum" data-together-sum aria-live="polite"></p>
+    <div class="pay-row">
+      <button class="btn btn-ok btn-block" name="method" value="card"{{if $.Unassigned}} disabled{{end}}>{{tr "Terminal"}}</button>
+      <button class="btn btn-ok btn-block" name="method" value="cash"{{if $.Unassigned}} disabled{{end}}>{{tr "Cash"}}</button>
+    </div>
+  </form>
+</section>
+{{end}}
+
+{{if and (not .AnyPaid) (not .Phones)}}
+<form method="post" action="/admin/orders/{{.Table}}/split/guests" class="split-undo">
+  <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="guests" value="1">
+  <button class="btn-link">{{tr "Don't split after all"}}</button>
+</form>
+{{end}}
+{{end}}
+{{end}}
+
+{{/* A guest's part payments so far (a gift card, then the rest). */}}
+{{define "gp-parts"}}
+<ul class="gp-parts">
+  {{range .}}<li><span>{{method .Method}}{{with .Code}} · {{.}}{{end}}{{if .Coupons}} · {{trf "%d coupons" .Coupons}}{{end}}</span><span>{{euro .Cents}}</span></li>{{end}}
+</ul>
+{{end}}

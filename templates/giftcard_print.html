@@ -1,0 +1,24 @@
+{{define "content"}}
+<div class="rc-bar no-print">
+  <a class="btn btn-secondary btn-sm" href="/admin/giftcards?code={{.Card.Code}}">{{tr "Back"}}</a>
+  <button type="button" class="btn btn-primary btn-sm" data-print>{{tr "Print"}}</button>
+</div>
+<article class="gc-card">
+  <p class="gc-brand">{{.Cfg.RestaurantName}}</p>
+  {{if eq .Card.Kind "lunch"}}
+  <h1>{{tr "Lunch booklet"}}</h1>
+  <p class="gc-value">{{trf "%d lunches" .Card.Coupons}}</p>
+  <p class="gc-small" lang="sv">Lunchkuponghäfte · varje kupong gäller en lunch (upp till {{euro .Card.CouponCents}})</p>
+  <p class="gc-small" lang="en">Each coupon pays one lunch (up to {{euro .Card.CouponCents}})</p>
+  {{else}}
+  <h1>{{tr "Gift card"}}</h1>
+  <p class="gc-value">{{euro .Card.Initial}}</p>
+  <p class="gc-small" lang="sv">Presentkort · gäller för mat och dryck</p>
+  <p class="gc-small" lang="en">Gift card · for food and drinks</p>
+  {{end}}
+  <p class="gc-code-big">{{.Card.Code}}</p>
+  <p class="gc-small">{{.Card.Sold}}{{with .Cfg.RestaurantPhone}} · {{.}}{{end}}</p>
+  <p class="gc-small" lang="sv">Visa koden när du betalar.</p>
+  <p class="gc-small" lang="en">Show this code when you pay.</p>
+</article>
+{{end}}

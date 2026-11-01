@@ -1,0 +1,22 @@
+{{define "content"}}
+<div class="tab tab-tip">
+  <header class="tab-head">
+    <p class="eyebrow">{{trf "Table %d" .Table}}</p>
+    <h1>{{tr "Add a tip?"}}</h1>
+  </header>
+  <section class="card" aria-labelledby="tip-h">
+    <p id="tip-h">{{if .All}}{{trf "You're paying %s for the whole table." (euro .Amount)}}{{else}}{{trf "Your part is %s." (euro .Amount)}}{{end}}</p>
+    <p class="small muted">{{tr "A tip is up to you, and it goes to the staff."}}</p>
+    <form method="post" action="/g/{{.Key}}/pay" class="tip-choices">
+      <input type="hidden" name="all" value="{{if .All}}1{{else}}0{{end}}">
+      {{range .Options}}
+      <button class="btn btn-secondary btn-block tip-btn" name="tip" value="{{.Pct}}" data-loading="…">
+        <span class="tip-what">{{if .Pct}}{{trf "%d %% tip · %s" .Pct (euro .Tip)}}{{else}}{{tr "No tip"}}{{end}}</span>
+        <span class="tip-total">{{trf "Pay %s" (euro .Total)}}</span>
+      </button>
+      {{end}}
+    </form>
+    <p class="tip-back"><a href="/g/{{.Key}}">{{tr "Back"}}</a></p>
+  </section>
+</div>
+{{end}}

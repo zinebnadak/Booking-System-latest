@@ -1,0 +1,36 @@
+{{define "content"}}
+<div class="card status-card review-card">
+  <p class="eyebrow">{{.Cfg.RestaurantName}}</p>
+  {{if eq .Step "stars"}}
+  <h1>{{tr "How was it?"}}</h1>
+  <p class="muted">{{tr "Tap the stars. Only the restaurant sees your answer."}}</p>
+  <form method="post" action="/review" class="review-stars">
+    <input type="hidden" name="table" value="{{.Table}}">
+    <label class="hp" aria-hidden="true">Website <input name="website" tabindex="-1" autocomplete="off"></label>
+    <div class="stars-row">
+      {{range .Stars}}<button name="stars" value="{{.}}" class="star-btn" aria-label="{{if eq . 1}}{{tr "1 star"}}{{else}}{{trf "%d stars" .}}{{end}}"><span aria-hidden="true">★</span><small>{{.}}</small></button>{{end}}
+    </div>
+  </form>
+
+  {{else if eq .Step "comment"}}
+  <h1 class="review-given" aria-label="{{trf "%d of 5 stars" .R.Stars}}">{{.StarText}}</h1>
+  <p class="muted">{{if ge .R.Stars 4}}{{tr "Thank you! Anything you'd like to tell us?"}}{{else}}{{tr "Thank you for telling us. What could we have done better?"}}{{end}}</p>
+  <form method="post" action="/review/{{.R.Ref}}" class="review-form">
+    <label class="field">{{tr "Your comment"}}<textarea name="text" rows="5" maxlength="2000"></textarea></label>
+    <label class="field">{{tr "Your email, if you'd like a reply (optional)"}}<input type="email" name="email" maxlength="254" autocomplete="email"></label>
+    <button class="btn btn-primary btn-block" data-loading="…">{{tr "Send"}}</button>
+    <button class="btn-link" name="skip" value="1">{{tr "No comment, just the stars"}}</button>
+  </form>
+  <p class="small muted">{{tr "Your feedback goes only to the restaurant. It isn't published."}}</p>
+
+  {{else}}
+  <div class="status-icon ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h1>{{tr "Thank you!"}}</h1>
+  <p class="muted">{{tr "Your feedback is with the restaurant."}}</p>
+  {{with .Google}}
+  <p>{{tr "Would you also like to review us on Google? It helps other guests find us."}}</p>
+  <a class="btn btn-secondary btn-block" href="{{.}}" target="_blank" rel="noopener noreferrer">{{tr "Review us on Google"}}</a>
+  {{end}}
+  {{end}}
+</div>
+{{end}}

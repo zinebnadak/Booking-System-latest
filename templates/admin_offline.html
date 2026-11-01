@@ -1,0 +1,53 @@
+{{define "content"}}
+<div class="day-head no-print">
+  <a class="icon-btn" href="/admin/orders" aria-label="{{tr "Orders"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{tr "When the internet is down"}}</h1>
+  <span class="spacer"></span>
+  <button type="button" class="btn btn-primary btn-sm" data-print>{{tr "Print"}}</button>
+</div>
+<p class="muted small no-print">{{tr "Print this page now and keep it by the till with an order pad and a pen. When the internet goes down, the screens show a short version by themselves."}}</p>
+
+<article class="plan">
+  <header class="plan-head">
+    <p class="eyebrow">{{.Cfg.RestaurantName}}</p>
+    <h2>{{tr "When the internet is down"}}</h2>
+    <p>{{tr "The tablets, the kitchen screen, the table buttons and the QR codes need the internet. The restaurant keeps going on paper."}}</p>
+  </header>
+
+  <section>
+    <h3><span class="plan-no">1</span>{{tr "Tell everyone"}}</h3>
+    <p>{{tr "Whoever notices tells the kitchen and the other waiters: \"System down, paper now.\""}}</p>
+    <p>{{tr "Check with a phone: switch its Wi-Fi off and open the staff page on mobile data. If that works, only the restaurant's Wi-Fi is down: share the phone's internet (hotspot) with the kitchen tablet and carry on as normal."}}</p>
+  </section>
+
+  <section>
+    <h3><span class="plan-no">2</span>{{tr "Take orders on paper"}}</h3>
+    <p>{{tr "Write the table, the guest (Guest 1, 2…), the dishes and any notes or allergies. Give the kitchen a copy or read it out. Drinks as usual."}}</p>
+  </section>
+
+  <section>
+    <h3><span class="plan-no">3</span>{{tr "The kitchen cooks from the paper"}}</h3>
+    <p>{{tr "Line the tickets up by time and tick off what's done. Takeaway orders already on the screen are still there when it's back. New ones can't come in until then."}}</p>
+  </section>
+
+  <section>
+    <h3><span class="plan-no">4</span>{{tr "Payments: card terminal or cash"}}</h3>
+    <p>{{tr "Most card terminals have their own SIM and keep working without the Wi-Fi. Check yours once now, before it happens. Write every payment on its paper ticket: table, amount, terminal or cash."}}</p>
+  </section>
+
+  <section>
+    <h3><span class="plan-no">5</span>{{tr "QR codes and table buttons"}}</h3>
+    <p>{{tr "A guest whose phone can't open the QR page orders with you instead. The table buttons can't light up the screen: walk round the tables, especially during 3 meals."}}</p>
+  </section>
+
+  <section>
+    <h3><span class="plan-no">6</span>{{tr "When it's back"}}</h3>
+    <p>{{tr "Put the paper orders on the tables' bills and mark what was paid: at the terminal or in cash. Then the end-of-day email and the activity list are right. Keep the paper tickets until the day is checked."}}</p>
+  </section>
+
+  <footer class="plan-foot">
+    <p>{{tr "Internet provider's phone number:"}} <span class="plan-blank"></span></p>
+    <p>{{tr "Who to call about the system:"}} <span class="plan-blank"></span></p>
+  </footer>
+</article>
+{{end}}

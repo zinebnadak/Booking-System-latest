@@ -1,0 +1,61 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/orders/{{.Table}}" aria-label="{{trf "Back to table %d" .Table}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{trf "Table %d · history" .Table}}</h1>
+</div>
+{{if .PaidAll}}<p class="muted">{{if eq .PaidAll 1}}{{trf "1 bill paid · %s in total" (euro .TotalAll)}}{{else}}{{trf "%d bills paid · %s in total" .PaidAll (euro .TotalAll)}}{{end}}</p>{{end}}
+
+{{if not .Days}}
+<div class="panel"><div class="empty"><strong>{{tr "No bills yet"}}</strong>{{tr "Every bill this table has, paid or not, shows up here with the full order."}}</div></div>
+{{end}}
+
+{{range .Days}}
+<section class="panel hist-day">
+  <div class="panel-head">
+    <h2>{{prettyDate .Date}}</h2>
+    {{if .Paid}}<span class="muted small">{{if eq .Paid 1}}{{trf "1 bill · %s" (euro .Total)}}{{else}}{{trf "%d bills · %s" .Paid (euro .Total)}}{{end}}</span>{{end}}
+  </div>
+  {{range .Bills}}
+  <details class="hb hb-{{.State}}"{{if eq .State "open"}} open{{end}}>
+    <summary>
+      <span class="hb-title">{{if .No}}{{trf "Bill %d" .No}}{{else}}{{tr "Voided bill"}}{{end}}</span>
+      <span class="hb-when">{{.From}}{{with .To}}–{{.}}{{end}}</span>
+      <span class="hb-how">{{if eq .State "open"}}<span class="badge badge-wait">{{tr "Open now"}}</span>{{else if eq .State "voided"}}<span class="badge badge-bad">{{tr "voided, not paid"}}</span>{{else if .IsSplit}}{{trf "Split: %d guests paid separately" (len .Split)}}{{else if eq .PaidBy "cash"}}{{tr "Paid in cash"}}{{else if eq .PaidBy "card"}}{{tr "Paid at the terminal"}}{{else}}{{method .PaidBy}}{{end}}</span>
+      <span class="hb-total">{{euro .ToPay}}</span>
+    </summary>
+    <ul class="hb-lines">
+      {{range .Lines}}
+      <li>
+        <span class="hb-item">{{.Qty}}× {{.Name}}{{with .Note}} <span class="hb-note">· {{.}}</span>{{end}}
+          {{if .Drink}}<span class="badge badge-muted">{{tr "Drink"}}</span>{{end}}
+          {{if .PriceChanged}}<span class="muted small">{{trf "menu price %s" (euro .ListCents)}}</span>{{end}}</span>
+        <span class="hb-price">{{euro .Total}}</span>
+      </li>
+      {{end}}
+      {{if .Deposit}}<li class="hb-dep"><span>{{tr "Deposit paid online"}}</span><span class="hb-price">−{{euro .Deposit}}</span></li>{{end}}
+    </ul>
+    {{if .Shares}}
+    <ul class="hb-shares">
+      {{range .Shares}}
+      <li>
+        <span><strong>{{trf "Guest %d" .Guest}}</strong> · {{range $i, $it := .Items}}{{if $i}}, {{end}}{{if $it.SharedBy}}{{trf "%s (shared by %d)" $it.Name $it.SharedBy}}{{else}}{{$it.Qty}}× {{$it.Name}}{{end}}{{end}}</span>
+        <span class="hb-price">{{euro .Pay}} · {{if not .Paid}}{{tr "not paid yet"}}{{else if eq .PaidBy "cash"}}{{tr "cash"}}{{else if eq .PaidBy "online"}}{{tr "online"}}{{else if eq .PaidBy "nothing"}}{{tr "had nothing"}}{{else if eq .PaidBy "card"}}{{tr "terminal"}}{{else}}{{method .PaidBy}}{{end}}</span>
+      </li>
+      {{end}}
+    </ul>
+    {{end}}
+    <p class="hb-foot">
+      <span class="muted small">#{{.ID}}</span>
+      {{if eq .State "open"}}<a href="/admin/orders/{{.Table}}">{{tr "Open the bill"}} ›</a>
+      {{else if eq .State "paid"}}<a href="/admin/orders/{{.Table}}/{{if .IsSplit}}receipts{{else}}bill{{end}}?bill={{.ID}}">{{if .IsSplit}}{{tr "Show the receipts"}}{{else}}{{tr "Show the receipt"}}{{end}} ›</a>{{end}}
+    </p>
+  </details>
+  {{end}}
+</section>
+{{end}}
+
+<div class="hist-pages">
+  {{if .Paged}}<a class="btn btn-secondary btn-sm" href="/admin/orders/{{.Table}}/history">{{tr "Newest days"}}</a>{{end}}
+  {{with .Older}}<a class="btn btn-secondary btn-sm" href="/admin/orders/{{$.Table}}/history?before={{.}}">{{tr "Older days"}} ›</a>{{end}}
+</div>
+{{end}}

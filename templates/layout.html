@@ -1,0 +1,110 @@
+{{define "layout"}}<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="{{if .Admin}}#1c1915{{else}}#f8f4ec{{end}}">
+<title>{{if .Title}}{{.Title}} · {{end}}{{.Cfg.RestaurantName}}</title>
+<script>document.documentElement.classList.add('js')</script>
+<link rel="preload" href="/static/fonts/dm-sans-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/style.css?v={{.V}}">
+<link rel="manifest" href="{{if .Admin}}/staff.webmanifest{{else}}/manifest.webmanifest{{end}}">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/{{if .Admin}}staff{{else}}icon{{end}}-32.png?v={{.V}}">
+<link rel="apple-touch-icon" href="/static/icons/{{if .Admin}}staff{{else}}icon{{end}}-180.png?v={{.V}}">
+<meta name="apple-mobile-web-app-title" content="{{if .Admin}}Ozmo Staff{{else}}Ozmo{{end}}">
+{{if .QR}}<script src="/static/qrcode.js?v={{.V}}" defer></script>{{end}}
+<script src="/static/app.js?v={{.V}}" defer></script>
+{{if .Charts}}<script src="/static/charts.js?v={{.V}}" defer></script>{{end}}
+<script type="speculationrules">
+{"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"href_matches": "/*.csv"}}, {"not": {"href_matches": "/*.ics"}}, {"not": {"href_matches": "/dev/*"}}]}, "eagerness": "moderate"}]}
+</script>
+</head>
+<body{{if .Admin}} class="admin"{{end}}{{with .AutoRefresh}} data-autorefresh="{{.}}"{{end}}>
+{{if .Admin}}
+<header class="admin-bar">
+  <div class="admin-bar-inner">
+    <a class="admin-brand" href="{{if eq .Role "owner"}}/owner{{else}}/admin/orders{{end}}">{{.Cfg.RestaurantName}}<span>{{if eq .Role "owner"}}{{tr "Head manager"}}{{else if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
+    {{if and .Role (not .Bare)}}
+    <nav class="admin-nav" aria-label="{{tr "Staff"}}">
+      {{if eq .Role "owner"}}
+      <a href="/owner"{{if eq .Nav "today"}} aria-current="page"{{end}}>{{tr "Money today"}}</a>
+      <a href="/owner/charts"{{if eq .Nav "charts"}} aria-current="page"{{end}}>{{tr "Charts"}}</a>
+      <a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>
+      <a href="/owner/feedback"{{if eq .Nav "feedback"}} aria-current="page"{{end}}>{{tr "Feedback"}}</a>
+      <span class="nav-sep" aria-hidden="true"></span>
+      {{end}}
+      <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}</a>
+      <a href="/admin/tables"{{if eq .Nav "tables"}} aria-current="page"{{end}}>{{tr "Tables"}}</a>
+      <a href="/admin/kitchen">{{tr "Kitchen"}}</a>
+      <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
+      <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>
+      <a href="/admin/calendar"{{if eq .Nav "calendar"}} aria-current="page"{{end}}>{{tr "Calendar"}}</a>
+      {{if ne .Role "waiter"}}
+      <a href="/admin/menu"{{if eq .Nav "menu"}} aria-current="page"{{end}}>{{tr "Menu"}}</a>
+      <a href="/admin/closed"{{if eq .Nav "closed"}} aria-current="page"{{end}}>{{tr "Closed days"}}</a>
+      <a href="/admin/staff"{{if eq .Nav "staff"}} aria-current="page"{{end}}>{{tr "Staff"}}</a>
+      <a href="/admin/activity"{{if eq .Nav "activity"}} aria-current="page"{{end}}>{{tr "Activity"}}</a>
+      {{end}}
+      <a href="/" target="_blank" rel="noopener">{{tr "Guest site"}}</a>
+      {{if .TillDevice}}<form method="post" action="/till/lock" class="nav-logout nav-lock"><button type="submit">{{tr "Lock"}}</button></form>
+      {{else}}<form method="post" action="/logout" class="nav-logout"><button type="submit">{{tr "Log out"}}</button></form>{{end}}
+    </nav>
+    {{end}}
+    <nav class="lang lang-dark" aria-label="{{tr "Language"}}">
+      <a href="{{.SwitchSV}}" lang="sv"{{if eq .Lang "sv"}} aria-current="true"{{end}}>SV</a>
+      <a href="{{.SwitchEN}}" lang="en"{{if eq .Lang "en"}} aria-current="true"{{end}}>EN</a>
+    </nav>
+  </div>
+</header>
+{{if .DemoMode}}<div class="demo-banner">{{tr "Demo mode: payments are simulated until Stripe keys are added."}}</div>{{end}}
+{{if .Role}}
+<div id="offline-bar" class="offline-bar" role="alert" hidden>
+  <strong>{{tr "No internet. Switch to paper."}}</strong>
+  <ol>
+    <li>{{tr "Write orders on paper: table, guest, dishes. Give the kitchen a copy."}}</li>
+    <li>{{tr "Take payments on the card terminal or in cash. Write each one down."}}</li>
+    <li>{{tr "QR codes and table buttons may not work: walk round the tables."}}</li>
+    <li>{{tr "When it's back, put the paper orders in and mark them paid."}}</li>
+  </ol>
+  <p>{{tr "The full plan is on the printed sheet by the till. This message goes away by itself when the internet is back."}}</p>
+</div>
+{{end}}
+<main class="admin-main">
+{{template "content" .}}
+</main>
+<dialog id="confirm-dialog" aria-labelledby="confirm-text">
+  <div class="dlg-head"><h2 id="confirm-text">{{tr "Are you sure?"}}</h2></div>
+  <div class="dlg-foot" style="padding-top:20px">
+    <button type="button" class="btn btn-secondary" data-close>{{tr "Go back"}}</button>
+    <button type="button" class="btn btn-primary" id="confirm-ok">{{tr "Confirm"}}</button>
+  </div>
+</dialog>
+{{else}}
+<header class="site-header">
+  <nav class="lang" aria-label="{{.T.lang_label}}">
+    <a href="{{.SwitchSV}}" lang="sv"{{if eq .Lang "sv"}} aria-current="true"{{end}}>Svenska</a>
+    <a href="{{.SwitchEN}}" lang="en"{{if eq .Lang "en"}} aria-current="true"{{end}}>English</a>
+  </nav>
+  <a href="/" class="brand" aria-label="{{.Cfg.RestaurantName}}, {{.T.home_link}}">
+    <svg class="fan" viewBox="0 0 120 44" aria-hidden="true">
+      <line x1="0" y1="43" x2="120" y2="43"/>
+      <circle cx="38" cy="26" r="10"/>
+      <circle cx="60" cy="26" r="10"/>
+      <circle cx="82" cy="26" r="10"/>
+    </svg>
+    <span class="brand-small">{{if eq .Lang "sv"}}Restaurang{{else}}Restaurant{{end}}</span>
+    <span class="brand-big">Ozmo</span>
+  </a>
+</header>
+{{if .DemoMode}}<div class="demo-banner">{{.T.demo_banner}}</div>{{end}}
+<main class="page">
+{{template "content" .}}
+</main>
+<footer class="site-footer">
+  <p>{{.Cfg.RestaurantName}}{{with .Cfg.RestaurantPhone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}{{with .Cfg.RestaurantEmail}} · <a href="mailto:{{.}}">{{.}}</a>{{end}}</p>
+  <p class="footer-links"><a href="/terms">{{.T.consent_terms_cap}}</a> · <a href="/privacy">{{.T.consent_privacy_cap}}</a></p>
+</footer>
+{{end}}
+{{with or .Flash .Toast}}<div class="toast" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{.}}</div>{{end}}
+</body>
+</html>{{end}}

@@ -1,0 +1,31 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/calendar?month={{.PrevMonth}}" aria-label="{{tr "Previous month"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{.Month}}</h1>
+  <a class="icon-btn" href="/admin/calendar?month={{.NextMonth}}" aria-label="{{tr "Next month"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+</div>
+
+<section class="panel"><div class="cal">
+  <div class="cal-head">{{tr "Mon"}}</div><div class="cal-head">{{tr "Tue"}}</div><div class="cal-head">{{tr "Wed"}}</div><div class="cal-head">{{tr "Thu"}}</div><div class="cal-head">{{tr "Fri"}}</div><div class="cal-head">{{tr "Sat"}}</div><div class="cal-head">{{tr "Sun"}}</div>
+  {{range .Weeks}}{{range .}}
+  <a class="cal-day{{if not .InMonth}} other{{end}}{{if .IsToday}} today{{end}}{{if .Closed}} closed{{end}}" href="/admin/day?date={{.Date}}">
+    <span class="cal-num">{{.Day}}</span>
+    {{if .Count.Tables}}<span class="cal-pill">{{trf "%d tbl · %d ppl" .Count.Tables .Count.Guests}}</span>{{end}}
+    {{if .Count.Takeaway}}<span class="cal-pill alt">{{trf "%d takeaway" .Count.Takeaway}}</span>{{end}}
+    {{if and .Closed (not .Count.Tables) (not .Count.Takeaway)}}<span class="cal-closed">{{tr "closed"}}</span>{{end}}
+  </a>
+  {{end}}{{end}}
+</div>
+
+</section>
+<section class="panel">
+  <h2>{{tr "On your phone"}}</h2>
+  {{if .FeedURL}}
+  <p>{{tr "Subscribe to this link once in Google Calendar (\"Other calendars → From URL\") or on iPhone (Settings → Calendar → Accounts → Add subscribed calendar). Every confirmed booking then appears in your phone's calendar automatically."}}</p>
+  <p><input class="copy" readonly value="{{.FeedURL}}" data-select aria-label="{{tr "Calendar feed link"}}"></p>
+  <p class="muted small">{{tr "Keep this link private: anyone with it can see the bookings."}}</p>
+  {{else}}
+  <p class="muted">{{tr "Set CALENDAR_TOKEN in the settings to get a calendar link you can add to your phone."}}</p>
+  {{end}}
+</section>
+{{end}}

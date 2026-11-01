@@ -1,0 +1,116 @@
+{{define "content"}}
+<div class="day-head tables-head" id="tables-live" data-live-screen="/admin/tables?part=tiles">
+  <h1>{{tr "Tables"}}</h1>
+  <span class="live-pill off" id="live-status" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
+  <span class="spacer"></span>
+  <button type="button" class="btn btn-secondary btn-sm" id="sound-btn" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
+</div>
+<p class="muted small deal-line">
+  {{if .DealToday}}{{tr "3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here."}}
+  {{else}}{{trf "3 meals runs on %s. Today the buttons just call a waiter." .DealDays}}{{end}}
+</p>
+<div data-room-view="tables"><div id="tiles" data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "tiles" .}}</div></div>
+{{end}}
+
+{{define "tiles"}}
+{{with .ReadyFood}}{{template "ready-food" .}}{{end}}
+{{with .OnlinePaid}}{{template "online-paid" .}}{{end}}
+{{with .Stock}}{{template "stock-strip" .}}{{end}}
+{{if .Alerts}}
+<section class="call-list" aria-label="{{tr "Waiting now"}}">
+  {{range .Alerts}}
+  <a class="call call-{{.State}}" href="#t{{.No}}" data-room-go="{{roomOf .No}}">
+    <strong>{{trf "Table %d" .No}}</strong>
+    <span>{{if eq .State "next"}}{{trf "Ready for meal %d" .Next}}{{else if eq .State "last"}}{{tr "Finished all meals"}}{{else}}{{tr "Wants a waiter"}}{{end}}{{with .Caller}} · {{.}}{{end}}</span>
+    <span class="call-min">{{trf "%d min" .Minutes}}</span>
+  </a>
+  {{end}}
+</section>
+{{end}}
+
+{{template "room-tabs" .Rooms}}
+{{range .Rooms}}
+<section class="room" data-room="{{.ID}}" aria-label="{{.Name}}">
+<h2 class="room-h">{{.Name}}</h2>
+<div class="tt-grid">
+  {{range .Tiles}}
+  <article class="tt tt-{{.State}}" id="t{{.No}}"{{with .CallKey}} data-alert-key="{{.}}"{{end}}>
+    <div class="tt-top">
+      <span class="tt-no">{{trf "Table %d" .No}}</span>
+      {{if .Dots}}<span class="tt-dots" aria-label="{{trf "Meal %d of %d" .Meal $.MealsInDeal}}">{{range .Dots}}<i{{if .}} class="on"{{end}}></i>{{end}}</span>{{end}}
+    </div>
+    {{with .Who}}<span class="tt-who">{{.}}</span>{{end}}
+    <a class="tt-bill" href="/admin/orders/{{.No}}">{{if .BillCents}}{{trf "Bill %s" (euro .BillCents)}}{{else}}{{tr "Take an order"}}{{end}} ›</a>
+
+    {{if eq .State "next"}}
+      <p class="tt-big">{{trf "Ready for meal %d" .Next}}</p>
+      <p class="tt-sub">{{trf "Pressed %s · waiting %d min" .Since .Minutes}}{{if gt .Presses 1}} · <strong>{{trf "pressed %d times" .Presses}}</strong>{{end}}</p>
+      {{with .Caller}}<p class="tt-caller">{{trf "From the phone of %s" .}}</p>{{end}}
+      <div class="tt-actions">
+        <form method="post" action="/admin/tables/{{.No}}/serve" data-live><input type="hidden" name="meal" value="{{.Next}}"><button class="btn btn-primary btn-block">{{trf "Meal %d served" .Next}}</button></form>
+        <form method="post" action="/admin/tables/{{.No}}/notyet" data-live><button class="btn-link">{{tr "Not yet, still eating"}}</button></form>
+      </div>
+
+    {{else if eq .State "last"}}
+      <p class="tt-big">{{tr "Finished all meals"}}</p>
+      <p class="tt-sub">{{trf "Pressed %s · waiting %d min" .Since .Minutes}}{{if gt .Presses 1}} · <strong>{{trf "pressed %d times" .Presses}}</strong>{{end}}</p>
+      {{with .Caller}}<p class="tt-caller">{{trf "From the phone of %s" .}}</p>{{end}}
+      <div class="tt-actions">
+        <form method="post" action="/admin/tables/{{.No}}/end" data-live><button class="btn btn-primary btn-block">{{tr "Table cleared"}}</button></form>
+        <form method="post" action="/admin/tables/{{.No}}/notyet" data-live><button class="btn-link">{{tr "Not yet, still eating"}}</button></form>
+      </div>
+
+    {{else if eq .State "waiter"}}
+      <p class="tt-big">{{tr "Wants a waiter"}}</p>
+      <p class="tt-sub">{{trf "Pressed %s · waiting %d min" .Since .Minutes}}{{if gt .Presses 1}} · <strong>{{trf "pressed %d times" .Presses}}</strong>{{end}}</p>
+      {{with .Caller}}<p class="tt-caller">{{trf "From the phone of %s" .}}</p>{{end}}
+      <div class="tt-actions">
+        <form method="post" action="/admin/tables/{{.No}}/answer" data-live><button class="btn btn-primary btn-block">{{tr "Done"}}</button></form>
+      </div>
+
+    {{else if eq .State "eating"}}
+      <p class="tt-mid">{{trf "Eating meal %d of %d" .Meal $.MealsInDeal}}</p>
+      <p class="tt-sub">{{trf "Served %s · %d min ago" .Since .Minutes}}</p>
+      <div class="tt-actions">
+        {{if lt .Meal $.MealsInDeal}}
+        <form method="post" action="/admin/tables/{{.No}}/serve" data-live data-confirm="{{trf "Table %d finished meal %d without pressing? Bring meal %d." .No .Meal .Next}}" data-confirm-ok="{{trf "Meal %d served" .Next}}"><input type="hidden" name="meal" value="{{.Next}}"><button class="btn btn-secondary btn-block">{{trf "Meal %d served" .Next}}</button></form>
+        <form method="post" action="/admin/tables/{{.No}}/end" data-live data-confirm="{{trf "Stop 3 meals on table %d? Use this if the guests leave early." .No}}" data-confirm-ok="{{tr "Stop"}}" data-danger><button class="btn-link">{{tr "Stop 3 meals"}}</button></form>
+        {{else}}
+        <form method="post" action="/admin/tables/{{.No}}/end" data-live data-confirm="{{trf "Table %d finished without pressing? Clear the table." .No}}" data-confirm-ok="{{tr "Table cleared"}}"><button class="btn btn-secondary btn-block">{{tr "Table cleared"}}</button></form>
+        {{end}}
+      </div>
+
+    {{else}}
+      <p class="tt-mid muted">{{tr "No 3 meals running"}}</p>
+      {{if $.DealToday}}
+      <div class="tt-actions">
+        <form method="post" action="/admin/tables/{{.No}}/start" data-live><button class="btn btn-secondary btn-block">{{tr "Start 3 meals"}}</button></form>
+      </div>
+      {{end}}
+    {{end}}
+  </article>
+  {{end}}
+</div>
+</section>
+{{end}}
+
+{{if .Stats.Tables}}
+<section class="panel deal-stats">
+  <h2>{{tr "3 meals today"}}</h2>
+  <dl class="sum-rows">
+    <dt>{{tr "Tables with 3 meals"}}</dt><dd>{{.Stats.Tables}}</dd>
+    <dt>{{tr "Finished all meals"}}</dt><dd>{{.Stats.Finished}}</dd>
+    <dt>{{tr "Average time to eat a meal"}}</dt><dd>{{trf "%d min" .EatMin}}</dd>
+    {{if .Stats.Waits}}<dt>{{tr "Average wait after the button"}}</dt><dd>{{trf "%d min" .WaitMin}}</dd>{{end}}
+  </dl>
+</section>
+{{end}}
+
+{{range .Warnings}}
+<p class="notice">{{if .Low}}{{trf "The button on table %d is low on battery (%d %%). Charge it with a USB-C cable." .Table .Battery}}{{else}}{{trf "The button on table %d hasn't been heard from in %d days. Check that it's charged and in Wi-Fi range." .Table .Silent}}{{end}}</p>
+{{end}}
+
+{{if $.DemoMode}}
+<p class="muted small demo-link">{{tr "No real buttons yet?"}} <a href="/demo/buttons" target="_blank" rel="noopener">{{tr "Open the test buttons"}}</a> {{tr "on a phone and press them: the tables here light up."}}</p>
+{{end}}
+{{end}}

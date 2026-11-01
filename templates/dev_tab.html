@@ -1,0 +1,18 @@
+{{define "content"}}
+<div class="card status-card">
+  <p class="eyebrow">{{tr "Demo payment"}}</p>
+  <h1>{{euro .A.Total}}</h1>
+  <p class="muted">{{trf "Table %d" .Table}} · {{.Payer}} · {{if .A.All}}{{tr "the whole table"}}{{else}}{{tr "their own part"}}{{end}}{{if .A.TipCents}} · {{trf "%s and a %s tip" (euro .A.Cents) (euro .A.TipCents)}}{{end}}</p>
+  <p class="small muted">{{tr "This page stands in for Stripe until the restaurant adds its Stripe keys. Nothing is charged."}}</p>
+  {{if .Live}}
+  <p class="small">{{tr "Time left:"}} <b data-countdown="{{.LeftS}}"></b></p>
+  <form method="post" style="margin:20px 0 10px">
+    <button class="btn btn-ok btn-block" name="action" value="pay" data-loading="…">{{trf "Pay %s (demo)" (euro .A.Total)}}</button>
+  </form>
+  <form method="post"><button class="btn btn-secondary btn-block" name="action" value="cancel">{{tr "Cancel"}}</button></form>
+  {{else}}
+  <p class="notice">{{if eq .A.State "paid"}}{{tr "Already paid."}}{{else}}{{tr "This payment ran out of time. Go back and try again."}}{{end}}</p>
+  <p><a href="/g/{{.Key}}">{{tr "Back to the table"}}</a></p>
+  {{end}}
+</div>
+{{end}}

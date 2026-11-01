@@ -1,0 +1,40 @@
+{{define "content"}}
+<div class="day-head"><h1>{{tr "Table buttons"}}</h1></div>
+<p class="muted">{{tr "Each table has its own button with a secret code inside. Put the code in the button when you set it up (see the README). Anyone with the code can make that table light up, so keep the codes to yourself."}}</p>
+
+<section class="panel">
+  <h2>{{tr "Where the buttons send"}}</h2>
+  <dl class="sum-rows">
+    <dt>{{tr "Press"}}</dt><dd class="mono-cell">{{.PressURL}}</dd>
+    <dt>{{tr "Daily check-in"}}</dt><dd class="mono-cell">{{.CheckinURL}}</dd>
+  </dl>
+</section>
+
+<section class="panel">
+  <h2>{{tr "Buttons"}}</h2>
+  <table class="list buttons-list">
+    <thead><tr><th>{{tr "Table"}}</th><th>{{tr "Last signal"}}</th><th>{{tr "Battery"}}</th><th>{{tr "Secret code"}}</th><th></th></tr></thead>
+    <tbody>
+    {{range .Rows}}
+    <tr>
+      <td><strong>{{trf "Table %d" .Table}}</strong></td>
+      <td>{{if .Seen}}{{.Seen}}{{if .Silent}} <span class="badge badge-bad">{{tr "silent"}}</span>{{end}}{{else}}<span class="muted">{{tr "never: not set up yet"}}</span>{{end}}</td>
+      <td>{{if .Battery}}{{.Battery}} %{{if le .Battery 20}} <span class="badge badge-wait">{{tr "charge it"}}</span>{{end}}{{else}}<span class="muted">–</span>{{end}}</td>
+      <td>
+        <details class="code"{{if eq .Table $.Shown}} open{{end}}>
+          <summary>••••{{.Short}}</summary>
+          <code class="code-full">{{.Token}}</code>
+        </details>
+      </td>
+      <td class="right">
+        <form method="post" action="/owner/buttons/{{.Table}}/new" data-confirm="{{trf "Make a new code for table %d? The button stops working until you put the new code in it." .Table}}" data-confirm-ok="{{tr "Make new code"}}" data-danger>
+          <button class="btn btn-secondary btn-sm">{{tr "New code"}}</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <p class="muted small">{{tr "Make a new code if a button is lost or stolen: the old code stops working at once."}}</p>
+</section>
+{{end}}

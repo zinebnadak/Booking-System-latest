@@ -1,0 +1,92 @@
+{{define "content"}}
+<article class="card legal">
+{{if eq .Page "terms"}}
+{{if eq .Lang "sv"}}
+  <h1>Bokningsvillkor</h1>
+  <h2>Bordsbokning</h2>
+  <ul>
+    <li>Ett bord har plats för 1–6 personer och är ert i 2 timmar.</li>
+    <li>Handpenningen är 10 € för 1–2 personer och 20 € för 3–6 personer. Den betalas när du bokar och dras av från notan.</li>
+    <li>Bokningen är bekräftad när handpenningen är betald. Betalas den inte inom 30 minuter släpps bordet.</li>
+    <li>Är ni fler än 6? Ring oss.</li>
+  </ul>
+  <h2>Ändra eller avboka</h2>
+  <ul>
+    <li>Du kan ändra eller avboka själv via länken i bekräftelsen.</li>
+    <li>Avbokar du senast 24 timmar innan får du hela handpenningen tillbaka. Det tar 5–10 dagar innan pengarna syns på kontot.</li>
+    <li>Vid senare avbokning behålls handpenningen.</li>
+    <li>Kommer ni inte inom {{.NoShowAfterText}} efter bokad tid, och har inte hört av er, räknas bokningen som uteblivet besök. Bordet kan då ges till någon annan och handpenningen behålls.</li>
+    <li>Blir ni försenade? Ring oss, så håller vi bordet om det går.</li>
+    <li>Måste vi själva ställa in, till exempel vid stängning, får du alltid hela handpenningen tillbaka.</li>
+  </ul>
+  <h2>Avhämtning</h2>
+  <ul>
+    <li>Du betalar 25 % av maten när du beställer och resten när du hämtar.</li>
+    <li>Handpenningen för avhämtning återbetalas inte, eftersom vi börjar laga maten åt dig.</li>
+    <li>Avhämtning gäller mat. Drycker serveras i restaurangen.</li>
+  </ul>
+  <h2>Betalning</h2>
+  <p>Betalningar sköts av Stripe. Vi ser eller sparar aldrig dina kortuppgifter.</p>
+{{else}}
+  <h1>Booking terms</h1>
+  <h2>Table bookings</h2>
+  <ul>
+    <li>A table seats 1–6 guests and is yours for 2 hours.</li>
+    <li>The deposit is 10 € for 1–2 guests and 20 € for 3–6 guests. You pay it when you book, and it's taken off your bill.</li>
+    <li>Your booking is confirmed once the deposit is paid. If it isn't paid within 30 minutes, the table is released.</li>
+    <li>More than 6 guests? Please call us.</li>
+  </ul>
+  <h2>Changing or cancelling</h2>
+  <ul>
+    <li>You can change or cancel your booking yourself, with the link in your confirmation.</li>
+    <li>Cancel at least 24 hours before and you get the whole deposit back. It takes 5–10 days to show on your account.</li>
+    <li>If you cancel later than that, the deposit is kept.</li>
+    <li>If you haven't arrived {{.NoShowAfterText}} after your booking time and haven't told us, the booking counts as a no-show. We may give the table to someone else, and the deposit is kept.</li>
+    <li>Running late? Call us and we'll hold the table if we can.</li>
+    <li>If we ever have to cancel, for example because we're closed, you always get the whole deposit back.</li>
+  </ul>
+  <h2>Takeaway</h2>
+  <ul>
+    <li>You pay 25 % of the food when you order, and the rest when you pick up.</li>
+    <li>The takeaway deposit is non-refundable, because we start cooking for you.</li>
+    <li>Takeaway is food only. Drinks are served in the restaurant.</li>
+  </ul>
+  <h2>Payment</h2>
+  <p>Payments are handled by Stripe. We never see or store your card details.</p>
+{{end}}
+{{else}}
+{{if eq .Lang "sv"}}
+  <h1>Integritet</h1>
+  <p>Så här hanterar {{.Cfg.RestaurantName}} dina uppgifter när du bokar bord, beställer avhämtning eller ställer dig på väntelistan.</p>
+  <h2>Vilka uppgifter</h2>
+  <p>Namn, telefonnummer, e-post, bokningens dag, tid och antal personer, det du beställer och det du skriver i önskemål (till exempel allergier). Kortuppgifter hanteras bara av Stripe.</p>
+  <h2>Varför</h2>
+  <p>För att hålla din bokning, skicka bekräftelse, påminnelse och ändringar, och ringa dig om något händer. Står du på väntelistan använder vi dem för att säga till när ett bord blir ledigt. Vi skickar ingen reklam.</p>
+  <h2>Vem ser dem</h2>
+  <p>Restaurangens personal. Stripe tar emot betalningen och vår e-posttjänst skickar mejlen. Vi säljer eller lämnar aldrig ut dina uppgifter för marknadsföring.</p>
+  <h2>Hur länge</h2>
+  <p>{{if .RetentionDays}}Namn, telefon, e-post och önskemål tas bort automatiskt {{.RetentionText}} efter besöket. Belopp och datum sparas utan ditt namn för bokföringen.{{else}}Vi sparar uppgifterna så länge det behövs för bokningen och bokföringen.{{end}}</p>
+  <h2>Kakor</h2>
+  <p>Vi använder bara nödvändiga kakor: en som kommer ihåg ditt språkval, och en för personalens inloggning. Ingen spårning och ingen reklam.</p>
+  <h2>Dina rättigheter</h2>
+  <p>Du kan be att få se, rätta eller ta bort dina uppgifter. Kontakta oss{{with .Cfg.RestaurantEmail}} på <a href="mailto:{{.}}">{{.}}</a>{{end}}{{with .Cfg.RestaurantPhone}} eller ring <a href="tel:{{.}}">{{.}}</a>{{end}}. Du kan också klaga hos dataskyddsmyndigheten.</p>
+{{else}}
+  <h1>Privacy</h1>
+  <p>How {{.Cfg.RestaurantName}} handles your details when you book a table, order takeaway or join the waiting list.</p>
+  <h2>What we keep</h2>
+  <p>Your name, phone number, email, the day, time and size of your booking, what you order, and anything you write in the notes (for example allergies). Card details are handled only by Stripe.</p>
+  <h2>Why</h2>
+  <p>To hold your booking, send you the confirmation, a reminder and any changes, and to call you if something comes up. If you're on the waiting list, we use them to tell you when a table is free. We never send advertising.</p>
+  <h2>Who sees them</h2>
+  <p>The restaurant's staff. Stripe takes the payment and our email service sends the emails. We never sell your details or share them for marketing.</p>
+  <h2>How long</h2>
+  <p>{{if .RetentionDays}}Your name, phone, email and notes are removed automatically {{.RetentionText}} after your visit. Amounts and dates are kept without your name, for the bookkeeping.{{else}}We keep your details as long as the booking and the bookkeeping need them.{{end}}</p>
+  <h2>Cookies</h2>
+  <p>We only use necessary cookies: one that remembers your language, and one for the staff login. No tracking and no advertising.</p>
+  <h2>Your rights</h2>
+  <p>You can ask to see, correct or delete your details. Contact us{{with .Cfg.RestaurantEmail}} at <a href="mailto:{{.}}">{{.}}</a>{{end}}{{with .Cfg.RestaurantPhone}} or call <a href="tel:{{.}}">{{.}}</a>{{end}}. You can also complain to the data protection authority.</p>
+{{end}}
+{{end}}
+  <p class="legal-links"><a href="/terms">{{.T.consent_terms_cap}}</a> · <a href="/privacy">{{.T.consent_privacy_cap}}</a> · <a href="/">{{.T.m_back}}</a></p>
+</article>
+{{end}}

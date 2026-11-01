@@ -1,0 +1,40 @@
+{{define "content"}}
+<section class="hero">
+  <p class="eyebrow">Mariehamn · Åland</p>
+  <h1>{{.T.home_title}}</h1>
+  <p class="lead">{{.T.home_lead}}</p>
+</section>
+
+<div class="choices">
+  <a class="choice" href="/book">
+    <span class="choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10h16M6 10v9M18 10v9M3 7l9-3 9 3"/></svg></span>
+    <span class="choice-text"><strong>{{.T.cta_book}}</strong><span>{{.T.choice_book}}</span></span>
+    <span class="choice-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+  </a>
+  <a class="choice" href="/takeaway">
+    <span class="choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></span>
+    <span class="choice-text"><strong>{{.T.cta_takeaway}}</strong><span>{{.T.choice_takeaway}}</span></span>
+    <span class="choice-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+  </a>
+</div>
+
+<div class="info-grid">
+  <section class="card">
+    <h2>{{.T.hours_title}}</h2>
+    <table class="hours">
+      {{range .Hours}}
+      <tr><th scope="row">{{.Days}}</th><td>{{.Hours}}{{with .Kitchen}}<span class="muted"> · {{.}}</span>{{end}}</td></tr>
+      {{end}}
+    </table>
+    <p class="muted small" style="margin:12px 0 0">{{.T.lunch_note}}</p>
+  </section>
+  <section class="card">
+    <h2>{{.T.good_to_know}}</h2>
+    <ul class="facts">
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><strong>{{.T.dep_title}}</strong><span class="muted">{{.T.dep_text}} {{.T.dep_note}}</span></div></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><div><strong>{{.T.ta_title}}</strong><span class="muted">{{.T.ta_text}} {{.T.ta_note}}</span></div></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4v16"/></svg><div><strong>{{.T.big_title}}</strong><span class="muted">{{.T.big_group}}{{with .Cfg.RestaurantPhone}} <a href="tel:{{.}}">{{.}}</a>{{end}}</span></div></li>
+    </ul>
+  </section>
+</div>
+{{end}}
