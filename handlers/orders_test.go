@@ -67,7 +67,7 @@ func TestTableOrderToPaidBill(t *testing.T) {
 	}
 	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "15,50 €", "menu price 15,50 €", "With the chef", "Paid at the terminal")
 	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "15,50 €", "With the chef")
-	e.expect(e.do("GET", "/admin/tables?part=tiles", nil, true), 200, "Bill 15,50 €")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "15,50 €")
 
 	// The chef finishes: staff see "Food ready".
 	ticket := e.store.OpenTickets()[0]
@@ -78,7 +78,7 @@ func TestTableOrderToPaidBill(t *testing.T) {
 	e.h.ServeHTTP(rec, live)
 	e.expect(rec, 204)
 	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Food ready 18:00 · pick up", "Food ready to pick up", fmt.Sprintf(`data-alert-key="ready-%d"`, ticket.ID))
-	e.expect(e.do("GET", "/admin/tables?part=tiles", nil, true), 200, "Food ready to pick up")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Food ready to pick up")
 	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Ready 18:00 · pick up")
 	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "No orders right now", "Ready at the pass", "Not done yet")
 

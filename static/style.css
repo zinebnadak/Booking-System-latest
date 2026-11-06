@@ -1413,3 +1413,57 @@ body.admin:has(.kitchen) { background: #15130f; }
 .added-bar span { display: inline-flex; align-items: center; gap: 8px; }
 .added-bar .btn { gap: 6px; }
 @media (max-width: 560px) { .added-bar .btn { width: 100%; justify-content: center; } }
+
+/* Stock page: Food / Drinks / Both */
+.kind-filter { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; margin-bottom: 10px; background: var(--paper-2); border-radius: var(--r); }
+.kind-filter label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer; color: var(--muted); }
+.kind-filter input { position: absolute; opacity: 0; pointer-events: none; }
+.kind-filter label:has(input:checked) { background: var(--card); color: var(--ink); box-shadow: var(--shadow-1); }
+.kind-filter label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Orders is everything: 3 meals, calls and bookings on each table */
+.ot-booked { display: block; font-size: .82rem; color: var(--blue); font-weight: 600; }
+.ot-deal { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; font-size: .85rem; font-weight: 600; color: var(--ink-2); }
+.ot-deal .tt-dots { margin: 0; }
+.ot-deal-next, .ot-deal-last, .ot-deal-waiter { color: var(--warn); }
+.ot-call { border: 2px solid var(--warn) !important; box-shadow: 0 0 0 3px var(--warn-soft); }
+.deal-panel { margin-bottom: var(--s4); }
+.deal-panel.deal-next, .deal-panel.deal-last, .deal-panel.deal-waiter { border: 2px solid var(--warn); background: var(--warn-soft); }
+.deal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.deal-head h2 { margin: 0; }
+.deal-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.deal-actions form { margin: 0; }
+.booked-note { margin-bottom: var(--s4); }
+
+/* 3 meals: the order the guests want, guests and price */
+.deal-start { display: grid; gap: 12px; width: 100%; }
+.deal-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.deal-guests { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.deal-guests input { width: 80px; min-height: 44px; }
+.deal-dishes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.deal-dishes input, .deal-start select { width: 100%; min-height: 44px; }
+.deal-save { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .92rem; }
+.deal-save input[name=plan_name] { flex: 1; min-width: 160px; min-height: 40px; }
+.deal-start .btn { justify-self: start; }
+.deal-menu { margin: 10px 0 4px; padding-left: 22px; display: grid; gap: 2px; font-weight: 600; }
+.deal-menu li.done { color: var(--muted); font-weight: 400; }
+.deal-plans { margin-top: 10px; width: 100%; }
+.deal-plans ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.deal-plans li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.deal-plans form { margin: 0; }
+@media (max-width: 640px) { .deal-dishes { grid-template-columns: minmax(0, 1fr); } }
+.deal-save input[type=checkbox] { width: 22px; height: 22px; min-height: 0; flex: none; margin: 0; }
+
+/* 3 meals between meals, on the kitchen screen */
+.kt-deal { background: #1a1d24; border-color: #4a5a7a; animation: none; }
+.kt-deal .kt-items li { grid-template-columns: max-content 1fr; }
+.kt-deal .kt-qty { color: #9fb4d9; font-weight: 600; }
+.kt-deal-tag { margin: -4px 0 0; font-size: .85rem; font-weight: 700; color: #9fb4d9; text-transform: uppercase; letter-spacing: .05em; }
+.kt-left { margin: 0; font-size: 1.35rem; font-weight: 700; color: #dfe8ff; }
+.kt-deal-msg { background: #232c3d; color: #cdd9f2; font-weight: 500; font-size: .95rem; }
+.deal-sent { margin: var(--s2) 0 0; padding: 8px 12px; border-radius: var(--r-sm); background: #eef4ff; color: #23406e; font-weight: 600; }
+
+/* Best dish and best drink, on the charts page */
+.best-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
+.best-pair .best { min-width: 0; }
+.best-name { font-size: 1.4rem; font-weight: 700; line-height: 1.2; margin: 2px 0; overflow-wrap: anywhere; }

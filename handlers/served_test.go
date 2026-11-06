@@ -56,7 +56,7 @@ func TestFoodReadyThenServed(t *testing.T) {
 		t.Fatalf("done: %d", code)
 	}
 	key := fmt.Sprintf(`data-alert-key="ready-%d"`, id)
-	for _, p := range []string{"/admin/orders?part=tiles", "/admin/tables?part=tiles"} {
+	for _, p := range []string{"/admin/orders?part=tiles"} {
 		e.expect(e.as(waiter, "GET", p, nil), 200, "Food ready to pick up", "Table 5", "1× Ozmo-burgare", "Erik", key)
 	}
 	e.expect(e.as(waiter, "GET", "/admin/orders?part=tiles", nil), 200, "ot-ready", "Food ready")

@@ -6,6 +6,11 @@
 <p class="muted small deal-line">{{tr "When something runs out, tap “Out of stock”. Waiters see it at once when they take an order, so they can tell the guest before they choose it, and guests can't order it on their phones. Or type how many are left: it counts down by itself as it's ordered."}}</p>
 <div data-search-scope>
   <div class="od-search" data-dish-search hidden>
+    <div class="kind-filter" role="radiogroup" aria-label="{{tr "Show"}}" data-kind-filter>
+      <label><input type="radio" name="kind" value="food"> {{tr "Food"}}</label>
+      <label><input type="radio" name="kind" value="drink"> {{tr "Drinks"}}</label>
+      <label><input type="radio" name="kind" value="all" checked> {{tr "Both"}}</label>
+    </div>
     <input type="search" placeholder="{{tr "Search the menu"}}" aria-label="{{tr "Search the menu"}}" autocomplete="off" enterkeyhint="search">
     <p class="muted small" data-search-none hidden>{{tr "Nothing on the menu matches."}}</p>
   </div>
@@ -17,17 +22,17 @@
 <section class="panel stock-now" aria-labelledby="stock-out-h">
   <h2 id="stock-out-h">{{tr "Out of stock now"}}</h2>
   {{if .Out}}
-  <p class="stock-chips">{{range .Out}}<a class="badge badge-bad" href="#s-{{.ID}}">{{.Name}}</a> {{end}}</p>
+  <p class="stock-chips">{{range .Out}}<a class="badge badge-bad" href="#s-{{.ID}}" data-kind="{{if .Drink}}drink{{else}}food{{end}}">{{.Name}}</a> {{end}}</p>
   {{else}}
   <p class="muted small">{{tr "Nothing. Everything on the menu can be ordered."}}</p>
   {{end}}
   {{if .Low}}
   <h3>{{tr "Running low"}}</h3>
-  <p class="stock-chips">{{range .Low}}<a class="badge badge-wait" href="#s-{{.ID}}">{{trf "%s: %d left" .Name .LeftNow}}</a> {{end}}</p>
+  <p class="stock-chips">{{range .Low}}<a class="badge badge-wait" href="#s-{{.ID}}" data-kind="{{if .Drink}}drink{{else}}food{{end}}">{{trf "%s: %d left" .Name .LeftNow}}</a> {{end}}</p>
   {{end}}
 </section>
 
-<section class="panel ingredients" id="ingredients" aria-labelledby="ing-h">
+<section class="panel ingredients" id="ingredients" aria-labelledby="ing-h" data-kind-section="food">
   <h2 id="ing-h">{{tr "Ingredients"}}</h2>
   <p class="muted small">{{tr "Count what dishes are made of (spaghetti, cheese…). On the Menu page each dish says how much one portion takes; every order takes it from here, and when one runs out, all dishes with it are out of stock."}}</p>
   {{if .Ingredients}}
@@ -65,7 +70,7 @@
 <h3 class="od-cat">{{$c.Name}}</h3>
 <ul class="dish-list stock-list">
   {{range .Items}}
-  <li class="dish od stock-row{{if .Gone $.Today}} gone{{else if .RunningLow}} low{{end}}" id="s-{{.ID}}">
+  <li class="dish od stock-row{{if .Gone $.Today}} gone{{else if .RunningLow}} low{{end}}" id="s-{{.ID}}" data-kind="{{if .Drink}}drink{{else}}food{{end}}">
     <div class="dish-text">
       <span class="od-name">{{.Name}}</span>
       <span class="dish-meta">{{if .ShortOf}}<span class="badge badge-bad">{{trf "No %s left" .ShortOf}}</span>{{else if .OutOfStock}}<span class="badge badge-bad">{{tr "Out of stock"}}</span>{{else if .SoldOut $.Today}}<span class="badge badge-bad">{{tr "Sold out today"}}</span>{{else if or .Counted .Limited}}<span class="badge {{if .RunningLow}}badge-wait{{else}}badge-muted{{end}}">{{trf "%d left" .LeftNow}}</span>{{end}}{{if .Drink}}<span class="badge badge-muted">{{tr "Drink"}}</span>{{end}}</span>

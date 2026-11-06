@@ -57,6 +57,12 @@ type data struct {
 	Calls     []*Call    `json:"calls"`
 	NextRunID int        `json:"next_run_id"`
 
+	// Saved orders of the 3 meals ("Ris, fisk, kött"), and the menu item
+	// that puts the deal's price on the bill (see mealplans.go).
+	MealPlans      []*MealPlan `json:"meal_plans,omitempty"`
+	NextMealPlanID int         `json:"next_meal_plan_id,omitempty"`
+	DealItemID     int         `json:"deal_item_id,omitempty"`
+
 	// Table bills and the chef's tickets (see orders.go).
 	Bills        []*Bill   `json:"bills"`
 	Tickets      []*Ticket `json:"tickets"`

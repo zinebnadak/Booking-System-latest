@@ -10,7 +10,7 @@ func TestOfflinePlan(t *testing.T) {
 	e := newEnv(t, nil)
 	// Every staff screen carries the "switch to paper" box, hidden until the
 	// connection goes, so it can show without the internet.
-	for _, p := range []string{"/admin/orders", "/admin/kitchen", "/admin/tables", "/admin/day"} {
+	for _, p := range []string{"/admin/orders", "/admin/kitchen", "/admin/orders/5", "/admin/day"} {
 		e.expect(e.do("GET", p, nil, true), 200, `id="offline-bar"`, "No internet. Switch to paper.")
 	}
 	// Guests never see it.

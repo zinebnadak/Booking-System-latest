@@ -927,7 +927,7 @@ func (s *Store) ReceiptsToPrint() []PaperRequest {
 // button on the table, and the staff see who called.
 func (s *Store) CallFromPhone(key string, waiter bool, now time.Time) (PressResult, error) {
 	var res PressResult
-	err := s.change(func() (bool, error) {
+	err := s.changeDeal(func() (bool, error) {
 		b, sh := s.guestByKey(key)
 		if b == nil || !b.Open() {
 			return false, ErrBillClosed
@@ -959,6 +959,7 @@ func (s *Store) CallFromPhone(key string, waiter bool, now time.Time) (PressResu
 		}
 		if !waiter && !run.Waiting() {
 			run.Ready = append(run.Ready, now)
+			s.sendMeal(run, run.Meal()+1, now) // the chef starts the next meal
 		}
 		s.d.Calls = append(s.d.Calls, &Call{Table: b.Table, At: now, LastAt: now, Presses: 1,
 			Guest: sh.Guest, Name: sh.Name, Waiter: waiter})

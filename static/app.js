@@ -595,7 +595,7 @@
     var form = tabs.closest('form');
     var secs = $$('[data-cat-sec]', form);
     var btns = $$('[data-cat]', tabs);
-    var search = $('[data-dish-search] input', form);
+    var search = $('[data-dish-search] input[type=search]', form) || $('[data-dish-search] input', form);
     var nojs = $('.od-jump', form);
     if (!secs.length) return;
     if (nojs) nojs.hidden = true;
@@ -821,33 +821,54 @@
   // "Sök produkt": type part of a name to see only those dishes and drinks.
   $$('[data-dish-search]').forEach(function (box) {
     var form = box.closest('[data-search-scope]') || box.closest('form');
-    var input = $('input', box);
+    var input = $('input[type=search]', box) || $('input', box);
     var none = $('[data-search-none]', box);
     if (!form || !input) return;
     box.hidden = false;
     var norm = function (t) { return (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+    // Stock page: Food / Drinks / Both, remembered on this device.
+    var kinds = $$('[data-kind-filter] input', box);
+    var kindKey = 'ozmo-stock-kind';
+    try { var saved = localStorage.getItem(kindKey); if (saved) kinds.forEach(function (k) { k.checked = k.value === saved; }); } catch (e) {}
+    var kind = function () { var k = kinds.filter(function (x) { return x.checked; })[0]; return k ? k.value : 'all'; };
     var filter = function () {
       var q = norm(input.value.trim());
+      var kd = kind();
+      var narrowed = !!q || kd !== 'all';
       var shown = 0;
       $$('.dish.od', form).forEach(function (li) {
         var name = norm(($('.od-name', li) || li).textContent);
-        var hit = !q || name.indexOf(q) > -1;
+        var hit = (!q || name.indexOf(q) > -1) && (kd === 'all' || !li.dataset.kind || li.dataset.kind === kd);
         li.hidden = !hit;
         if (hit) shown++;
       });
       $$('.od-cat', form).forEach(function (h) {
         var list = h.nextElementSibling;
         var any = list && $$('.dish.od', list).some(function (li) { return !li.hidden; });
-        h.hidden = !!q && !any;
-        if (list) list.hidden = !!q && !any;
+        h.hidden = narrowed && !any;
+        if (list) list.hidden = narrowed && !any;
       });
+      $$('.stock-chips [data-kind]', form).forEach(function (a) { a.hidden = kd !== 'all' && a.dataset.kind !== kd; });
+      $$('[data-kind-section]', form).forEach(function (sec) { sec.hidden = kd !== 'all' && sec.dataset.kindSection !== kd; });
       var jump = $('.od-jump', form);
       if (jump) jump.hidden = !!q;
       if (none) none.hidden = shown > 0;
     };
     input.addEventListener('input', filter);
+    kinds.forEach(function (k) { k.addEventListener('change', function () { try { localStorage.setItem(kindKey, kind()); } catch (e) {} filter(); }); });
+    if (kinds.length) filter();
     document.addEventListener('live:redrawn', filter); // the list was redrawn: keep it filtered
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+  });
+
+  // ---------------------------------------------------------------- 3 meals: a saved order fills in the meals
+  $$('[data-plan-pick]').forEach(function (sel) {
+    var form = sel.closest('form');
+    sel.addEventListener('change', function () {
+      var opt = sel.options[sel.selectedIndex];
+      var dishes = (opt && opt.getAttribute('data-dishes') || '').split('|');
+      $$('input[name^="dish"]', form).forEach(function (inp, i) { inp.value = opt && opt.value ? (dishes[i] || '') : ''; });
+    });
   });
 
   // ---------------------------------------------------------------- paying part of a bill

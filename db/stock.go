@@ -198,3 +198,68 @@ type stockSnap struct {
 	soldOut string
 	uses    []IngredientUse
 }
+
+// CheckStock says whether lines could be ordered right now, without taking
+// anything (a takeaway order before it's paid).
+func (s *Store) CheckStock(lines []NewLine) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	saved := s.stockSnapshot()
+	err := s.takeStock(lines)
+	s.restoreStock(saved)
+	return err
+}
+
+type stockSaved struct {
+	left map[int]int
+	ing  map[int]int
+}
+
+func (s *Store) stockSnapshot() stockSaved {
+	v := stockSaved{left: map[int]int{}, ing: map[int]int{}}
+	for i := range s.d.Menu {
+		v.left[s.d.Menu[i].ID] = s.d.Menu[i].Left
+	}
+	for i := range s.d.Ingredients {
+		v.ing[s.d.Ingredients[i].ID] = s.d.Ingredients[i].Left
+	}
+	return v
+}
+
+func (s *Store) restoreStock(v stockSaved) {
+	for i := range s.d.Menu {
+		s.d.Menu[i].Left = v.left[s.d.Menu[i].ID]
+	}
+	for i := range s.d.Ingredients {
+		s.d.Ingredients[i].Left = v.ing[s.d.Ingredients[i].ID]
+	}
+}
+
+// takeStockPaid counts down an order that is already paid (takeaway): it
+// goes through even if the last one went meanwhile, and nothing goes below
+// 0. Callers hold s.mu.
+func (s *Store) takeStockPaid(lines []NewLine) {
+	for _, l := range lines {
+		m := s.menuByID(l.MenuItemID)
+		if m == nil || l.Qty <= 0 {
+			continue
+		}
+		if m.Counted {
+			m.Left = max(m.Left-l.Qty, 0)
+		}
+		for _, u := range m.Uses {
+			if ing := s.ingredientByID(u.ID); ing != nil && u.Amount > 0 {
+				ing.Left = max(ing.Left-u.Amount*l.Qty, 0)
+			}
+		}
+	}
+}
+
+// takeawayLines are a takeaway order's dishes as order lines.
+func takeawayLines(b Booking) []NewLine {
+	var out []NewLine
+	for _, it := range b.Items {
+		out = append(out, NewLine{MenuItemID: it.MenuItemID, Name: it.Name, Qty: it.Quantity})
+	}
+	return out
+}

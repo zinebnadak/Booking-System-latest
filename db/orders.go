@@ -395,6 +395,12 @@ type Ticket struct {
 	// or a waiter tapped Served). Until then a done ticket is "ready to pick
 	// up" and the waiters' screens keep telling them.
 	ServedAt *time.Time `json:"served_at,omitempty"`
+
+	// The "3 meals" deal: Deal is the MealRun's ID and Meal which of its
+	// meals this is (1, 2, 3). Each meal goes to the chef when the guests
+	// ask for it (see dealkitchen.go).
+	Deal int `json:"deal,omitempty"`
+	Meal int `json:"meal,omitempty"`
 }
 
 // Since is when the ticket became the chef's to do: when it was ordered, or
@@ -496,6 +502,44 @@ type ordersSnapshot struct {
 func (s *Store) changeOrders(fn func() (bool, error)) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	restore := s.snapshotOrders()
+	changed, err := fn()
+	if err != nil || !changed {
+		if err != nil {
+			restore()
+		}
+		return err
+	}
+	if err := s.save(); err != nil {
+		restore()
+		return err
+	}
+	return nil
+}
+
+// changeDeal is change and changeOrders in one: for the "3 meals" deal,
+// whose steps change the table and the kitchen's tickets together.
+func (s *Store) changeDeal(fn func() (bool, error)) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	restore := s.snapshotOrders()
+	tables := s.snapshotTables()
+	back := func() { restore(); s.restoreTables(tables) }
+	changed, err := fn()
+	if err != nil || !changed {
+		back()
+		return err
+	}
+	if err := s.save(); err != nil {
+		back()
+		return err
+	}
+	return nil
+}
+
+// snapshotOrders copies bills, tickets and the rest that changeOrders
+// guards, and returns how to put them back. Callers hold s.mu.
+func (s *Store) snapshotOrders() (restore func()) {
 	var snap ordersSnapshot
 	for _, b := range s.d.Bills {
 		snap.bills = append(snap.bills, b.clone())
@@ -543,7 +587,7 @@ func (s *Store) changeOrders(fn func() (bool, error)) error {
 	}
 	snap.nextIngr = s.d.NextIngredientID
 	snap.nextBill, snap.nextTicket = s.d.NextBillID, s.d.NextTicketID
-	restore := func() {
+	return func() {
 		s.d.Bills, s.d.Tickets, s.d.PayAttempts, s.d.TableQRs, s.d.PhoneOrders = nil, nil, nil, nil, nil
 		for i := range snap.phone {
 			o := snap.phone[i]
@@ -598,18 +642,6 @@ func (s *Store) changeOrders(fn func() (bool, error)) error {
 			s.d.Ingredients = append(s.d.Ingredients, &ing)
 		}
 	}
-	changed, err := fn()
-	if err != nil || !changed {
-		if err != nil {
-			restore()
-		}
-		return err
-	}
-	if err := s.save(); err != nil {
-		restore()
-		return err
-	}
-	return nil
 }
 
 // ---------- bills ----------
@@ -687,6 +719,23 @@ func (s *Store) PaidBillsOn(date string) []Bill {
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].PaidAt.Before(*out[j].PaidAt) })
+	return out
+}
+
+// PaidBillsBetween lists the bills paid from one date to another (both
+// included), for the best-seller lists.
+func (s *Store) PaidBillsBetween(from, to string) []Bill {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []Bill
+	for _, b := range s.d.Bills {
+		if b.PaidAt == nil {
+			continue
+		}
+		if d := schedule.FormatDate(*b.PaidAt); d >= from && d <= to {
+			out = append(out, b.clone())
+		}
+	}
 	return out
 }
 
@@ -1596,7 +1645,7 @@ func (s *Store) TidyKitchen(now time.Time) error {
 // TicketServed: the food was taken from the kitchen to the table (undo:
 // it's back to "ready to pick up").
 func (s *Store) TicketServed(id int, undo bool, now time.Time) error {
-	return s.changeOrders(func() (bool, error) {
+	return s.changeDeal(func() (bool, error) {
 		t := s.ticketByID(id)
 		if t == nil || !t.ForTable() {
 			return false, ErrNoTicket
@@ -1607,6 +1656,7 @@ func (s *Store) TicketServed(id int, undo bool, now time.Time) error {
 		case !undo && t.DoneAt != nil && t.ServedAt == nil:
 			d := now
 			t.ServedAt = &d
+			s.dealMealServed(t, now)
 		case !undo && t.DoneAt == nil:
 			return false, ErrNotReady
 		default:

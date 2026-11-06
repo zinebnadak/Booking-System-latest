@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -224,5 +225,53 @@ func TestStockPhoneOrders(t *testing.T) {
 	b, _ := s.OpenBill(5)
 	if _, _, err := s.AddForGuest(b.ID, g.Guest, []NewLine{lineOf(soda, 3)}, at("18:05")); !errors.Is(err, ErrSoldOut) {
 		t.Fatalf("staff for the guest: %v", err)
+	}
+}
+
+// Online takeaway: counted when paid (even if the last one went meanwhile),
+// and back in stock if it's cancelled before the chef made it.
+func TestTakeawayTakesStock(t *testing.T) {
+	s := newStore(t)
+	now := at("10:00")
+	var burger MenuItem
+	for _, m := range s.Menu(false) {
+		if m.Name == "Ozmo-burgare" {
+			burger = m
+		}
+	}
+	s.SetStock(burger.ID, 3)
+	order := func(n int) Booking {
+		b, err := s.CreateTakeaway(Booking{Date: "2026-10-31", Time: "18:00", Name: "Erik", Email: fmt.Sprintf("e%d@x.fi", n), Phone: fmt.Sprintf("04000000%d", n),
+			Items: []OrderItem{{MenuItemID: burger.ID, Name: burger.Name, Quantity: n, UnitPriceCents: 1990}}}, now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	left := func() int { m, _ := s.MenuItem(burger.ID); return m.Left }
+	if err := s.CheckStock([]NewLine{{MenuItemID: burger.ID, Qty: 4}}); err == nil {
+		t.Fatal("4 of 3 should not fit")
+	}
+	if left() != 3 {
+		t.Fatal("checking took stock")
+	}
+	b := order(2)
+	s.AddTakeawayTicket(b, now)
+	if left() != 1 {
+		t.Fatalf("paid takeaway: %d left", left())
+	}
+	s.AddTakeawayTicket(b, now) // twice: counted once
+	if left() != 1 {
+		t.Fatalf("paid twice: %d left", left())
+	}
+	s.TakeawayCancelled(b.Ref)
+	s.TakeawayCancelled(b.Ref)
+	if left() != 3 {
+		t.Fatalf("cancelled: %d left", left())
+	}
+	// Paid for 5 while only 3 were left: it still goes to the kitchen, 0 left.
+	big := order(5)
+	if added, _ := s.AddTakeawayTicket(big, now); !added || left() != 0 {
+		t.Fatalf("over-ordered: added %v, %d left", added, left())
 	}
 }

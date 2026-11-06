@@ -30,7 +30,7 @@ func TestStockPage(t *testing.T) {
 	e.expect(e.do("GET", "/admin/activity", nil, true), 200, "Lisa", "marked out of stock", "Husets vin, glas")
 
 	// Every waiter's screen says so at the top...
-	for _, p := range []string{"/admin/orders", "/admin/tables", "/admin/orders/3"} {
+	for _, p := range []string{"/admin/orders", "/admin/orders/3"} {
 		e.expect(e.as(lisa, "GET", p, nil), 200, "Out of stock:", "Husets vin, glas")
 	}
 	// ...and on the order form it's greyed out, with nothing to tap.

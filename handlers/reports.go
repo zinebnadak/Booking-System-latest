@@ -494,7 +494,9 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 	// The rest of the page covers the same period as the chart.
 	periodBookings := s.Store.BookingsBetween(schedule.FormatDate(periodFrom), schedule.FormatDate(periodTo))
 	stt := computeStats(periodBookings, now)
-	weekdays, hours, dishes := rushAndDishes(lang, periodBookings, now)
+	weekdays, hours := rushCharts(lang, periodBookings, now)
+	dishes, drinks := bestSellers(s.Store.PaidBillsBetween(schedule.FormatDate(periodFrom), schedule.FormatDate(periodTo)),
+		periodBookings, s.Store.Menu(false), now)
 
 	outcomes := []outcomeRow{
 		{"Arrived", "deposit taken off the bill", stt.Arrived, 0, "ok"},
@@ -555,18 +557,17 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 		"Weekdays":    weekdays,
 		"Hours":       hours,
 		"Dishes":      dishes,
+		"Drinks":      drinks,
 		"Outcomes":    outcomes,
 	})
 }
 
-// rushAndDishes builds the busiest-days and busiest-hours charts and the
-// best-seller list from confirmed visits and pickups.
-func rushAndDishes(lang string, bs []db.Booking, now time.Time) (chartData, chartData, []dishRow) {
+// rushCharts builds the busiest-days and busiest-hours charts from
+// confirmed visits and pickups.
+func rushCharts(lang string, bs []db.Booking, now time.Time) (chartData, chartData) {
 	order := []time.Weekday{time.Monday, time.Tuesday, time.Wednesday, time.Thursday, time.Friday, time.Saturday, time.Sunday}
 	wd := map[time.Weekday]int{}
 	hr := map[int]int{}
-	qty := map[string]int{}
-	rev := map[string]int{}
 	for _, b := range bs {
 		st := b.EffectiveStatus(now)
 		if b.PaidAt == nil || st == db.StatusCancelled || st == db.StatusRefunded {
@@ -575,10 +576,6 @@ func rushAndDishes(lang string, bs []db.Booking, now time.Time) (chartData, char
 		start := b.Start()
 		wd[start.Weekday()]++
 		hr[start.Hour()]++
-		for _, it := range b.Items {
-			qty[it.Name] += it.Quantity
-			rev[it.Name] += it.LineTotal()
-		}
 	}
 	weekdays := chartData{Unit: "count", Highlight: -1, Emphasise: true}
 	s := chartSeries{Name: st(lang, "Visits and pickups"), Kind: "bar", Color: colorThis}
@@ -601,23 +598,76 @@ func rushAndDishes(lang string, bs []db.Booking, now time.Time) (chartData, char
 	}
 	hours.Series = []chartSeries{s}
 
-	var dishes []dishRow
-	for name, q := range qty {
-		dishes = append(dishes, dishRow{Name: name, Qty: q, Revenue: rev[name]})
+	return weekdays, hours
+}
+
+// bestSellers ranks what sold, food and drinks apart, from the paid bills
+// (waiters, QR and phone orders) and paid takeaway orders. Deal prices
+// ("3 rätter") and other packages aren't dishes, so they're left out.
+func bestSellers(bills []db.Bill, bs []db.Booking, menu []db.MenuItem, now time.Time) (dishes, drinks []dishRow) {
+	byID := map[int]db.MenuItem{}
+	for _, m := range menu {
+		byID[m.ID] = m
 	}
-	sort.Slice(dishes, func(i, j int) bool {
-		if dishes[i].Qty != dishes[j].Qty {
-			return dishes[i].Qty > dishes[j].Qty
+	type tally struct{ qty, rev int }
+	food, drink := map[string]*tally{}, map[string]*tally{}
+	add := func(isDrink bool, name string, qty, rev int) {
+		if qty <= 0 || strings.TrimSpace(name) == "" {
+			return
 		}
-		return dishes[i].Name < dishes[j].Name
-	})
-	if len(dishes) > 10 {
-		dishes = dishes[:10]
+		m := food
+		if isDrink {
+			m = drink
+		}
+		t := m[name]
+		if t == nil {
+			t = &tally{}
+			m[name] = t
+		}
+		t.qty += qty
+		t.rev += rev
 	}
-	for i := range dishes {
-		dishes[i].Pct = float64(dishes[i].Qty) / float64(dishes[0].Qty) * 100
+	for _, b := range bills {
+		for _, l := range b.Lines {
+			if m, ok := byID[l.MenuItemID]; ok && m.Package {
+				continue
+			}
+			add(l.Drink, l.Name, l.Qty, l.Total())
+		}
 	}
-	return weekdays, hours, dishes
+	for _, b := range bs {
+		st := b.EffectiveStatus(now)
+		if b.PaidAt == nil || st == db.StatusCancelled || st == db.StatusRefunded {
+			continue
+		}
+		for _, it := range b.Items {
+			m, ok := byID[it.MenuItemID]
+			if ok && m.Package {
+				continue
+			}
+			add(ok && m.Drink, it.Name, it.Quantity, it.LineTotal())
+		}
+	}
+	rank := func(m map[string]*tally) []dishRow {
+		var out []dishRow
+		for name, t := range m {
+			out = append(out, dishRow{Name: name, Qty: t.qty, Revenue: t.rev})
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Qty != out[j].Qty {
+				return out[i].Qty > out[j].Qty
+			}
+			return out[i].Name < out[j].Name
+		})
+		if len(out) > 10 {
+			out = out[:10]
+		}
+		for i := range out {
+			out[i].Pct = float64(out[i].Qty) / float64(out[0].Qty) * 100
+		}
+		return out
+	}
+	return rank(food), rank(drink)
 }
 
 // ---------- Spreadsheet ----------

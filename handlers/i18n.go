@@ -204,6 +204,8 @@ var dictEN = map[string]string{
 	"err_duplicate":     "You already have a booking at %s that day. To change it, please call us.",
 	"err_items":         "Please choose at least one dish.",
 	"err_items_max":     "For more than 20 of one dish, please call us.",
+	"err_soldout":       "Sorry, %s just ran out. Please pick something else.",
+	"err_soldout_left":  "Sorry, only %d left of %s. Please order fewer.",
 	"err_pickup":        "Please choose a pickup day and time.",
 	"err_summary":       "Please check the highlighted fields.",
 
@@ -449,6 +451,8 @@ var dictSV = map[string]string{
 	"err_duplicate":     "Du har redan en bokning kl. %s den dagen. Ring oss om du vill ändra den.",
 	"err_items":         "Välj minst en rätt.",
 	"err_items_max":     "Vill du ha fler än 20 av samma rätt, ring oss.",
+	"err_soldout":       "Tyvärr, %s tog just slut. Välj något annat.",
+	"err_soldout_left":  "Tyvärr, bara %d kvar av %s. Beställ färre.",
 	"err_pickup":        "Välj dag och tid för hämtning.",
 	"err_summary":       "Kontrollera de markerade fälten.",
 

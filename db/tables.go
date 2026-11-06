@@ -50,6 +50,16 @@ type MealRun struct {
 	Ready   []time.Time `json:"ready,omitempty"`   // when the guests had finished each meal
 	Ended   *time.Time  `json:"ended,omitempty"`   // table cleared (or deal stopped)
 	Stopped bool        `json:"stopped,omitempty"` // ended by staff before the last meal was finished
+	Dishes  []string    `json:"dishes,omitempty"`  // what each meal is, in the order this table wants them
+	Guests  int         `json:"guests,omitempty"`  // how many guests have the deal (put on the bill)
+}
+
+// Dish is what meal n (1, 2, 3) is at this table ("" if not chosen).
+func (m MealRun) Dish(n int) string {
+	if n >= 1 && n <= len(m.Dishes) {
+		return m.Dishes[n-1]
+	}
+	return ""
 }
 
 // Meal is the meal on the table now (1, 2 or 3).
@@ -258,7 +268,7 @@ func (s *Store) ButtonCheckIn(token string, battery int, now time.Time) (int, er
 // button's charge in percent (0 = it didn't say).
 func (s *Store) Press(token string, battery int, now time.Time) (PressResult, error) {
 	var res PressResult
-	err := s.change(func() (bool, error) {
+	err := s.changeDeal(func() (bool, error) {
 		b := s.buttonFor(token)
 		if b == nil {
 			return false, ErrNoButton
@@ -288,6 +298,7 @@ func (s *Store) Press(token string, battery int, now time.Time) (PressResult, er
 		}
 		if run != nil && !run.Waiting() {
 			run.Ready = append(run.Ready, now)
+			s.sendMeal(run, run.Meal()+1, now) // the chef starts the next meal
 		}
 		s.d.Calls = append(s.d.Calls, &Call{Table: b.Table, At: now, LastAt: now, Presses: 1})
 		return true, nil
@@ -299,20 +310,24 @@ func (s *Store) Press(token string, battery int, now time.Time) (PressResult, er
 // table now.
 func (s *Store) StartDeal(table int, now time.Time) error {
 	return s.change(func() (bool, error) {
-		if !validTable(table) {
-			return false, ErrNoTable
-		}
-		if s.activeRun(table) != nil {
-			return false, ErrDealRunning
-		}
-		s.d.NextRunID++
-		s.d.MealRuns = append(s.d.MealRuns, &MealRun{
-			ID: s.d.NextRunID, Table: table, Date: schedule.FormatDate(schedule.Today(now)),
-			Served: []time.Time{now},
-		})
-		s.dropCall(table) // staff are at the table anyway
-		return true, nil
+		_, err := s.startRun(table, now)
+		return err == nil, err
 	})
+}
+
+// startRun begins the deal on a table. Callers hold s.mu.
+func (s *Store) startRun(table int, now time.Time) (*MealRun, error) {
+	if !validTable(table) {
+		return nil, ErrNoTable
+	}
+	if s.activeRun(table) != nil {
+		return nil, ErrDealRunning
+	}
+	s.d.NextRunID++
+	r := &MealRun{ID: s.d.NextRunID, Table: table, Date: schedule.FormatDate(schedule.Today(now)), Served: []time.Time{now}}
+	s.d.MealRuns = append(s.d.MealRuns, r)
+	s.dropCall(table) // staff are at the table anyway
+	return r, nil
 }
 
 // ErrStale: the table changed since the screen was drawn (another waiter
@@ -324,7 +339,7 @@ var ErrStale = errors.New("the table changed in the meantime")
 // staff may see that a table has finished before anyone presses. meal 0
 // means "whichever is next".
 func (s *Store) ServeNext(table, meal int, now time.Time) error {
-	return s.change(func() (bool, error) {
+	return s.changeDeal(func() (bool, error) {
 		run := s.activeRun(table)
 		if run == nil {
 			return false, ErrNoDeal
@@ -340,13 +355,14 @@ func (s *Store) ServeNext(table, meal int, now time.Time) error {
 		}
 		run.Served = append(run.Served, now)
 		s.dropCall(table)
+		s.dealTicketsOut(run.ID, run.Meal(), now) // it's on the table: off the kitchen screen
 		return true, nil
 	})
 }
 
 // EndDeal clears the table after the last meal, or stops the deal early.
 func (s *Store) EndDeal(table int, now time.Time) error {
-	return s.change(func() (bool, error) {
+	return s.changeDeal(func() (bool, error) {
 		run := s.activeRun(table)
 		if run == nil {
 			return false, ErrNoDeal
@@ -361,6 +377,7 @@ func (s *Store) EndDeal(table int, now time.Time) error {
 		t := now
 		run.Ended = &t
 		s.dropCall(table)
+		s.dealTicketsOut(run.ID, 0, now) // checked out: the kitchen is done with this table
 		return true, nil
 	})
 }
@@ -368,13 +385,14 @@ func (s *Store) EndDeal(table int, now time.Time) error {
 // NotYet undoes a press during the deal that wasn't meant (a child playing
 // with the button, guests still eating): the table goes back to "eating".
 func (s *Store) NotYet(table int) error {
-	return s.change(func() (bool, error) {
+	return s.changeDeal(func() (bool, error) {
 		_, c := s.callAt(table)
 		if c == nil {
 			return false, nil
 		}
 		if run := s.activeRun(table); run != nil && run.Waiting() && len(run.Ready) > 0 {
 			run.Ready = run.Ready[:len(run.Ready)-1]
+			s.cancelMeal(run.ID, run.Meal()+1) // the chef can stop
 		}
 		s.dropCall(table)
 		return true, nil

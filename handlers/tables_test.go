@@ -105,24 +105,28 @@ func TestTablesScreenThreeMeals(t *testing.T) {
 	e.srv.Now = func() time.Time { return saturday }
 
 	// Staff only.
-	rec := e.do("GET", "/admin/tables", nil, false)
+	rec := e.do("GET", "/admin/orders", nil, false)
 	if rec.Code != 303 || !strings.HasPrefix(rec.Header().Get("Location"), "/login") {
 		t.Fatalf("not logged in: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
-	e.expect(e.do("GET", "/admin/tables", nil, true), 200, "3 meals runs today", "Start 3 meals", "Table 6", `id="tables-live"`)
-	e.expect(e.do("GET", "/admin/tables?lang=sv", nil, true), 200, "Starta 3 rätter", "Bord 6")
+	// It's all on Orders: the day's note there, and each table's own page has the buttons.
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "3 meals runs today", "Table 6")
+	e.expect(e.do("GET", "/admin/orders/4", nil, true), 200, "Start 3 meals")
+	e.expect(e.do("GET", "/admin/orders/4?lang=sv", nil, true), 200, "Starta 3 rätter", "Bord 4")
 
-	// Table 4 starts the deal; meal 1 is eaten; they press the button.
-	e.expect(e.do("POST", "/admin/tables/4/start", url.Values{}, true), 303)
-	e.expect(e.do("GET", "/admin/tables", nil, true), 200, "Eating meal 1 of 3")
+	// Table 4 starts the deal from its page; meal 1 is eaten; they press the button.
+	location(t, e.do("POST", "/admin/tables/4/start", url.Values{"back": {"table"}}, true), "/admin/orders/4?msg=dealstarted")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Eating meal 1 of 3")
+	e.expect(e.do("GET", "/admin/orders/4", nil, true), 200, "Eating meal 1 of 3", "Meal 2 served", "Stop 3 meals")
 	e.srv.Now = func() time.Time { return saturday.Add(22 * time.Minute) }
 	rec = e.press(e.token(4), "", "", nil)
 	if m := pressReply(t, rec); m["kind"] != "next" || m["meal"] != float64(1) {
 		t.Fatalf("press: %v", m)
 	}
 	e.srv.Now = func() time.Time { return saturday.Add(25 * time.Minute) }
-	tiles := e.do("GET", "/admin/tables?part=tiles", nil, true)
-	e.expect(tiles, 200, "Ready for meal 2", "waiting 3 min", "data-alert-key=", "Meal 2 served")
+	tiles := e.do("GET", "/admin/orders?part=tiles", nil, true)
+	e.expect(tiles, 200, "Ready for meal 2", "ot-call", "data-alert-key=")
+	e.expect(e.do("GET", "/admin/orders/4", nil, true), 200, "Ready for meal 2", "waiting 3 min", "Meal 2 served", "Not yet, still eating")
 	if strings.Contains(tiles.Body.String(), "<html") {
 		t.Fatal("the tiles part should not be a whole page")
 	}
@@ -136,7 +140,7 @@ func TestTablesScreenThreeMeals(t *testing.T) {
 	if !strings.Contains(rec.Header().Get("Location"), "msg=tablestale") {
 		t.Fatalf("double serve: %s", rec.Header().Get("Location"))
 	}
-	e.expect(e.do("GET", "/admin/tables?part=tiles", nil, true), 200, "Eating meal 2 of 3")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Eating meal 2 of 3")
 
 	// The screen's script gets plain answers instead of redirects.
 	live := func(path string, form url.Values) *httptest.ResponseRecorder {
@@ -151,13 +155,14 @@ func TestTablesScreenThreeMeals(t *testing.T) {
 	e.expect(live("/admin/tables/4/serve", url.Values{"meal": {"3"}}), 204)
 	e.expect(live("/admin/tables/4/serve", url.Values{"meal": {"4"}}), 409)
 	e.press(e.token(4), "", "", nil)
-	e.expect(e.do("GET", "/admin/tables?part=tiles", nil, true), 200, "Finished all meals", "Table cleared")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Finished all meals")
+	e.expect(e.do("GET", "/admin/orders/4", nil, true), 200, "Finished all meals", "Table cleared")
 	e.expect(live("/admin/tables/4/end", url.Values{}), 204)
-	e.expect(e.do("GET", "/admin/tables", nil, true), 200, "3 meals today", "Tables with 3 meals")
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "3 meals today", "Tables with 3 meals")
 
 	// A press with no deal running: "wants a waiter", answered with Done.
 	e.press(e.token(1), "", "", nil)
-	e.expect(e.do("GET", "/admin/tables?part=tiles", nil, true), 200, "Wants a waiter")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Wants a waiter")
 	e.expect(live("/admin/tables/1/answer", url.Values{}), 204)
 	if tb := e.store.TablesNow()[0]; tb.Call != nil {
 		t.Fatal("call not answered")
@@ -174,15 +179,20 @@ func TestTablesScreenThreeMeals(t *testing.T) {
 
 func TestNoDealOnWeekdays(t *testing.T) {
 	e := newEnv(t, nil) // Monday
-	e.expect(e.do("GET", "/admin/tables", nil, true), 200, "3 meals runs on Saturday and Sunday")
-	if strings.Contains(e.do("GET", "/admin/tables", nil, true).Body.String(), "Start 3 meals") {
-		t.Fatal("start offered on a Monday")
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "3 meals runs on Saturday and Sunday")
+	// The table's page still has 3 meals, but says when it runs, and starting it asks first.
+	page := e.do("GET", "/admin/orders/2", nil, true).Body.String()
+	if strings.Contains(page, ">Start 3 meals<") || !strings.Contains(page, "Start 3 meals today anyway") || !strings.Contains(page, "3 meals runs on Saturday and Sunday.") {
+		t.Fatal("Monday: no plain start, but a start-anyway")
 	}
 	rec := e.do("POST", "/admin/tables/2/start", url.Values{}, true)
 	if !strings.Contains(rec.Header().Get("Location"), "msg=tablestale") {
-		t.Fatalf("started on a Monday: %s", rec.Header().Get("Location"))
+		t.Fatalf("started on a Monday by itself: %s", rec.Header().Get("Location"))
 	}
-	e.expect(e.do("GET", "/admin/tables?lang=sv", nil, true), 200, "3 rätter gäller lördag och söndag")
+	location(t, e.do("POST", "/admin/tables/2/start", url.Values{"back": {"table"}, "anyway": {"1"}}, true), "/admin/orders/2?msg=dealstarted")
+	e.expect(e.do("GET", "/admin/orders/2", nil, true), 200, "Eating meal 1 of 3", "Meal 2 served")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Eating meal 1 of 3")
+	e.expect(e.do("GET", "/admin/orders?lang=sv", nil, true), 200, "3 rätter gäller lördag och söndag")
 }
 
 func TestTablesLiveEvents(t *testing.T) {

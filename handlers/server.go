@@ -228,6 +228,7 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("GET /admin/kitchen", s.adminKitchen)
 	admin.HandleFunc("POST /admin/kitchen/{id}/{action}", s.kitchenAction)
 	admin.HandleFunc("POST /admin/tables/{no}/{action}", s.tableAction)
+	admin.HandleFunc("POST /admin/mealplans/{id}/remove", s.mealPlanRemove)
 	admin.HandleFunc("GET /admin/calendar", s.adminCalendar)
 	admin.HandleFunc("POST /admin/bookings/{ref}/cancel", s.adminCancel)
 	admin.HandleFunc("POST /admin/bookings/{ref}/arrived", s.adminArrived)

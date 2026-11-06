@@ -121,6 +121,7 @@ func (s *Store) AddTakeawayTicket(b Booking, now time.Time) (bool, error) {
 			t.Items = append(t.Items, TicketItem{Name: it.Name, Qty: it.Quantity})
 		}
 		s.d.Tickets = append(s.d.Tickets, t)
+		s.takeStockPaid(takeawayLines(b)) // paid online: the stock counts down like any order
 		added = true
 		return true, nil
 	})
@@ -185,11 +186,14 @@ func (s *Store) takeawayTicket(ref string) *Ticket {
 func (s *Store) TakeawayCancelled(ref string) error {
 	return s.changeOrders(func() (bool, error) {
 		t := s.takeawayTicket(ref)
-		if t == nil || t.DoneAt != nil {
+		if t == nil || t.DoneAt != nil || !t.Live() {
 			return false, nil
 		}
 		for i := range t.Items {
 			t.Items[i].Cancelled = true
+		}
+		if b := s.find(ref); b != nil {
+			s.giveLines(takeawayLines(*b)) // not cooked: back in stock
 		}
 		return true, nil
 	})

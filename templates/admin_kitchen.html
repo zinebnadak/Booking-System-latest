@@ -21,10 +21,11 @@
       <span class="kt-table">{{trf "Takeaway #%d" .OrderNo}}</span>
       <span class="kt-time">{{if .PickupDay}}{{.PickupDay}} {{end}}{{trf "pickup %s" .PickupAt}}</span>
       {{else}}
-      <span class="kt-table">{{trf "Table %d" .Table}}{{if .Message}} · {{tr "Message"}}{{else if .FiredAt}} · {{if eq .Course 3}}{{tr "Dessert now"}}{{else}}{{tr "Mains now"}}{{end}}{{end}}</span>
+      <span class="kt-table">{{trf "Table %d" .Table}}{{if .Deal}}{{else if .Message}} · {{tr "Message"}}{{else if .FiredAt}} · {{if eq .Course 3}}{{tr "Dessert now"}}{{else}}{{tr "Mains now"}}{{end}}{{end}}</span>
       <span class="kt-time">{{.Time}} · {{trf "%d min" .Minutes}}</span>
       {{end}}
     </header>
+    {{if .Deal}}<p class="kt-deal-tag">{{trf "3 meals · meal %d of %d" .Meal $.MealsInDeal}}</p>{{end}}
     {{with .Message}}<p class="kt-message">{{.}}</p>{{end}}
     <ul class="kt-items">
       {{range .Items}}
@@ -67,11 +68,35 @@
         <span class="kt-table">{{trf "Table %d" .Table}}</span>
         <span class="kt-time">{{trf "ready %s · %d min" .At .Minutes}}</span>
       </header>
+      {{if .Meal}}<p class="kt-deal-tag">{{trf "3 meals · meal %d of %d" .Meal $.MealsInDeal}}</p>{{end}}
       <ul class="kt-items">
         {{range .Items}}<li><span class="kt-qty">{{.Qty}}×</span><span class="kt-name">{{.Name}}</span>{{if .Guest}}<span class="kt-who">{{trf "Guest %d" .Guest}}{{with .Who}} · {{.}}{{end}}</span>{{end}}</li>{{end}}
       </ul>
       <form method="post" action="/admin/kitchen/{{.ID}}/served" data-live><button class="btn btn-ok btn-block kt-done">{{tr "Served"}}</button></form>
       <form method="post" action="/admin/kitchen/{{.ID}}/undo" data-live class="kt-undo"><button class="btn-link">{{tr "Not done yet"}}</button></form>
+    </article>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Deals}}
+<section class="k-waiting k-deals" aria-labelledby="k-deal-h">
+  <h2 id="k-deal-h">{{tr "3 meals · between meals"}} <span>{{tr "When the guests ask for their next meal, it comes up above with a chime. If they leave early, the waiter ends 3 meals and the card goes."}}</span></h2>
+  <div class="k-grid">
+    {{range .Deals}}
+    <article class="kt kt-deal">
+      <header class="kt-head">
+        <span class="kt-table">{{trf "Table %d" .Table}}</span>
+        <span class="kt-time">{{trf "ready %s · %d min" .Since .Minutes}}</span>
+      </header>
+      <p class="kt-deal-tag">{{tr "3 meals"}}</p>
+      <p class="kt-left">{{if eq (len .Left) 1}}{{tr "1 meal left"}}{{else}}{{trf "%d meals left" (len .Left)}}{{end}}</p>
+      <ul class="kt-items">
+        {{range .Left}}<li><span class="kt-qty">{{trf "Meal %d" .No}}</span><span class="kt-name">{{.Name}}</span></li>{{end}}
+      </ul>
+      {{if .Guests}}<p class="kt-online">{{trf "%d guests" .Guests}}</p>{{end}}
+      <p class="kt-message kt-deal-msg">{{trf "The guests haven't asked for meal %d yet. You'll be told here when they press the button or a waiter sends it." .Next}}</p>
     </article>
     {{end}}
   </div>

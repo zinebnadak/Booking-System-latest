@@ -67,8 +67,9 @@ var flashes = map[string]string{
 	"cancelfree":      "Booking cancelled.",
 
 	// Tables screen and table buttons
-	"dealstarted":  "3 meals started. Meal 1 is on the table.",
+	"dealstarted":  "3 meals started. Meal 1 is with the kitchen.",
 	"mealserved":   "Meal served.",
+	"mealsent":     "Sent to the kitchen.",
 	"tablecleared": "Table cleared.",
 	"notyet":       "OK, they're still eating.",
 	"answered":     "Done.",
@@ -77,6 +78,7 @@ var flashes = map[string]string{
 
 	// Orders at the tables
 	"addedfood":     "Added to the bill. The chef has the food.",
+	"dealbad":       "Check how many guests, and give every meal a dish (and the order a name if you save it).",
 	"addeddrinks":   "Added to the bill.",
 	"lineremoved":   "Taken off the bill.",
 	"linesaved":     "Saved.",

@@ -406,7 +406,6 @@ var staffSV = map[string]string{
 	"%d min": "%d min",
 	"3 meals runs on %s. Today the buttons just call a waiter.":                                                         "3 rätter gäller %s. I dag kallar knapparna bara på en servitör.",
 	"3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here.": "3 rätter gäller i dag. När gästerna har ätit upp en rätt trycker de på knappen på bordet, och bordet lyser upp här.",
-	"3 meals started. Meal 1 is on the table.":                                                                          "3 rätter startade. Rätt 1 står på bordet.",
 	"3 meals today":                 "3 rätter i dag",
 	"Average time to eat a meal":    "Snittid för att äta en rätt",
 	"Average wait after the button": "Snittväntan efter knappen",
@@ -1351,4 +1350,56 @@ var staffSV = map[string]string{
 
 	// Orders is the staff's home page
 	"Home": "Hem",
+
+	// Stock page: food / drinks / both
+	"Food":   "Mat",
+	"Drinks": "Drycker",
+	"Both":   "Båda",
+	"Show":   "Visa",
+
+	// Orders is everything: 3 meals and bookings on each table
+	"Booked %s": "Bokat %s",
+	"3 meals":   "3 rätter",
+
+	// 3 meals on other days
+	"3 meals runs on %s.": "3 rätter gäller %s.",
+	"3 meals usually runs on %s. Start it on table %d today anyway?": "3 rätter gäller vanligtvis %s. Starta ändå på bord %d i dag?",
+	"Start 3 meals today anyway":                                     "Starta 3 rätter ändå i dag",
+	"Start":                                                          "Starta",
+
+	// 3 meals: order, saved orders, price
+	"%s per guest goes on the bill": "%s per gäst läggs på notan",
+	"Saved order":                   "Sparad ordning",
+	"Choose the meals below":        "Välj rätterna nedan",
+	"Meal %d":                       "Rätt %d",
+	"e.g. Rice":                     "t.ex. Ris",
+	"Save this order as":            "Spara ordningen som",
+	"e.g. Rice, fish, meat":         "t.ex. Ris, fisk, kött",
+	"Saved orders":                  "Sparade ordningar",
+	"Remove the saved order %s?":    "Ta bort den sparade ordningen %s?",
+	"Check how many guests, and give every meal a dish (and the order a name if you save it).": "Kontrollera antalet gäster och att varje rätt har en maträtt (och ett namn om du sparar ordningen).",
+	"saved a 3 meals order":   "sparade en ordning för 3 rätter",
+	"removed a 3 meals order": "tog bort en ordning för 3 rätter",
+	"started 3 meals":         "startade 3 rätter",
+
+	// 3 meals in the kitchen
+	"3 meals started. Meal 1 is with the kitchen.": "3 rätter startade. Rätt 1 är skickad till köket.",
+	"Sent to the kitchen.":                         "Skickat till köket.",
+	"Send meal %d to the kitchen":                  "Skicka rätt %d till köket",
+	"Meal %d is with the kitchen":                  "Rätt %d är hos köket",
+	"3 meals · meal %d of %d":                      "3 rätter · rätt %d av %d",
+	"3 meals · between meals":                      "3 rätter · mellan rätterna",
+	"When the guests ask for their next meal, it comes up above with a chime. If they leave early, the waiter ends 3 meals and the card goes.": "När gästerna ber om nästa rätt dyker den upp här ovanför med en signal. Om de går tidigare avslutar servitören 3 rätter och kortet försvinner.",
+	"1 meal left":   "1 rätt kvar",
+	"%d meals left": "%d rätter kvar",
+	"The guests haven't asked for meal %d yet. You'll be told here when they press the button or a waiter sends it.": "Gästerna har inte bett om rätt %d än. Du får besked här när de trycker på knappen eller när servitören skickar den.",
+
+	// best dish and drink
+	"Best-selling drinks":                         "Mest sålda drycker",
+	"Tables, QR, waiter and takeaway orders, %s.": "Bord, QR, servitörer och avhämtning, %s.",
+	"Best sellers":                                "Mest sålda",
+	"Best dish":                                   "Bästa rätt",
+	"Best drink":                                  "Bästa dryck",
+	"Nothing sold yet":                            "Inget sålt än",
+	"It shows up here once bills are paid.":       "Det syns här när notor har betalats.",
 }

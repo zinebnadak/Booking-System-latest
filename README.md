@@ -239,19 +239,40 @@ On Saturdays and Sundays guests can take **3 meals**: they get one meal, and whe
 they've finished it they press the button on their table. Staff take the plates
 and bring the next one.
 
-### What staff see: the Tables screen (`/admin/tables`)
+### What staff see: everything on Orders (`/admin/orders`)
 
-Put it on a tablet by the kitchen pass, or open it on a waiter's phone.
+There's no separate Tables screen any more: the button, the QR code's "call
+the waiter", 3 meals and bookings are all on **Orders**, on a phone, an iPad
+or a tablet by the kitchen pass. Old links to `/admin/tables` open Orders.
 
-- One tile per table. It **lights up** the moment the button is pressed:
+- Each table's tile shows its bill, who is seated, **Booked 19:00 · Andersson ·
+  4 guests** for bookings still to come today, and the 3 meals state with dots.
+- Tap a table: at the top of its page are the 3 meals and call buttons below,
+  then the bill and the order form.
+- One tile per table. It **lights up** (orange border) the moment the button is pressed:
   - orange **"Ready for meal 2"** (or 3) during the deal
   - orange **"Finished all meals"** after the last one
   - blue **"Wants a waiter"** when no deal is running (the buttons are useful every day)
 - A list at the top shows the waiting tables, the longest wait first, with minutes.
 - **Sound:** tap **Turn on sound** once (browsers need one tap before a page may make noise). A new press then plays a chime and vibrates the phone, and while a table is still waiting it chimes again every 2 minutes. The screen also stays awake.
-- The tab title shows how many tables are waiting, e.g. **(2) Tables**.
-- Taps:
-  - **Start 3 meals:** meal 1 is on the table now
+- **Starting 3 meals** (on the table's page): type how many guests and, if
+  they want, which dish is meal 1, 2 and 3 (e.g. rice first, then fish, then
+  meat). Tick **Save this order as** to keep it; next time pick it under
+  **Saved order**. The price (20 € per guest to start with) goes on the bill as
+  "3 rätter". The manager changes it on the Menu page, under **3 rätter**.
+  While it runs, the table shows the dishes in order and "Ready for meal 2 · Fish".
+- **In the kitchen:** meal 1 goes to the chef's screen when 3 meals starts
+  ("3 rätter · rätt 1 av 3", with the number of guests). When the chef taps
+  Done, a card stays under **3 rätter · mellan rätterna**: "2 rätter kvar",
+  which dishes, and that the guests haven't asked for meal 2 yet. Meal 2 comes
+  onto the screen with a chime when the guests press the button (or tap "Ready
+  for the next meal" on their phone), or when a waiter taps **Send meal 2 to
+  the kitchen** on the table's page. **Not yet, still eating** takes it back
+  (crossed out for the chef). Served in the kitchen counts as served at the
+  table. If the guests leave early, **Stop 3 meals** (or paying the bill)
+  takes the table off the kitchen screen.
+- Taps (on the table's page):
+  - **Start 3 meals:** meal 1 goes to the kitchen
   - **Meal 2 served** / **Meal 3 served:** the next meal is on the table and the plates are gone. Also works if the guests didn't press.
   - **Table cleared:** after the last meal (or to stop the deal early: **Stop 3 meals**)
   - **Not yet, still eating:** for a press that wasn't meant (children love buttons)
@@ -388,6 +409,15 @@ first, 14 days per page:
 
 The number after **#** is unique for every bill, handy when matching a payment on
 the card terminal's day report.
+
+### Stock counts every way of ordering
+
+A counted dish (or its ingredients) goes down the moment it's ordered, whichever
+way: a waiter on a phone or iPad, a guest with the table's QR code, or online
+for takeaway (counted when it's paid; an order is stopped before paying if it's
+no longer there, and a cancelled takeaway goes back into stock). On the **Stock**
+page, **Food / Drinks / Both** shows only that part, and the search box finds a
+dish or drink within it. The choice is remembered on each phone or iPad.
 
 ### The chef's screen (`/admin/kitchen`)
 

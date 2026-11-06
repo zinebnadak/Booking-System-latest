@@ -45,8 +45,10 @@ type orderTile struct {
 	Served  bool   // everything is on the table: next comes the bill
 	Billed  bool
 	Who     string
-	OldOpen bool // still open from an earlier day: someone forgot to close it
-	Paying  bool // a guest is paying on their phone right now
+	Deal    *tableTile // 3 meals or a call from the button/QR code (nil: nothing going on)
+	Booked  []string   // today's bookings still to come here: "19:00 · Andersson · 4 guests"
+	OldOpen bool       // still open from an earlier day: someone forgot to close it
+	Paying  bool       // a guest is paying on their phone right now
 
 	// Split tables where some guests paid and others haven't yet.
 	Alert      bool
@@ -68,12 +70,21 @@ func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
 		bills[b.Table] = b
 	}
 	who := s.seatedNow(lang, now)
+	booked := s.bookedLater(lang, now)
+	deal := map[int]tableTile{}
+	for _, tt := range s.tableTiles(lang, now) {
+		deal[tt.No] = tt
+	}
 	today := schedule.FormatDate(schedule.Today(now))
 	tiles := make([]orderTile, schedule.TableCount())
 	for i, tb := range schedule.TablePlan {
 		t := &tiles[i]
 		t.No, t.Room = tb.No, tb.Room
 		t.Who = who[t.No]
+		t.Booked = booked[t.No]
+		if d, ok := deal[t.No]; ok && d.State != "free" {
+			t.Deal = &d
+		}
 		b, ok := bills[t.No]
 		if !ok {
 			continue
@@ -153,7 +164,11 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		"Drinks": s.drinksToBring(), "Receipts": s.receiptsToPrint(lang), "Calls": s.callsNow(lang, now),
 		"PhoneOrders": s.pendingOrders(lang, now), "CheckPhoneOrders": s.Store.CheckPhoneOrders(),
 		"Stock": s.stockStrip(), "OnlinePaid": s.onlinePaid(lang, now), "ReadyFood": s.readyFood(now),
+		"MealsInDeal": schedule.MealsInDeal, "DealToday": schedule.MealDealToday(schedule.Today(now)), "DealDays": dealDaysText(lang),
+		"Warnings": s.buttonWarnings(now),
 	}
+	stats := s.Store.DealStatsOn(today, now)
+	data["Stats"], data["EatMin"], data["WaitMin"] = stats, roundMinutes(stats.Eat), roundMinutes(stats.Wait)
 	if r.URL.Query().Get("part") == "tiles" {
 		s.renderBlock(w, r, "admin_orders", "tiles", http.StatusOK, data)
 		return
@@ -260,6 +275,23 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 		"Menu": groupMenu(s.Store.StaffMenu()), "FreeTables": freeTables, "Today": schedule.FormatDate(schedule.Today(now)),
 		"Who": s.seatedNow(lang, now)[table], "NextDeposit": deposit, "NextBooking": ref,
 		"Toast": flashText(r), "Stock": s.stockStrip(), "Ingredients": s.Store.Ingredients(),
+		"MealsInDeal": schedule.MealsInDeal, "DealToday": schedule.MealDealToday(schedule.Today(now)), "Booked": s.bookedLater(lang, now)[table], "DealDays": dealDaysText(lang),
+		"MealPlans": s.Store.MealPlans(), "DealGuests": s.partyAt(table, now), "MealNums": mealNums(),
+	}
+	if item, err := s.Store.DealItem(); err == nil {
+		data["DealPrice"] = item.PriceCents
+	}
+	var food []string
+	for _, m := range s.Store.StaffMenu() {
+		if !m.Drink && !m.Package && m.Category != db.DealCategory {
+			food = append(food, m.Name)
+		}
+	}
+	data["FoodNames"] = food
+	for _, tt := range s.tableTiles(lang, now) {
+		if tt.No == table {
+			data["Deal"] = tt
+		}
 	}
 	switch r.URL.Query().Get("msg") {
 	case "addedfood", "addeddrinks", "addedheld":
@@ -883,7 +915,7 @@ func (s *Server) adminKitchen(w http.ResponseWriter, r *http.Request) {
 	data := M{
 		"Admin": true, "Bare": true, "Title": st(lang, "Kitchen"),
 		"Tickets": open, "Done": done, "Later": later, "Dishes": s.kitchenDishes(now), "Waiting": waiting,
-		"Ready": s.readyFood(now),
+		"Ready": s.readyFood(now), "Deals": s.dealsWaiting(now), "MealsInDeal": schedule.MealsInDeal,
 	}
 	if r.URL.Query().Get("part") == "tickets" {
 		s.renderBlock(w, r, "admin_kitchen", "tickets", http.StatusOK, data)

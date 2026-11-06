@@ -47,6 +47,17 @@
   </details>
 </section>
 
+<section class="panel best-pair" aria-label="{{tr "Best sellers"}}">
+  <div class="best">
+    <div class="kpi-label">{{tr "Best dish"}}</div>
+    {{with .Dishes}}{{with index . 0}}<div class="best-name">{{.Name}}</div><div class="muted small">{{trf "%d sold · %s" .Qty (euro .Revenue)}}</div>{{end}}{{else}}<div class="muted">{{tr "Nothing sold yet"}}</div>{{end}}
+  </div>
+  <div class="best">
+    <div class="kpi-label">{{tr "Best drink"}}</div>
+    {{with .Drinks}}{{with index . 0}}<div class="best-name">{{.Name}}</div><div class="muted small">{{trf "%d sold · %s" .Qty (euro .Revenue)}}</div>{{end}}{{else}}<div class="muted">{{tr "Nothing sold yet"}}</div>{{end}}
+  </div>
+</section>
+
 <div class="charts-grid">
   <section class="panel">
     <h2>{{tr "Busiest days"}}</h2>
@@ -64,16 +75,14 @@
 
   <section class="panel">
     <h2>{{tr "Best-selling dishes"}}</h2>
-    <p class="muted small">{{tr "From takeaway orders. Table guests order in person, so their dishes aren't recorded here."}}</p>
-    {{if not .Dishes}}<div class="empty"><strong>{{tr "No takeaway orders yet"}}</strong>{{tr "Dishes show up here once people order."}}</div>{{end}}
-    <ol class="hbars">
-      {{range .Dishes}}
-      <li>
-        <div class="hbar-text"><span>{{.Name}}</span><span class="muted">{{trf "%d sold · %s" .Qty (euro .Revenue)}}</span></div>
-        <div class="hbar-track"><div class="hbar" style="width: {{printf "%.1f" .Pct}}%"></div></div>
-      </li>
-      {{end}}
-    </ol>
+    <p class="muted small">{{trf "Tables, QR, waiter and takeaway orders, %s." .PeriodLabel}}</p>
+    {{template "sellers" .Dishes}}
+  </section>
+
+  <section class="panel">
+    <h2>{{tr "Best-selling drinks"}}</h2>
+    <p class="muted small">{{trf "Tables, QR, waiter and takeaway orders, %s." .PeriodLabel}}</p>
+    {{template "sellers" .Drinks}}
   </section>
 
   <section class="panel">
@@ -91,4 +100,16 @@
 </div>
 
 <p class="scope-note" style="margin-top:16px"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Money paid through the website only: table deposits and takeaway orders. Food and drinks paid at the table go through the restaurant's till."}}</span></p>
+{{end}}
+
+{{define "sellers"}}
+{{if not .}}<div class="empty"><strong>{{tr "Nothing sold yet"}}</strong>{{tr "It shows up here once bills are paid."}}</div>{{end}}
+<ol class="hbars">
+  {{range .}}
+  <li>
+    <div class="hbar-text"><span>{{.Name}}</span><span class="muted">{{trf "%d sold · %s" .Qty (euro .Revenue)}}</span></div>
+    <div class="hbar-track"><div class="hbar" style="width: {{printf "%.1f" .Pct}}%"></div></div>
+  </li>
+  {{end}}
+</ol>
 {{end}}

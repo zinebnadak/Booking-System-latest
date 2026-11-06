@@ -440,6 +440,20 @@ func (s *Server) takeawaySubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(items) == 0 {
 		errs["items"] = t["err_items"]
+	} else if errs["items"] == "" {
+		// Ran out since the page was opened (a waiter or a table took the last one).
+		var lines []db.NewLine
+		for _, it := range items {
+			lines = append(lines, db.NewLine{MenuItemID: it.MenuItemID, Qty: it.Quantity})
+		}
+		var so *db.SoldOutError
+		if err := s.Store.CheckStock(lines); errors.As(err, &so) {
+			if so.Left > 0 && so.Short == "" {
+				errs["items"] = fmt.Sprintf(t["err_soldout_left"], so.Left, so.Name)
+			} else {
+				errs["items"] = fmt.Sprintf(t["err_soldout"], so.Name)
+			}
+		}
 	}
 
 	// The pickup time must be one of the chosen day's times.

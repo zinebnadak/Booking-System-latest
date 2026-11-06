@@ -650,7 +650,7 @@ func TestCallTheWaiterFromThePhone(t *testing.T) {
 		t.Fatalf("call: %s", loc(rec))
 	}
 	e.expect(a.do("GET", "/g/"+a.key+"?part=live", nil), 200, "Your waiter is on the way (called 18:00).", "Call again")
-	e.expect(e.do("GET", "/admin/tables", nil, true), 200, "Wants a waiter", "From the phone of Guest 1 · Anna")
+	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Wants a waiter", "From the phone of Guest 1 · Anna")
 	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Wants a waiter · Guest 1 · Anna")
 	e.do("POST", "/admin/tables/5/answer", url.Values{}, true)
 	e.expect(a.do("GET", "/g/"+a.key+"?part=live", nil), 200, "Call the waiter")
@@ -661,7 +661,8 @@ func TestCallTheWaiterFromThePhone(t *testing.T) {
 	if rec := a.do("POST", "/g/"+a.key+"/call", url.Values{"kind": {"next"}}); loc(rec) != "/g/"+a.key+"?msg=nextmeal" {
 		t.Fatalf("next meal: %s", loc(rec))
 	}
-	e.expect(e.do("GET", "/admin/tables", nil, true), 200, "Ready for meal 2", "From the phone of Guest 1 · Anna")
+	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Ready for meal 2", "From the phone of Guest 1 · Anna")
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Ready for meal 2", "ot-call")
 	e.expect(a.do("GET", "/g/"+a.key+"?part=live", nil), 200, "Meal 2 is on its way.")
 }
 

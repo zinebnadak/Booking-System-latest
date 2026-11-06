@@ -13,6 +13,76 @@
   <a class="btn btn-primary" href="/admin/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>{{tr "Back to orders"}}</a>
 </div>
 {{end}}
+{{with .Booked}}<p class="notice info booked-note">{{range $i, $b := .}}{{if $i}}<br>{{end}}{{trf "Booked %s" $b}}{{end}}</p>{{end}}
+{{with .Deal}}
+<section class="panel deal-panel deal-{{.State}}" aria-labelledby="deal-h">
+  <div class="deal-head">
+    <h2 id="deal-h">{{if eq .State "waiter"}}{{tr "Wants a waiter"}}{{else if eq .State "next"}}{{trf "Ready for meal %d" .Next}}{{with .NextDish}} · {{.}}{{end}}{{else if eq .State "last"}}{{tr "Finished all meals"}}{{else if eq .State "eating"}}{{trf "Eating meal %d of %d" .Meal $.MealsInDeal}}{{else}}{{tr "3 meals"}}{{end}}</h2>
+    {{if .Dots}}<span class="tt-dots" aria-label="{{trf "Meal %d of %d" .Meal $.MealsInDeal}}">{{range .Dots}}<i{{if .}} class="on"{{end}}></i>{{end}}</span>{{end}}
+  </div>
+  {{if .Dishes}}<ol class="deal-menu">{{range $i, $d := .Dishes}}<li{{if lt $i $.Deal.Meal}} class="done"{{end}}>{{$d}}</li>{{end}}</ol>{{end}}
+  {{if .Guests}}<p class="muted small">{{trf "%d guests" .Guests}}</p>{{end}}
+  {{if or (eq .State "next") (eq .State "last") (eq .State "waiter")}}
+  <p class="muted small">{{trf "Pressed %s · waiting %d min" .Since .Minutes}}{{if gt .Presses 1}} · <strong>{{trf "pressed %d times" .Presses}}</strong>{{end}}{{with .Caller}} · {{trf "From the phone of %s" .}}{{end}}</p>
+  {{else if eq .State "eating"}}
+  <p class="muted small">{{trf "Served %s · %d min ago" .Since .Minutes}}</p>
+  {{end}}
+  {{if and .Sent (ne .State "free")}}
+  <p class="deal-sent">{{trf "Meal %d is with the kitchen" .Next}}{{with .NextDish}} · {{.}}{{end}}</p>
+  {{else if eq .State "free"}}
+  <p class="muted small">{{tr "No 3 meals running"}}</p>
+  {{end}}
+  <div class="deal-actions">
+    {{if eq .State "next"}}
+      {{if not .Sent}}<form method="post" action="/admin/tables/{{.No}}/send"><input type="hidden" name="back" value="table"><button class="btn btn-primary">{{trf "Send meal %d to the kitchen" .Next}}{{with .NextDish}} · {{.}}{{end}}</button></form>{{end}}
+      <form method="post" action="/admin/tables/{{.No}}/serve"><input type="hidden" name="back" value="table"><input type="hidden" name="meal" value="{{.Next}}"><button class="btn btn-primary">{{trf "Meal %d served" .Next}}{{with .NextDish}} · {{.}}{{end}}</button></form>
+      <form method="post" action="/admin/tables/{{.No}}/notyet"><input type="hidden" name="back" value="table"><button class="btn btn-secondary">{{tr "Not yet, still eating"}}</button></form>
+    {{else if eq .State "last"}}
+      <form method="post" action="/admin/tables/{{.No}}/end"><input type="hidden" name="back" value="table"><button class="btn btn-primary">{{tr "Table cleared"}}</button></form>
+      <form method="post" action="/admin/tables/{{.No}}/notyet"><input type="hidden" name="back" value="table"><button class="btn btn-secondary">{{tr "Not yet, still eating"}}</button></form>
+    {{else if eq .State "waiter"}}
+      <form method="post" action="/admin/tables/{{.No}}/answer"><input type="hidden" name="back" value="table"><button class="btn btn-primary">{{tr "Done"}}</button></form>
+    {{else if eq .State "eating"}}
+      {{if lt .Meal $.MealsInDeal}}
+      {{if not .Sent}}<form method="post" action="/admin/tables/{{.No}}/send"><input type="hidden" name="back" value="table"><button class="btn btn-primary">{{trf "Send meal %d to the kitchen" .Next}}{{with .NextDish}} · {{.}}{{end}}</button></form>{{end}}
+      <form method="post" action="/admin/tables/{{.No}}/serve" data-confirm="{{trf "Table %d finished meal %d without pressing? Bring meal %d." .No .Meal .Next}}" data-confirm-ok="{{trf "Meal %d served" .Next}}"><input type="hidden" name="back" value="table"><input type="hidden" name="meal" value="{{.Next}}"><button class="btn btn-secondary">{{trf "Meal %d served" .Next}}{{with .NextDish}} · {{.}}{{end}}</button></form>
+      <form method="post" action="/admin/tables/{{.No}}/end" data-confirm="{{trf "Stop 3 meals on table %d? Use this if the guests leave early." .No}}" data-confirm-ok="{{tr "Stop"}}" data-danger><input type="hidden" name="back" value="table"><button class="btn-link">{{tr "Stop 3 meals"}}</button></form>
+      {{else}}
+      <form method="post" action="/admin/tables/{{.No}}/end"><input type="hidden" name="back" value="table"><button class="btn btn-secondary">{{tr "Table cleared"}}</button></form>
+      {{end}}
+    {{else}}
+      {{if not $.DealToday}}<p class="muted small deal-days">{{trf "3 meals runs on %s." $.DealDays}}</p>{{end}}
+      <form method="post" action="/admin/tables/{{.No}}/start" class="deal-start"{{if not $.DealToday}} data-confirm="{{trf "3 meals usually runs on %s. Start it on table %d today anyway?" $.DealDays .No}}" data-confirm-ok="{{tr "Start"}}"{{end}}>
+        <input type="hidden" name="back" value="table">{{if not $.DealToday}}<input type="hidden" name="anyway" value="1">{{end}}
+        <div class="deal-row">
+          <label class="deal-guests">{{tr "Guests"}} <input name="guests" type="number" min="1" max="40" inputmode="numeric" value="{{$.DealGuests}}" required></label>
+          {{with $.DealPrice}}<span class="muted small">{{trf "%s per guest goes on the bill" (euro .)}}</span>{{end}}
+        </div>
+        {{if $.MealPlans}}
+        <label class="field">{{tr "Saved order"}}
+          <select name="plan" data-plan-pick>
+            <option value="">{{tr "Choose the meals below"}}</option>
+            {{range $.MealPlans}}<option value="{{.ID}}" data-dishes="{{range $i, $d := .Dishes}}{{if $i}}|{{end}}{{$d}}{{end}}">{{.Name}}: {{range $i, $d := .Dishes}}{{if $i}} → {{end}}{{$d}}{{end}}</option>{{end}}
+          </select>
+        </label>
+        {{end}}
+        <div class="deal-dishes">
+          {{range $.MealNums}}<label class="field">{{trf "Meal %d" .}}<input name="dish{{.}}" list="deal-food" maxlength="80" placeholder="{{tr "e.g. Rice"}}" autocomplete="off"></label>{{end}}
+        </div>
+        <datalist id="deal-food">{{range $.FoodNames}}<option value="{{.}}">{{end}}</datalist>
+        <label class="deal-save"><input type="checkbox" name="save" value="1" data-save-plan> {{tr "Save this order as"}} <input name="plan_name" maxlength="60" placeholder="{{tr "e.g. Rice, fish, meat"}}"></label>
+        <button class="btn {{if $.DealToday}}btn-primary{{else}}btn-secondary{{end}}">{{if $.DealToday}}{{tr "Start 3 meals"}}{{else}}{{tr "Start 3 meals today anyway"}}{{end}}</button>
+      </form>
+      {{if $.MealPlans}}
+      <details class="deal-plans"><summary>{{tr "Saved orders"}}</summary>
+        <ul>{{range $.MealPlans}}<li><span><strong>{{.Name}}</strong> · {{range $i, $d := .Dishes}}{{if $i}} → {{end}}{{$d}}{{end}}</span>
+          <form method="post" action="/admin/mealplans/{{.ID}}/remove" data-confirm="{{trf "Remove the saved order %s?" .Name}}" data-confirm-ok="{{tr "Remove"}}" data-danger><input type="hidden" name="table" value="{{$.Table}}"><button class="btn-link">{{tr "Remove"}}</button></form></li>{{end}}</ul>
+      </details>
+      {{end}}
+    {{end}}
+  </div>
+</section>
+{{end}}
 <form method="post" action="/admin/orders/{{.Table}}/qr" class="qr-switch{{if .QROpen}} on{{end}}">
   <input type="hidden" name="open" value="{{if .QROpen}}0{{else}}1{{end}}">
   <span class="qr-switch-text">

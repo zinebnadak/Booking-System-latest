@@ -17,9 +17,14 @@ func TestOrdersIsHome(t *testing.T) {
 	if !strings.Contains(page, `class="admin-brand" href="/admin/orders"`) {
 		t.Fatal("the name at the top doesn't go to Orders")
 	}
-	if o, b := strings.Index(page, `href="/admin/orders"`), strings.Index(page, `href="/admin/tables"`); o < 0 || b < 0 || o > b {
+	if o, k := strings.Index(page, `href="/admin/orders"`), strings.Index(page, `href="/admin/kitchen"`); o < 0 || k < 0 || o > k {
 		t.Fatal("Orders isn't the first link in the menu")
 	}
+	// Tables is part of Orders now: no tab of its own, and old links land on Orders.
+	if strings.Contains(page, `href="/admin/tables"`) {
+		t.Fatal("still a Tables tab")
+	}
+	location(t, e.do("GET", "/admin/tables", nil, true), "/admin/orders")
 
 	// A table page always has the way back; after adding, a big one too.
 	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, `class="btn btn-secondary btn-sm back-home" href="/admin/orders"`)

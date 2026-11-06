@@ -210,17 +210,21 @@ func (s *Server) apiButton(call bool) http.HandlerFunc {
 type tableTile struct {
 	No        int
 	Room      string
-	State     string // "free", "eating", "next" (ready for the next meal), "last" (all meals done), "waiter"
-	Meal      int    // meal on the table now
-	Next      int    // the meal to bring next
-	Dots      []bool // one per meal in the deal: true = served
-	Since     string // "18:20": when the current step began
-	Minutes   int    // minutes since then
-	Presses   int    // presses while waiting
-	CallKey   string // changes with every press, so the screen knows when to beep
-	Who       string // seated guests from a booking, e.g. "Andersson · 4 guests"
-	BillCents int    // what the table's open bill comes to so far (0 = no bill)
-	Caller    string // called from a guest's phone: "Guest 2 · Anna"
+	State     string   // "free", "eating", "next" (ready for the next meal), "last" (all meals done), "waiter"
+	Meal      int      // meal on the table now
+	Next      int      // the meal to bring next
+	Dots      []bool   // one per meal in the deal: true = served
+	Since     string   // "18:20": when the current step began
+	Minutes   int      // minutes since then
+	Presses   int      // presses while waiting
+	CallKey   string   // changes with every press, so the screen knows when to beep
+	Who       string   // seated guests from a booking, e.g. "Andersson · 4 guests"
+	BillCents int      // what the table's open bill comes to so far (0 = no bill)
+	Caller    string   // called from a guest's phone: "Guest 2 · Anna"
+	Dishes    []string // 3 meals: what each meal is, in this table's order
+	Guests    int      // 3 meals: how many guests have it
+	NextDish  string   // what to bring next
+	Sent      bool     // 3 meals: the next meal is with the kitchen
 }
 
 // Waiting reports whether the table needs someone now.
@@ -248,6 +252,8 @@ func (s *Server) tableTiles(lang string, now time.Time) []tableTile {
 		if run := t.Run; run != nil {
 			tile.Meal = run.Meal()
 			tile.Next = run.Meal() + 1
+			tile.Dishes, tile.Guests, tile.NextDish = run.Dishes, run.Guests, run.Dish(run.Meal()+1)
+			tile.Sent = s.Store.MealSent(t.No)
 			for i := 1; i <= schedule.MealsInDeal; i++ {
 				tile.Dots = append(tile.Dots, i <= run.Meal())
 			}
@@ -370,13 +376,10 @@ func (s *Server) tablesData(r *http.Request) M {
 	}
 }
 
+// adminTables: the Tables screen is now part of Orders (3 meals, calls and
+// bookings are on each table there). Old links and home-screen icons land on Orders.
 func (s *Server) adminTables(w http.ResponseWriter, r *http.Request) {
-	data := s.tablesData(r)
-	if r.URL.Query().Get("part") == "tiles" {
-		s.renderBlock(w, r, "admin_tables", "tiles", http.StatusOK, data)
-		return
-	}
-	s.render(w, r, "admin_tables", http.StatusOK, data)
+	http.Redirect(w, r, "/admin/orders", http.StatusSeeOther)
 }
 
 // tableAction is a staff tap on a table: start the deal, a meal served,
@@ -393,13 +396,15 @@ func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) {
 	var msg string
 	switch r.PathValue("action") {
 	case "start":
-		if !schedule.MealDealToday(schedule.Today(now)) {
+		if !schedule.MealDealToday(schedule.Today(now)) && r.FormValue("anyway") != "1" {
 			err = errNotDealDay
 		} else {
-			err, msg = s.Store.StartDeal(no, now), "dealstarted"
+			err, msg = s.startDeal(r, no, now), "dealstarted"
 		}
 	case "serve":
 		err, msg = s.Store.ServeNext(no, atoiDefault(r.FormValue("meal"), 0), now), "mealserved"
+	case "send":
+		err, msg = s.Store.SendNextMeal(no, now), "mealsent"
 	case "end":
 		err, msg = s.Store.EndDeal(no, now), "tablecleared"
 	case "notyet":
@@ -418,6 +423,9 @@ func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) {
 			log.Printf("table %d: %v", no, err)
 		}
 		msg = "tablestale"
+		if errors.Is(err, db.ErrPlanName) || errors.Is(err, db.ErrPlanDishes) || errors.Is(err, db.ErrBadGuests) {
+			msg = "dealbad"
+		}
 	}
 	// The screen's script sends X-Live and redraws the tables itself.
 	if r.Header.Get("X-Live") == "1" {
@@ -428,7 +436,36 @@ func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	redirectMsg(w, r, "/admin/tables", nil, msg)
+	back := "/admin/orders"
+	if r.FormValue("back") == "table" && validTableNo(no) {
+		back = orderPath(no) // tapped on the table's own page
+	}
+	redirectMsg(w, r, back, nil, msg)
+}
+
+func validTableNo(no int) bool {
+	for _, t := range schedule.TableNos() {
+		if t == no {
+			return true
+		}
+	}
+	return false
+}
+
+// bookedLater: today's table bookings that haven't arrived yet, per table,
+// soonest first ("19:00 · Andersson · 4 guests"). A booking stays here until
+// it's checked in or becomes a no-show.
+func (s *Server) bookedLater(lang string, now time.Time) map[int][]string {
+	out := map[int][]string{}
+	bookings := s.Store.BookingsOn(schedule.FormatDate(schedule.Today(now)), now)
+	sort.SliceStable(bookings, func(i, j int) bool { return bookings[i].Start().Before(bookings[j].Start()) })
+	for _, b := range bookings {
+		if b.Kind != db.KindTable || b.TableNo == 0 || b.EffectiveStatus(now) != db.StatusPaid {
+			continue
+		}
+		out[b.TableNo] = append(out[b.TableNo], clockOf(b.Start())+" · "+b.Name+" · "+guestsCount(lang, b.PartySize))
+	}
+	return out
 }
 
 var errNotDealDay = errors.New("the deal doesn't run today")
@@ -517,4 +554,71 @@ func (s *Server) demoPress(w http.ResponseWriter, r *http.Request) {
 		kind = "again"
 	}
 	http.Redirect(w, r, "/demo/buttons?"+url.Values{"t": {strconv.Itoa(no)}, "r": {kind}}.Encode(), http.StatusSeeOther)
+}
+
+// startDeal starts 3 meals from the table's page: the meals in the order the
+// guests want (typed, or a saved order), and the price per guest on the bill.
+func (s *Server) startDeal(r *http.Request, no int, now time.Time) error {
+	var dishes []string
+	for i := 1; i <= schedule.MealsInDeal; i++ {
+		dishes = append(dishes, r.FormValue("dish"+strconv.Itoa(i)))
+	}
+	if id := atoiDefault(r.FormValue("plan"), 0); id > 0 {
+		for _, p := range s.Store.MealPlans() {
+			if p.ID == id {
+				dishes = p.Dishes
+			}
+		}
+	}
+	guests := atoiDefault(r.FormValue("guests"), 1)
+	if r.FormValue("save") == "1" {
+		if p, err := s.Store.SaveMealPlan(r.FormValue("plan_name"), dishes); err == nil {
+			s.logActivity(r, no, "saved a 3 meals order", p.Name+": "+strings.Join(p.Dishes, ", "))
+		} else {
+			return err
+		}
+	}
+	ref, deposit := "", 0
+	if _, open := s.Store.OpenBill(no); !open {
+		ref, deposit = s.bookingAtTable(no, now)
+	}
+	b, err := s.Store.StartDealWith(no, dishes, guests, ref, deposit, now)
+	if err == nil {
+		s.logActivity(r, b.ID, "started 3 meals", fmt.Sprintf("%d · %d", no, guests))
+	}
+	return err
+}
+
+// mealPlanRemove deletes a saved 3 meals order.
+func (s *Server) mealPlanRemove(w http.ResponseWriter, r *http.Request) {
+	if !s.parseStaffForm(w, r) {
+		return
+	}
+	if err := s.Store.RemoveMealPlan(atoiDefault(r.PathValue("id"), 0)); err == nil {
+		s.logActivity(r, 0, "removed a 3 meals order", "")
+	}
+	back := "/admin/orders"
+	if no := atoiDefault(r.FormValue("table"), 0); validTableNo(no) {
+		back = orderPath(no)
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
+}
+
+// partyAt: how many guests the checked-in booking at a table has (2 if none).
+func (s *Server) partyAt(table int, now time.Time) int {
+	for _, b := range s.Store.BookingsOn(schedule.FormatDate(schedule.Today(now)), now) {
+		if b.Kind == db.KindTable && b.TableNo == table && b.EffectiveStatus(now) == db.StatusArrived && b.PartySize > 0 {
+			return b.PartySize
+		}
+	}
+	return 2
+}
+
+// mealNums is 1, 2, 3 for the meal pickers.
+func mealNums() []int {
+	var out []int
+	for i := 1; i <= schedule.MealsInDeal; i++ {
+		out = append(out, i)
+	}
+	return out
 }
