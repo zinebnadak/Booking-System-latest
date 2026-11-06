@@ -92,6 +92,26 @@
   <button class="btn btn-sm {{if .QROpen}}btn-secondary{{else}}btn-ok{{end}}">{{if .QROpen}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>
 
+{{if .Open}}
+<form method="post" action="/admin/orders/{{.Table}}/waiter" class="waiter-row">
+  <input type="hidden" name="bill" value="{{.Bill.ID}}">
+  <span class="waiter-now">{{with .WaiterName}}{{trf "Waiter: %s" .}}{{else}}{{tr "No waiter yet"}}{{end}}</span>
+  {{if and .Me (ne .Bill.Waiter .Me)}}<button class="btn btn-secondary btn-sm" name="staff" value="me">{{tr "Take this table"}}</button>{{end}}
+  {{if .StaffList}}
+  <details class="waiter-pick">
+    <summary>{{tr "Change"}}</summary>
+    <span class="waiter-pick-row">
+      <select name="staff" aria-label="{{tr "Waiter"}}" form="waiter-pick-{{.Table}}">
+        <option value="0">{{tr "Nobody"}}</option>
+        {{range .StaffList}}<option value="{{.ID}}"{{if eq .ID $.Bill.Waiter}} selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+      <button class="btn btn-secondary btn-sm" form="waiter-pick-{{.Table}}">{{tr "Save"}}</button>
+    </span>
+  </details>
+  {{end}}
+</form>
+<form method="post" action="/admin/orders/{{.Table}}/waiter" id="waiter-pick-{{.Table}}" hidden><input type="hidden" name="bill" value="{{.Bill.ID}}"></form>
+{{end}}
 <div class="order-layout">
   <section class="panel bill-panel" aria-labelledby="bill-h">
     <div class="panel-head">
@@ -306,6 +326,14 @@
         <p class="muted small">{{tr "Pick a guest when one of them asked you instead of using their phone. Then it's on their part straight away."}}</p>
       </fieldset>
       {{end}}
+      {{with .Favourites}}
+      <div class="favs" aria-labelledby="favs-h">
+        <p class="favs-h" id="favs-h">{{tr "Most ordered"}} <span class="muted small">{{tr "tap to add one"}}</span></p>
+        <div class="favs-grid">
+          {{range .}}<button type="button" class="fav{{if .Drink}} fav-drink{{end}}" data-fav="{{.ID}}"><span class="fav-name" lang="sv">{{.Name}}</span><span class="fav-n" data-fav-n hidden></span></button>{{end}}
+        </div>
+      </div>
+      {{end}}
       <div class="od-search" data-dish-search hidden>
         <input type="search" placeholder="{{tr "Search the menu"}}" aria-label="{{tr "Search the menu"}}" autocomplete="off" enterkeyhint="search">
         <p class="muted small" data-search-none hidden>{{tr "Nothing on the menu matches. Use “Something not on the menu” at the bottom."}}</p>
@@ -334,7 +362,8 @@
             <details class="od-more"{{if .PriceMissing}} open{{end}}>
               <summary>{{if .PriceMissing}}{{tr "Price"}}{{else if .Drink}}{{tr "Other price"}}{{else}}{{tr "Note or other price"}}{{end}}</summary>
               <div class="od-extra">
-                {{if not .Drink}}<label class="field">{{tr "Note for the chef"}}<input name="note_{{.ID}}" maxlength="120" placeholder="{{tr "e.g. no onions"}}"></label>{{end}}
+                {{if not .Drink}}<label class="field">{{tr "Note for the chef"}}<input name="note_{{.ID}}" maxlength="120" placeholder="{{tr "e.g. no onions"}}"></label>
+                <div class="note-chips" role="group" aria-label="{{tr "Quick notes"}}">{{range $.QuickNotes}}<button type="button" class="note-chip" data-note="{{tr .}}" aria-pressed="false">{{tr .}}</button>{{end}}</div>{{end}}
                 <label class="field">{{tr "Price each €"}}<input name="price_{{.ID}}" inputmode="decimal" placeholder="{{euro .PriceCents}}" data-price-for="{{.ID}}"></label>
               </div>
             </details>

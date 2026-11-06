@@ -584,7 +584,8 @@ func (s *Server) startDeal(r *http.Request, no int, now time.Time) error {
 	}
 	b, err := s.Store.StartDealWith(no, dishes, guests, ref, deposit, now)
 	if err == nil {
-		s.logActivity(r, b.ID, "started 3 meals", fmt.Sprintf("%d · %d", no, guests))
+		s.logActivity(r, no, "started 3 meals", fmt.Sprintf("%d guests", guests))
+		s.claimTable(r, b.ID)
 	}
 	return err
 }

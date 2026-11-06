@@ -120,6 +120,11 @@ type Bill struct {
 	Split        []Share    `json:"split,omitempty"`    // the guests paying separately, if split
 	QROpen       bool       `json:"qr_open,omitempty"`  // guests may join and order with the table's QR code
 	Payments     []Payment  `json:"payments,omitempty"` // paid in parts ("Kvar att betala"), see payments.go
+
+	// The waiter looking after the table: whoever opened the bill, or took
+	// the table over later (0 = nobody yet, e.g. guests opened it by QR).
+	Waiter     int    `json:"waiter,omitempty"`
+	WaiterName string `json:"waiter_name,omitempty"`
 }
 
 // PaidSplit: every guest paid their own part (see Bill.Split).
@@ -720,6 +725,26 @@ func (s *Store) PaidBillsOn(date string) []Bill {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].PaidAt.Before(*out[j].PaidAt) })
 	return out
+}
+
+// SetWaiter makes a waiter the one looking after a bill's table (0: nobody).
+// onlyIfNobody: keep the waiter it has (a waiter adding to a colleague's
+// table doesn't take it over).
+func (s *Store) SetWaiter(billID, staffID int, name string, onlyIfNobody bool) error {
+	return s.changeOrders(func() (bool, error) {
+		b := s.billByID(billID)
+		if b == nil || !b.Open() {
+			return false, ErrBillClosed
+		}
+		if (onlyIfNobody && b.Waiter != 0) || (b.Waiter == staffID && b.WaiterName == name) {
+			return false, nil
+		}
+		b.Waiter, b.WaiterName = staffID, name
+		if staffID == 0 {
+			b.WaiterName = ""
+		}
+		return true, nil
+	})
 }
 
 // PaidBillsBetween lists the bills paid from one date to another (both
@@ -1686,5 +1711,45 @@ func (s *Store) ReadyToServe(now time.Time) []Ticket {
 		out = append(out, t.clone())
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].DoneAt.Before(*out[j].DoneAt) })
+	return out
+}
+
+// WaiterTotal is how many tables one waiter looked after, and what they
+// paid, over some days.
+type WaiterTotal struct {
+	ID     int // 0: tables nobody took
+	Name   string
+	Tables int
+	Cents  int // what the guests paid (after deposits)
+}
+
+// WaiterTotals adds up the bills paid from one date to another (both
+// included) by the waiter who had the table, most tables first.
+func (s *Store) WaiterTotals(from, to string) []WaiterTotal {
+	by := map[int]*WaiterTotal{}
+	for _, b := range s.PaidBillsBetween(from, to) {
+		t := by[b.Waiter]
+		if t == nil {
+			t = &WaiterTotal{ID: b.Waiter, Name: b.WaiterName}
+			by[b.Waiter] = t
+		}
+		t.Tables++
+		for _, c := range b.Takings() {
+			t.Cents += c
+		}
+	}
+	out := make([]WaiterTotal, 0, len(by))
+	for _, t := range by {
+		out = append(out, *t)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if (out[i].ID == 0) != (out[j].ID == 0) {
+			return out[j].ID == 0 // "nobody" last
+		}
+		if out[i].Tables != out[j].Tables {
+			return out[i].Tables > out[j].Tables
+		}
+		return out[i].Cents > out[j].Cents
+	})
 	return out
 }

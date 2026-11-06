@@ -70,6 +70,7 @@ var flashes = map[string]string{
 	"dealstarted":  "3 meals started. Meal 1 is with the kitchen.",
 	"mealserved":   "Meal served.",
 	"mealsent":     "Sent to the kitchen.",
+	"waiterset":    "Saved who looks after the table.",
 	"tablecleared": "Table cleared.",
 	"notyet":       "OK, they're still eating.",
 	"answered":     "Done.",

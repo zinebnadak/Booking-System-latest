@@ -46,28 +46,40 @@ trap cleanup EXIT
 trap 'exit 0' INT TERM HUP
 
 PORT=8097 DATA_FILE=data/phone-test.json ADMIN_PASSWORD="$MGR" OWNER_PASSWORD="$OWN" \
-	/tmp/ozmo-phone >/tmp/ozmo-phone.log 2>&1 &
+	/tmp/ozmo-phone >data/phone-server.log 2>&1 &
 SRV=$!
 for _ in $(seq 1 30); do
 	curl -s -o /dev/null http://localhost:8097/ && break
 	sleep 1
 done
-curl -s -o /dev/null http://localhost:8097/ || { tail -20 /tmp/ozmo-phone.log; stop "Ozmo didn't start. The lines above say why."; }
+curl -s -o /dev/null http://localhost:8097/ || { tail -20 data/phone-server.log; stop "Ozmo didn't start. The lines above say why."; }
 
 say "Opening the public link…"
 caffeinate -dims -w $$ & # keeps the Mac awake while this window is open
-"$CF" tunnel --no-autoupdate --url http://localhost:8097 >/tmp/ozmo-tunnel.log 2>&1 &
+"$CF" tunnel --no-autoupdate --url http://localhost:8097 >data/phone-tunnel.log 2>&1 &
 TUN=$!
 URL=""
 for _ in $(seq 1 60); do
-	URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/ozmo-tunnel.log | head -1)
+	URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' data/phone-tunnel.log | head -1)
 	[ -n "$URL" ] && break
 	sleep 1
 done
-[ -n "$URL" ] || { tail -20 /tmp/ozmo-tunnel.log; stop "The link didn't come up. The lines above say why."; }
+[ -n "$URL" ] || { tail -20 data/phone-tunnel.log; stop "The link didn't come up. The lines above say why."; }
+
+# The address comes before Cloudflare is ready to carry anything: wait until
+# the tunnel is connected, then a little more for the name to reach phones.
+# (A phone that asks too early remembers "not found" for a while.)
+say "Waiting for the link to be ready…"
+for _ in $(seq 1 60); do
+	grep -q 'Registered tunnel connection' data/phone-tunnel.log && break
+	sleep 1
+done
+grep -q 'Registered tunnel connection' data/phone-tunnel.log || { tail -20 data/phone-tunnel.log; stop "Cloudflare didn't connect. The lines above say why."; }
+sleep 15
 
 printf 'Link: %s\nStaff login: %s/login\nManager: admin / %s\nHead manager: owner / %s\n' "$URL" "$URL" "$MGR" "$OWN" >"$LINKFILE"
 say "Ozmo is online. Open this on your phone:"
 cat "$LINKFILE"
 say "Keep this window open while you test. Close it (or press Ctrl+C) to stop."
+echo "If the phone says it can't find the site: wait a minute, then open the link in a private tab (or switch the phone to mobile data)."
 wait "$TUN"

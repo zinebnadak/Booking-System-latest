@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"ozmo-booking/db"
 	"ozmo-booking/schedule"
@@ -15,11 +16,69 @@ import (
 
 func (s *Server) adminStaff(w http.ResponseWriter, r *http.Request) {
 	lang := langOf(r)
+	list := s.Store.StaffList()
 	s.render(w, r, "admin_staff", http.StatusOK, M{
 		"Admin": true, "Nav": "staff", "Title": st(lang, "Staff"),
-		"List": s.Store.StaffList(), "Min": db.MinStaffPassword, "Toast": flashText(r),
-		"IsTill": s.isTill(r),
+		"List": list, "Min": db.MinStaffPassword, "Toast": flashText(r),
+		"IsTill": s.isTill(r), "Served": s.servedBy(list, s.Now()),
 	})
+}
+
+// servedRow is one waiter on "Who served the most tables".
+type servedRow struct {
+	Name              string
+	Nobody            bool // tables nobody took
+	Today, TodayCents int
+	Month, MonthCents int
+	MonthPct          float64 // bar length, against the busiest waiter
+}
+
+// servedBy: tables each waiter had today and this month (paid bills), the
+// busiest first.
+func (s *Server) servedBy(staff []db.StaffMember, now time.Time) []servedRow {
+	today := schedule.Today(now)
+	day := schedule.FormatDate(today)
+	first := schedule.FormatDate(time.Date(today.Year(), today.Month(), 1, 12, 0, 0, 0, schedule.Location))
+	names := map[int]string{}
+	for _, m := range staff {
+		names[m.ID] = m.Name
+	}
+	rows := map[int]*servedRow{}
+	var order []int
+	row := func(t db.WaiterTotal) *servedRow {
+		r := rows[t.ID]
+		if r == nil {
+			r = &servedRow{Name: t.Name, Nobody: t.ID == 0}
+			if n := names[t.ID]; n != "" {
+				r.Name = n
+			}
+			rows[t.ID] = r
+			order = append(order, t.ID)
+		}
+		return r
+	}
+	for _, t := range s.Store.WaiterTotals(first, day) { // busiest first
+		r := row(t)
+		r.Month, r.MonthCents = t.Tables, t.Cents
+	}
+	for _, t := range s.Store.WaiterTotals(day, day) {
+		r := row(t)
+		r.Today, r.TodayCents = t.Tables, t.Cents
+	}
+	out := make([]servedRow, 0, len(order))
+	most := 0
+	for _, id := range order {
+		out = append(out, *rows[id])
+		if !rows[id].Nobody && rows[id].Month > most {
+			most = rows[id].Month
+		}
+	}
+	for i := range out {
+		if most > 0 && !out[i].Nobody {
+			out[i].MonthPct = float64(out[i].Month) / float64(most) * 100
+		}
+	}
+	return out
 }
 
 func (s *Server) adminStaffAdd(w http.ResponseWriter, r *http.Request) {

@@ -233,6 +233,26 @@ internet. If it goes down, the restaurant keeps going on paper:
 
 ---
 
+## Waiters: quicker on the floor
+
+- **Whose table:** the waiter who opens a bill looks after that table; its
+  tile on Orders has their name in small letters in the bottom corner. On the
+  table's page: **Take this table**, or **Change** to hand it to someone else.
+- **Needs a waiter:** a table nobody has (guests opened it with the QR code)
+  is listed at the top of Orders on every screen, with a chime, until a
+  waiter taps **Take it** (or the manager picks a waiter and taps **Give**).
+- **All tables / My tables:** Orders shows every table; a waiter can switch to
+  only their own (and the free ones). The choice is remembered on the device.
+- **Who served the most tables:** on the Staff page (manager), tables paid
+  today and this month per waiter, with what the guests paid.
+- **Card · 40,00 €** on a tile once everything is served or the bill was
+  shown: pays the whole bill by card from Orders, after a Yes.
+- **Most ordered:** the 8 dishes and drinks that sold most in the last 30
+  days are big buttons on top of the menu. One tap adds one.
+- **Quick notes for the chef:** under "Note or other price" on a dish: No
+  onions, Gluten free, Lactose free, No nuts, Extra sauce, Sauce on the side,
+  Well done, Medium. Tap to add or take away (in `handlers/quick.go`).
+
 ## 7. Table buttons and the "3 meals" deal
 
 On Saturdays and Sundays guests can take **3 meals**: they get one meal, and when

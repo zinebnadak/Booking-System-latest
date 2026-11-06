@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="day-head" data-live-screen="/admin/orders?part=tiles">
+<div class="day-head" data-live-screen="/admin/orders?part=tiles{{if .Waiter}}&amp;view={{.View}}{{end}}">
   <h1>{{tr "Orders"}}</h1>
   <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
   <span class="spacer"></span>
@@ -22,6 +22,28 @@
 {{end}}
 
 {{define "tiles"}}
+{{if .NoWaiter}}
+<section class="panel no-waiter" aria-labelledby="nw-h">
+  <h2 id="nw-h">{{tr "Needs a waiter"}}</h2>
+  <p class="muted small">{{tr "Nobody looks after these tables yet. Take one, or give it to a waiter."}}</p>
+  <ul class="bring-list nw-list">
+    {{range .NoWaiter}}
+    <li data-alert-key="nowaiter-{{.Bill.ID}}">
+      <a class="bring-table" href="/admin/orders/{{.No}}">{{trf "Table %d" .No}}</a>
+      <span class="bring-items">{{if .Bill.QRGuests}}{{tr "Guests ordered with the QR code"}}{{else}}{{tr "Opened without a waiter"}}{{end}} · {{trf "since %s" .Opened}}{{if .Bill.Count}} · {{trf "%d items" .Bill.Count}}{{end}}</span>
+      {{if $.Me}}
+      <form method="post" action="/admin/orders/{{.No}}/waiter" data-live><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders"><button class="btn btn-ok btn-sm" name="staff" value="me">{{tr "Take it"}}</button></form>
+      {{else}}
+      <form method="post" action="/admin/orders/{{.No}}/waiter" class="nw-assign" data-live><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders">
+        <select name="staff" aria-label="{{trf "Waiter for table %d" .No}}">{{range $.StaffList}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+        <button class="btn btn-ok btn-sm">{{tr "Give"}}</button>
+      </form>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
 {{with .ReadyFood}}{{template "ready-food" .}}{{end}}
 {{with .OnlinePaid}}{{template "online-paid" .}}{{end}}
 {{with .Stock}}{{template "stock-strip" .}}{{end}}
@@ -106,13 +128,23 @@
   </ul>
 </section>
 {{end}}
+{{if .Waiter}}
+<div class="view-switch">
+  <nav class="tabs" aria-label="{{tr "Whose tables"}}">
+    <a href="/admin/orders?view=all"{{if eq .View "all"}} aria-current="page"{{end}}>{{tr "All tables"}}</a>
+    <a href="/admin/orders?view=mine"{{if eq .View "mine"}} aria-current="page"{{end}}>{{trf "My tables (%d)" .MineCount}}</a>
+  </nav>
+  {{if and (eq .View "mine") .Others}}<a class="muted small" href="/admin/orders?view=all">{{if eq .Others 1}}{{tr "1 table is with another waiter"}}{{else}}{{trf "%d tables are with other waiters" .Others}}{{end}} ›</a>{{end}}
+</div>
+{{end}}
 {{template "room-tabs" .Rooms}}
 {{range .Rooms}}
 <section class="room" data-room="{{.ID}}" aria-label="{{.Name}}">
 <h2 class="room-h">{{.Name}}</h2>
 <div class="tt-grid">
   {{range .Tiles}}
-  <a class="tt ot{{if .Bill}} ot-open{{else}} tt-free{{end}}{{if .Ready}} ot-ready{{else if .Served}} ot-served{{end}}{{if .Alert}} ot-alert{{end}}{{with .Deal}}{{if .Waiting}} ot-call{{end}}{{end}}" href="/admin/orders/{{.No}}">
+  <div class="ot-cell">
+  <a class="tt ot{{if .Mine}} ot-mine{{end}}{{if .Bill}} ot-open{{else}} tt-free{{end}}{{if .Ready}} ot-ready{{else if .Served}} ot-served{{end}}{{if .Alert}} ot-alert{{end}}{{with .Deal}}{{if .Waiting}} ot-call{{end}}{{end}}" href="/admin/orders/{{.No}}">
     <div class="tt-top">
       <span class="tt-no">{{trf "Table %d" .No}}</span>
       {{if .Bill}}<span class="ot-total">{{euro .Bill.ToPay}}</span>{{end}}
@@ -137,8 +169,18 @@
     {{else}}
       <span class="tt-sub">{{tr "No order"}}</span>
     {{end}}
-    <span class="ot-go">{{if .Bill}}{{tr "Open the bill"}}{{else}}{{tr "Take an order"}}{{end}} ›</span>
+    <span class="ot-foot">
+      {{if .Bill}}<span class="ot-waiter{{if not .Waiter}} none{{end}}">{{with .Waiter}}{{.}}{{else}}{{tr "No waiter"}}{{end}}</span>{{end}}
+      <span class="ot-go">{{if .Bill}}{{tr "Open the bill"}}{{else}}{{tr "Take an order"}}{{end}} ›</span>
+    </span>
   </a>
+  {{if and .Bill (or .Served .Billed) (not .Paying) (not .Bill.IsSplit) (gt .Bill.Left 0)}}
+  <form method="post" action="/admin/orders/{{.No}}/pay" class="ot-pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .No (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+    <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="card">
+    <button class="btn btn-ok btn-block btn-sm">{{trf "Card · %s" (euro .Bill.Left)}}</button>
+  </form>
+  {{end}}
+  </div>
   {{end}}
 </div>
 </section>
@@ -173,7 +215,7 @@
   <p class="muted">{{tr "No bills paid yet today."}}</p>
   {{end}}
   <p class="muted small">{{tr "What guests paid at the tables, after online deposits. Gift cards and lunch coupons were paid for when they were sold, so they're listed apart."}}</p>
-  <p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a></p>
+  <p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a>{{if .Manager}} <a class="btn btn-secondary btn-sm" href="/admin/staff#served">{{tr "Who served the most tables"}}</a>{{end}}</p>
 </section>
 
 <section class="panel">

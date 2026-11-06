@@ -7,6 +7,24 @@
 </div>
 <p class="muted small">{{tr "Each waiter logs in with their own username and password. They can use the tables, orders, kitchen and bookings, but not the menu, closed days or this page. Payments, voids and price changes are recorded with their name."}}</p>
 
+<section class="panel served-by" id="served">
+  <h2>{{tr "Who served the most tables"}}</h2>
+  <p class="muted small">{{tr "Paid tables, counted for the waiter who had the table when it was paid."}}</p>
+  {{if .Served}}
+  <ol class="hbars">
+    {{range .Served}}
+    <li>
+      <div class="hbar-text"><span>{{if .Nobody}}<em>{{tr "No waiter"}}</em>{{else}}<strong>{{.Name}}</strong>{{end}}</span>
+        <span class="muted">{{trf "Today %d · %s" .Today (euro .TodayCents)}} &nbsp;·&nbsp; {{trf "This month %d · %s" .Month (euro .MonthCents)}}</span></div>
+      {{if not .Nobody}}<div class="hbar-track"><div class="hbar" style="width: {{printf "%.1f" .MonthPct}}%"></div></div>{{end}}
+    </li>
+    {{end}}
+  </ol>
+  {{else}}
+  <p class="muted">{{tr "No tables paid this month yet."}}</p>
+  {{end}}
+</section>
+
 <section class="panel till-setup">
   <h2>{{tr "Shared till"}}</h2>
   <p class="muted small">{{tr "Like the old till: on the shared screen, a waiter types their number and a 4-digit PIN to log in, and taps Lock when done. The same keypad clocks them in and out. It only works on devices you make a till here, so nobody can try PINs from outside."}}</p>

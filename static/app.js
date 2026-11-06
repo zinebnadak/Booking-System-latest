@@ -549,6 +549,14 @@
         count += n;
         total += n * priceOf(i);
       });
+      $$('[data-fav]', staffOrder).forEach(function (b) {
+        var i = $('input[name="qty_' + b.dataset.fav + '"]', staffOrder);
+        var n = i ? parseInt(i.value, 10) || 0 : 0;
+        var badge = $('[data-fav-n]', b);
+        badge.hidden = n === 0;
+        badge.textContent = n + '×';
+        b.classList.toggle('on', n > 0);
+      });
       if (oSum) {
         oSum.textContent = count === 0 ? oEmpty
           : (count === 1 ? staffOrder.dataset.one : staffOrder.dataset.many.replace('%d', count)) + ' · ' + euro(total);
@@ -566,6 +574,37 @@
     });
     staffOrder.addEventListener('input', oUpdate);
     oUpdate();
+    // The big "Most ordered" buttons: one tap, one more.
+    staffOrder.addEventListener('click', function (e) {
+      var fav = e.target.closest('[data-fav]');
+      if (!fav) return;
+      var i = $('input[name="qty_' + fav.dataset.fav + '"]', staffOrder);
+      if (!i) return;
+      i.value = Math.min(+i.max || 50, (parseInt(i.value, 10) || 0) + 1);
+      oUpdate();
+    });
+    // Quick notes for the chef: tap to add or take away. A note on a dish
+    // that isn't picked yet picks one.
+    staffOrder.addEventListener('click', function (e) {
+      var chip = e.target.closest('.note-chip');
+      if (!chip) return;
+      var note = $('input[name^="note_"]', chip.closest('.od-extra'));
+      if (!note) return;
+      var parts = note.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+      var at = parts.indexOf(chip.dataset.note);
+      if (at >= 0) parts.splice(at, 1); else parts.push(chip.dataset.note);
+      note.value = parts.join(', ').slice(0, 120);
+      chip.setAttribute('aria-pressed', at >= 0 ? 'false' : 'true');
+      var qty = $('.qty input', chip.closest('.dish'));
+      if (qty && at < 0 && !(parseInt(qty.value, 10) > 0)) { qty.value = 1; oUpdate(); }
+    });
+    staffOrder.addEventListener('input', function (e) {
+      if (!e.target.name || e.target.name.indexOf('note_') !== 0) return;
+      var parts = e.target.value.split(',').map(function (x) { return x.trim(); });
+      $$('.note-chip', e.target.closest('.od-extra')).forEach(function (c) {
+        c.setAttribute('aria-pressed', parts.indexOf(c.dataset.note) >= 0 ? 'true' : 'false');
+      });
+    });
     // Tap a dish's name or price to add one more (like the old till's keys).
     staffOrder.addEventListener('click', function (e) {
       var tap = e.target.closest('.od-tap');

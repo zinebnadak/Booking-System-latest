@@ -49,6 +49,8 @@ type orderTile struct {
 	Booked  []string   // today's bookings still to come here: "19:00 · Andersson · 4 guests"
 	OldOpen bool       // still open from an earlier day: someone forgot to close it
 	Paying  bool       // a guest is paying on their phone right now
+	Waiter  string     // the waiter looking after it ("" = nobody yet)
+	Mine    bool       // it's the logged-in waiter's table
 
 	// Split tables where some guests paid and others haven't yet.
 	Alert      bool
@@ -76,6 +78,10 @@ func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
 		deal[tt.No] = tt
 	}
 	today := schedule.FormatDate(schedule.Today(now))
+	names := map[int]string{}
+	for _, m := range s.Store.StaffList() {
+		names[m.ID] = m.Name
+	}
 	tiles := make([]orderTile, schedule.TableCount())
 	for i, tb := range schedule.TablePlan {
 		t := &tiles[i]
@@ -90,6 +96,12 @@ func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
 			continue
 		}
 		t.Bill = &b
+		if b.Waiter != 0 {
+			t.Waiter = names[b.Waiter]
+			if t.Waiter == "" {
+				t.Waiter = b.WaiterName // no longer on the staff list
+			}
+		}
 		t.Opened = b.OpenedAt.In(schedule.Location).Format("15:04")
 		t.Billed = b.BilledAt != nil
 		t.OldOpen = schedule.FormatDate(b.OpenedAt) < today
@@ -157,10 +169,44 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 			alerts = append(alerts, t)
 		}
 	}
+	// Open tables nobody looks after yet (guests opened them with the QR
+	// code): someone has to take them. Only when there are waiters' logins.
+	staff := s.Store.StaffList()
+	var noWaiter []orderTile
+	for _, t := range tiles {
+		if t.Bill != nil && t.Bill.Waiter == 0 && len(staff) > 0 {
+			noWaiter = append(noWaiter, t)
+		}
+	}
+	// Every table, with its waiter's name; a waiter can show only theirs
+	// (and the free ones).
+	me := loginOf(r)
+	view := "all"
+	shown, mine, others := tiles, 0, 0
+	if me.Role == roleWaiter {
+		view = ordersView(w, r)
+		shown = nil
+		for i := range tiles {
+			t := &tiles[i]
+			t.Mine = t.Bill != nil && t.Bill.Waiter == me.StaffID
+			if t.Mine {
+				mine++
+			}
+			if t.Bill != nil && t.Bill.Waiter != 0 && !t.Mine {
+				others++
+				if view == "mine" {
+					continue
+				}
+			}
+			shown = append(shown, *t)
+		}
+	}
 	data := M{
 		"Admin": true, "Nav": "orders", "Title": st(lang, "Orders"),
 		"Tiles": tiles, "Alerts": alerts, "Day": day, "Toast": flashText(r),
-		"Rooms":  byRoom(tiles, func(t orderTile) string { return t.Room }, func(t orderTile) bool { return t.Bill != nil }),
+		"Rooms": byRoom(shown, func(t orderTile) string { return t.Room }, func(t orderTile) bool { return t.Bill != nil }),
+		"View":  view, "Waiter": me.Role == roleWaiter, "MineCount": mine, "Others": others,
+		"Me": me.StaffID, "StaffList": staff, "NoWaiter": noWaiter, "Manager": rank(me.Role) >= rank(roleManager),
 		"Drinks": s.drinksToBring(), "Receipts": s.receiptsToPrint(lang), "Calls": s.callsNow(lang, now),
 		"PhoneOrders": s.pendingOrders(lang, now), "CheckPhoneOrders": s.Store.CheckPhoneOrders(),
 		"Stock": s.stockStrip(), "OnlinePaid": s.onlinePaid(lang, now), "ReadyFood": s.readyFood(now),
@@ -174,6 +220,32 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, r, "admin_orders", http.StatusOK, data)
+}
+
+// ordersView is "all" (the start) or "mine" for a waiter's Orders screen:
+// from the link they tapped, remembered in a cookie for next time.
+func ordersView(w http.ResponseWriter, r *http.Request) string {
+	v := r.URL.Query().Get("view")
+	if v == "mine" || v == "all" {
+		if r.URL.Query().Get("part") == "" {
+			http.SetCookie(w, &http.Cookie{Name: "orders_view", Value: v, Path: "/admin", MaxAge: 365 * 24 * 3600, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		}
+		return v
+	}
+	if c, err := r.Cookie("orders_view"); err == nil && c.Value == "mine" {
+		return "mine"
+	}
+	return "all"
+}
+
+// claimTable: a waiter who opens a table's bill looks after that table
+// (unless a colleague already does).
+func (s *Server) claimTable(r *http.Request, billID int) {
+	if me := loginOf(r); me.Role == roleWaiter && billID != 0 {
+		if err := s.Store.SetWaiter(billID, me.StaffID, me.Name, true); err != nil {
+			log.Printf("claim table: %v", err)
+		}
+	}
 }
 
 // ---------- One table: take an order ----------
@@ -281,6 +353,21 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	if item, err := s.Store.DealItem(); err == nil {
 		data["DealPrice"] = item.PriceCents
 	}
+	staff := s.Store.StaffList()
+	data["StaffList"] = staff
+	if me := loginOf(r); me.Role == roleWaiter {
+		data["Me"] = me.StaffID
+	}
+	if open && bill.Waiter != 0 {
+		data["WaiterName"] = bill.WaiterName
+		for _, m := range staff {
+			if m.ID == bill.Waiter {
+				data["WaiterName"] = m.Name
+			}
+		}
+	}
+	data["Favourites"] = s.favourites(now)
+	data["QuickNotes"] = quickNotes
 	var food []string
 	for _, m := range s.Store.StaffMenu() {
 		if !m.Drink && !m.Package && m.Category != db.DealCategory {
@@ -529,6 +616,7 @@ func (s *Server) orderAdd(w http.ResponseWriter, r *http.Request) {
 		redirectMsg(w, r, orderPath(table), nil, orderError(err))
 		return
 	}
+	s.claimTable(r, bill.ID)
 	s.live.publish()
 	msg := "addeddrinks"
 	if ticket != nil {
@@ -689,6 +777,36 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		s.logActivity(r, table, what, euro(amount)+" ("+st(langEN, "whole bill")+")")
 		s.live.publish()
 		redirectMsg(w, r, "/admin/orders", nil, "billpaid")
+	case "waiter": // who looks after the table
+		id, name := atoiDefault(r.FormValue("staff"), 0), ""
+		if r.FormValue("staff") == "me" {
+			me := loginOf(r)
+			id, name = me.StaffID, me.Name
+		} else if id != 0 {
+			for _, m := range s.Store.StaffList() {
+				if m.ID == id {
+					name = m.Name
+				}
+			}
+			if name == "" {
+				redirectMsg(w, r, orderPath(table), nil, "invalid")
+				return
+			}
+		}
+		if err := s.Store.SetWaiter(billID, id, name, false); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, orderError(err))
+			return
+		}
+		s.live.publish()
+		if r.Header.Get("X-Live") == "1" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		back := orderPath(table)
+		if r.FormValue("back") == "orders" {
+			back = "/admin/orders"
+		}
+		redirectMsg(w, r, back, nil, "waiterset")
 	case "part":
 		s.payPart(w, r, table, billID)
 	case "undopay":
