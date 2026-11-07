@@ -6,7 +6,7 @@
   <span class="spacer"></span>
   <button type="button" class="btn btn-secondary btn-sm" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
   <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{if .Cfg.TableQR}}{{tr "Table QR codes"}}{{else}}{{tr "Feedback QR code"}}{{end}}</a>
-  <a class="btn btn-secondary btn-sm" href="/admin/kitchen" target="_blank" rel="noopener">{{tr "Kitchen screen"}}</a>
+  {{if .Manager}}<a class="btn btn-secondary btn-sm" href="/admin/kitchen" target="_blank" rel="noopener">{{tr "Kitchen screen"}}</a>{{end}}
   <a class="btn btn-secondary btn-sm" href="/admin/offline">{{tr "If the internet goes down"}}</a>
 </div>
 <p class="muted small deal-line">{{tr "Tap a table to take an order. Everything goes on the table's bill until it's paid."}}

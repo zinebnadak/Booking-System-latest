@@ -173,7 +173,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	// Open tables nobody looks after yet (guests opened them with the QR
 	// code): someone has to take them. Only when there are waiters' logins.
-	staff := s.Store.StaffList()
+	staff := s.waiters()
 	var noWaiter []orderTile
 	for _, t := range tiles {
 		if t.Bill != nil && t.Bill.Waiter == 0 && len(staff) > 0 {
@@ -301,6 +301,17 @@ func (s *Server) freeTables() []int {
 // removeReasons are the usual reasons a waiter gives for taking something
 // off (translated on screen; stored as shown).
 var removeReasons = []string{"Added by mistake", "Wrong table", "The guest changed their mind", "It never came out of the kitchen", "Something was wrong with it"}
+
+// waiters are the staff logins that serve tables (not the kitchen's).
+func (s *Server) waiters() []db.StaffMember {
+	var out []db.StaffMember
+	for _, m := range s.Store.StaffList() {
+		if !m.Chef {
+			out = append(out, m)
+		}
+	}
+	return out
+}
 
 // isManager: the manager (not a waiter) is logged in.
 func isManager(r *http.Request) bool { return rank(roleOf(r)) >= rank(roleManager) }
@@ -430,7 +441,7 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	if item, err := s.Store.DealItem(); err == nil {
 		data["DealPrice"] = item.PriceCents
 	}
-	staff := s.Store.StaffList()
+	staff := s.waiters()
 	data["StaffList"] = staff
 	if me := loginOf(r); me.Role == roleWaiter {
 		data["Me"] = me.StaffID
@@ -1011,7 +1022,7 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 			me := loginOf(r)
 			id, name = me.StaffID, me.Name
 		} else if id != 0 {
-			for _, m := range s.Store.StaffList() {
+			for _, m := range s.waiters() {
 				if m.ID == id {
 					name = m.Name
 				}
@@ -1247,6 +1258,10 @@ type ticketView struct {
 }
 
 func (s *Server) adminKitchen(w http.ResponseWriter, r *http.Request) {
+	if roleOf(r) == roleWaiter { // the kitchen screen is the chef's (and the manager's)
+		redirectMsg(w, r, "/admin/orders", nil, "kitchenonly")
+		return
+	}
 	lang := langOf(r)
 	now := s.Now()
 	var open, later []ticketView
@@ -1302,6 +1317,17 @@ func (s *Server) adminKitchen(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) kitchenAction(w http.ResponseWriter, r *http.Request) {
 	id := atoiDefault(r.PathValue("id"), 0)
+	// Waiters only tap Served on food, and Brought on drinks; the rest of
+	// the kitchen screen is the chef's.
+	if roleOf(r) == roleWaiter {
+		switch a := r.PathValue("action"); {
+		case a == "served":
+		case (a == "done" || a == "undo") && s.Store.TicketIsBar(id):
+		default:
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
 	undo := r.PathValue("action") == "undo"
 	var err error
 	switch r.PathValue("action") {

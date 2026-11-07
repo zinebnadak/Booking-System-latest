@@ -6,6 +6,7 @@
     <span class="spacer"></span>
     <a class="btn btn-secondary btn-sm" href="/admin/stock">{{tr "Stock"}}</a>
     <button type="button" class="btn btn-secondary btn-sm" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
+    {{if eq .Role "chef"}}<form method="post" action="/logout" class="k-logout"><button class="btn btn-secondary btn-sm">{{tr "Log out"}}</button></form>{{end}}
   </div>
   <div data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "tickets" .}}</div>
 </div>

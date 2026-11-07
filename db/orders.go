@@ -1750,3 +1750,12 @@ func (s *Store) WaiterTotals(from, to string) []WaiterTotal {
 	})
 	return out
 }
+
+// TicketIsBar reports whether a ticket is drinks for the waiters to bring
+// (not food for the chef).
+func (s *Store) TicketIsBar(id int) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t := s.ticketByID(id)
+	return t != nil && t.Bar
+}

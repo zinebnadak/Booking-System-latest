@@ -33,15 +33,30 @@ func TestFoodReadyThenServed(t *testing.T) {
 		t.Fatal(err)
 	}
 	waiter := &http.Cookie{Name: sessionCookie, Value: e.srv.makeStaffSession(lisa, e.srv.Now())}
-	live := func(path string) int {
+	kalle, err := e.store.AddStaff("Kalle", "kalle", "a-long-password-2", e.srv.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.store.SetStaffChef(kalle.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	kalle.Chef = true
+	chef := &http.Cookie{Name: sessionCookie, Value: e.srv.makeStaffSession(kalle, e.srv.Now())}
+	liveAs := func(c *http.Cookie, path string) int {
 		req := httptest.NewRequest("POST", "http://example.test"+path, strings.NewReader(""))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("X-Live", "1")
-		req.AddCookie(waiter)
+		req.AddCookie(c)
 		rec := httptest.NewRecorder()
 		e.h.ServeHTTP(rec, req)
 		return rec.Code
 	}
+	live := func(path string) int { return liveAs(waiter, path) }
+	// Waiters don't open the kitchen screen or tap Done: that's the chef's.
+	if code := live(fmt.Sprintf("/admin/kitchen/%d/done", id)); code != http.StatusForbidden {
+		t.Fatalf("a waiter tapped Done: %d", code)
+	}
+	location(t, e.as(waiter, "GET", "/admin/kitchen", nil), "/admin/orders?msg=kitchenonly")
 
 	// Still cooking: nobody can tap Served yet.
 	if code := live(fmt.Sprintf("/admin/kitchen/%d/served", id)); code != http.StatusConflict {
@@ -52,7 +67,7 @@ func TestFoodReadyThenServed(t *testing.T) {
 	// Done: at the pass, the waiters are told, with the guest's name.
 	later := e.srv.Now().Add(5 * time.Minute)
 	e.srv.Now = func() time.Time { return later }
-	if code := live(fmt.Sprintf("/admin/kitchen/%d/done", id)); code != http.StatusNoContent {
+	if code := liveAs(chef, fmt.Sprintf("/admin/kitchen/%d/done", id)); code != http.StatusNoContent {
 		t.Fatalf("done: %d", code)
 	}
 	key := fmt.Sprintf(`data-alert-key="ready-%d"`, id)
@@ -60,7 +75,7 @@ func TestFoodReadyThenServed(t *testing.T) {
 		e.expect(e.as(waiter, "GET", p, nil), 200, "Food ready to pick up", "Table 5", "1× E-Meal-burgare", "Erik", key)
 	}
 	e.expect(e.as(waiter, "GET", "/admin/orders?part=tiles", nil), 200, "ot-ready", "Food ready")
-	e.expect(e.as(waiter, "GET", "/admin/kitchen?part=tickets", nil), 200, "Ready at the pass", "E-Meal-burgare", "Served", "Not done yet")
+	e.expect(e.as(chef, "GET", "/admin/kitchen?part=tickets", nil), 200, "Ready at the pass", "E-Meal-burgare", "Served", "Not done yet")
 	e.expect(a.do("GET", "/g/"+a.key, nil), 200, `badge-ok">Ready<`)
 
 	// Five minutes at the pass: it turns red.
@@ -82,10 +97,12 @@ func TestFoodReadyThenServed(t *testing.T) {
 	if strings.Contains(a.do("GET", "/g/"+a.key, nil).Body.String(), `badge-ok">Ready<`) {
 		t.Fatal("the guest's phone still says Ready")
 	}
-	e.expect(e.as(waiter, "GET", "/admin/kitchen?part=tickets", nil), 200, "Served and done", "Undo")
+	e.expect(e.as(chef, "GET", "/admin/kitchen?part=tickets", nil), 200, "Served and done", "Undo")
+	// The chef's login opens nothing but the kitchen.
+	location(t, e.as(chef, "GET", "/admin/orders", nil), "/admin/kitchen")
 
 	// Tapped by mistake: Undo puts it back at the pass.
-	if code := live(fmt.Sprintf("/admin/kitchen/%d/undo", id)); code != http.StatusNoContent {
+	if code := liveAs(chef, fmt.Sprintf("/admin/kitchen/%d/undo", id)); code != http.StatusNoContent {
 		t.Fatalf("undo: %d", code)
 	}
 	e.expect(e.as(waiter, "GET", "/admin/orders?part=tiles", nil), 200, "Food ready to pick up", key)

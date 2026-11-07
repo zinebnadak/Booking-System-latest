@@ -77,6 +77,7 @@ var flashes = map[string]string{
 	"pinwrong":     "That isn't the manager's PIN.",
 	"mgrpinset":    "The manager's PIN is saved.",
 	"mgrpinoff":    "The manager's PIN is off.",
+	"kitchenonly":  "The kitchen screen is for the chef. You'll see here when food is ready to pick up.",
 	"askmanager":   "Only the manager can take things off a bill, lower a price or give a discount. Ask the manager: open the dish and tap Ask the manager.",
 	"asksent":      "Sent to the manager. It stays on the bill until the manager takes it off.",
 	"askdropped":   "It stays on the bill.",

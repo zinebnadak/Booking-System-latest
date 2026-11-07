@@ -39,6 +39,7 @@ const (
 	roleWaiter  role = "waiter"
 	roleManager role = "manager"
 	roleOwner   role = "owner"
+	roleChef    role = "chef" // a staff login for the kitchen screen only
 
 	sessionCookie = "kb_session"
 	sessionLength = 14 * 24 * time.Hour
@@ -59,7 +60,7 @@ type login struct {
 // rank orders the roles: a higher one may do everything a lower one can.
 func rank(r role) int {
 	switch r {
-	case roleWaiter:
+	case roleWaiter, roleChef:
 		return 1
 	case roleManager, roleOwner: // one and the same now
 		return 2
@@ -81,7 +82,7 @@ func loginOf(r *http.Request) login {
 func actor(r *http.Request) string {
 	l := loginOf(r)
 	switch l.Role {
-	case roleWaiter:
+	case roleWaiter, roleChef:
 		return l.Name
 	}
 	return "Manager"
@@ -167,6 +168,9 @@ func (s *Server) readLogin(r *http.Request) login {
 		if !ok {
 			return login{} // removed, or a new password since
 		}
+		if m.Chef {
+			return login{Role: roleChef, StaffID: m.ID, Name: m.Name}
+		}
 		return login{Role: roleWaiter, StaffID: m.ID, Name: m.Name}
 	}
 	return login{}
@@ -192,6 +196,15 @@ func (s *Server) requireRole(need role, next http.Handler) http.Handler {
 				return
 			}
 			http.Error(w, "Please log in again", http.StatusUnauthorized)
+			return
+		}
+		// The chef's login opens the kitchen screen and nothing else.
+		if who == roleChef && !chefMayOpen(r) {
+			if r.Method == http.MethodGet {
+				http.Redirect(w, r, "/admin/kitchen", http.StatusSeeOther)
+				return
+			}
+			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 		if rank(who) < rank(need) {
@@ -250,8 +263,13 @@ func safeNext(next string, who role) string {
 	if strings.HasPrefix(next, "/") && !strings.HasPrefix(next, "//") && !strings.HasPrefix(next, "/\\") &&
 		(strings.HasPrefix(next, "/admin") || strings.HasPrefix(next, "/owner")) {
 		if rank(who) >= rank(roleManager) || !strings.HasPrefix(next, "/owner") {
-			return next
+			if who != roleChef || strings.HasPrefix(next, "/admin/kitchen") {
+				return next
+			}
 		}
+	}
+	if who == roleChef {
+		return "/admin/kitchen" // the chef's only page
 	}
 	return "/admin/orders" // the staff's home page
 }
@@ -285,9 +303,12 @@ func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	var waiter db.StaffMember
 	if m, ok := s.Store.CheckStaffLogin(user, pass); ok {
 		who, waiter = roleWaiter, m
+		if m.Chef {
+			who = roleChef
+		}
 	}
 	switch {
-	case who == roleWaiter:
+	case who == roleWaiter, who == roleChef:
 	case checkPassword(user, pass, s.Cfg.AdminUser, s.Cfg.AdminPassword),
 		checkPassword(user, pass, s.Cfg.OwnerUser, s.Cfg.OwnerPassword): // the old head manager's login
 		who = roleManager
@@ -301,7 +322,7 @@ func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value := s.makeSession(who, s.Now())
-	if who == roleWaiter {
+	if who == roleWaiter || who == roleChef {
 		value = s.makeStaffSession(waiter, s.Now())
 	}
 	s.setSession(w, value, int(sessionLength/time.Second))
@@ -315,4 +336,18 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setSession(w, "", -1)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// chefMayOpen: what the chef's login can use: the kitchen screen (and its
+// buttons), the live feed it listens to, the stock, and sold out on a dish.
+func chefMayOpen(r *http.Request) bool {
+	p := r.URL.Path
+	switch {
+	case p == "/admin/kitchen", strings.HasPrefix(p, "/admin/kitchen/"), p == "/admin/events", p == "/admin/offline",
+		p == "/admin/stock", strings.HasPrefix(p, "/admin/stock/"):
+		return true
+	case strings.HasPrefix(p, "/admin/menu/") && strings.HasSuffix(p, "/soldout"):
+		return true
+	}
+	return false
 }

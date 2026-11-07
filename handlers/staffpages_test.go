@@ -63,7 +63,7 @@ func TestWaitersHaveTheirOwnLogin(t *testing.T) {
 		t.Fatal("waiters see the Menu link")
 	}
 	// She can use the tables, kitchen and bookings, and mark a dish sold out...
-	for _, p := range []string{"/admin/orders", "/admin/kitchen", "/admin/day", "/admin/orders/3"} {
+	for _, p := range []string{"/admin/orders", "/admin/day", "/admin/orders/3"} {
 		if rec := e.as(lisa, "GET", p, nil); rec.Code != 200 {
 			t.Fatalf("%s: %d", p, rec.Code)
 		}

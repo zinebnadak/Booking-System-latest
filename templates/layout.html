@@ -23,7 +23,7 @@
 {{if .Admin}}
 <header class="admin-bar">
   <div class="admin-bar-inner">
-    <a class="admin-brand" href="/admin/orders">{{.Cfg.RestaurantName}}<span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
+    <a class="admin-brand" href="{{if eq .Role "chef"}}/admin/kitchen{{else}}/admin/orders{{end}}">{{.Cfg.RestaurantName}}<span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
     {{if and .Role (not .Bare)}}
     <nav class="admin-nav" aria-label="{{tr "Staff"}}">
       {{if eq .Role "manager"}}
@@ -33,8 +33,12 @@
       <a href="/owner/feedback"{{if eq .Nav "feedback"}} aria-current="page"{{end}}>{{tr "Feedback"}}</a>
       <span class="nav-sep" aria-hidden="true"></span>
       {{end}}
+      {{if eq .Role "chef"}}
+      <a href="/admin/kitchen"{{if ne .Nav "stock"}} aria-current="page"{{end}}>{{tr "Kitchen"}}</a>
+      <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
+      {{else}}
       <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}{{with .MgrWaiting}} <span class="nav-badge" title="{{tr "Waiting for the manager"}}">{{.}}<span class="sr-only"> {{tr "waiting for the manager"}}</span></span>{{end}}</a>
-      <a href="/admin/kitchen">{{tr "Kitchen"}}</a>
+      {{if eq .Role "manager"}}<a href="/admin/kitchen">{{tr "Kitchen"}}</a>{{end}}
       <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
       <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>
       <a href="/admin/calendar"{{if eq .Nav "calendar"}} aria-current="page"{{end}}>{{tr "Calendar"}}</a>
@@ -45,6 +49,7 @@
       <a href="/admin/activity"{{if eq .Nav "activity"}} aria-current="page"{{end}}>{{tr "Activity"}}</a>
       {{end}}
       <a href="/" target="_blank" rel="noopener">{{tr "Guest site"}}</a>
+      {{end}}
       {{if .TillDevice}}<form method="post" action="/till/lock" class="nav-logout nav-lock"><button type="submit">{{tr "Lock"}}</button></form>
       {{else}}<form method="post" action="/logout" class="nav-logout"><button type="submit">{{tr "Log out"}}</button></form>{{end}}
     </nav>

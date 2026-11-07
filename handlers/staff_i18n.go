@@ -1563,4 +1563,16 @@ var staffSV = map[string]string{
 	// ready tile
 	"Ready to pick up":             "Klar att hämta",
 	"Go to the kitchen · ready %s": "Gå till köket · klar %s",
+
+	// chef login
+	"This login is for": "Inloggningen är för",
+	"A waiter":          "En servitör",
+	"The kitchen (chef): the kitchen screen only": "Köket (kocken): bara köksskärmen",
+	"Make it a waiter's login":                    "Gör den till en servitörs inloggning",
+	"Make it the kitchen's login":                 "Gör den till kökets inloggning",
+	"The kitchen screen is for the chef. You'll see here when food is ready to pick up.": "Köksskärmen är för kocken. Här ser du när maten är klar att hämta.",
+
+	// chef login 2
+	"Add a waiter or the kitchen": "Lägg till en servitör eller köket",
+	"Staff logins":                "Personalens inloggningar",
 }

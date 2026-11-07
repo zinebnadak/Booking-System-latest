@@ -47,22 +47,23 @@
 </section>
 
 <section class="panel">
-  <h2>{{tr "Add a waiter"}}</h2>
+  <h2>{{tr "Add a waiter or the kitchen"}}</h2>
   <form method="post" action="/admin/staff" class="form-grid staff-add">
     <label class="field">{{tr "Name (shown on screens)"}}<input name="name" maxlength="40" required autocomplete="off"></label>
     <label class="field">{{tr "Username"}}<input name="username" maxlength="40" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
     <label class="field">{{trf "Password (at least %d characters)" .Min}}<input name="password" type="password" minlength="{{.Min}}" required autocomplete="new-password"></label>
-    <div class="staff-add-btn"><button class="btn btn-primary">{{tr "Add waiter"}}</button></div>
+    <label class="field">{{tr "This login is for"}}<select name="role"><option value="waiter">{{tr "A waiter"}}</option><option value="chef">{{tr "The kitchen (chef): the kitchen screen only"}}</option></select></label>
+    <div class="staff-add-btn"><button class="btn btn-primary">{{tr "Add"}}</button></div>
   </form>
 </section>
 
 <section class="panel">
-  <h2>{{tr "Waiters"}}</h2>
+  <h2>{{tr "Staff logins"}}</h2>
   {{if .List}}
   <ul class="staff-list">
     {{range .List}}
     <li>
-      <span><strong>{{if .No}}{{.No}} · {{end}}{{.Name}}</strong> <span class="muted small">{{.Username}}{{if .HasPIN}} · {{tr "PIN set"}}{{end}}</span></span>
+      <span><strong>{{if .No}}{{.No}} · {{end}}{{.Name}}</strong> {{if .Chef}}<span class="badge badge-wait">{{tr "Kitchen"}}</span> {{end}}<span class="muted small">{{.Username}}{{if .HasPIN}} · {{tr "PIN set"}}{{end}}</span></span>
       <details class="staff-more">
         <summary class="btn btn-secondary btn-sm">{{if .HasPIN}}{{tr "New PIN"}}{{else}}{{tr "Set a PIN"}}{{end}}</summary>
         <form method="post" action="/admin/staff/{{.ID}}/pin" class="staff-pw">
@@ -77,6 +78,7 @@
           <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
         </form>
       </details>
+      <form method="post" action="/admin/staff/{{.ID}}/{{if .Chef}}waiter{{else}}chef{{end}}"><button class="btn-link">{{if .Chef}}{{tr "Make it a waiter's login"}}{{else}}{{tr "Make it the kitchen's login"}}{{end}}</button></form>
       <form method="post" action="/admin/staff/{{.ID}}/remove" data-confirm="{{trf "Remove %s? They're logged out at once. Their name stays in the activity list." .Name}}" data-confirm-ok="{{tr "Remove"}}" data-danger>
         <button class="btn-link">{{tr "Remove"}}</button>
       </form>

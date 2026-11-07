@@ -321,7 +321,7 @@ func (s *Server) renderBlock(w http.ResponseWriter, r *http.Request, page, block
 	if rank(roleOf(r)) >= rank(roleManager) {
 		data["MgrWaiting"] = s.Store.WaitingForManager() // the red number next to Orders
 	}
-	if l := loginOf(r); l.Role == roleWaiter {
+	if l := loginOf(r); l.Role == roleWaiter || l.Role == roleChef {
 		data["StaffName"] = l.Name
 	}
 	for _, k := range []string{"Errors", "Form"} {

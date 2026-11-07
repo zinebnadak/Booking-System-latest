@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -92,6 +93,11 @@ func (s *Server) adminStaffAdd(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		redirectMsg(w, r, "/admin/staff", nil, "staffbad")
 	default:
+		if r.FormValue("role") == "chef" {
+			if err := s.Store.SetStaffChef(m.ID, true); err != nil {
+				log.Printf("staff: chef: %v", err)
+			}
+		}
 		s.logActivity(r, 0, "added a waiter", m.Name+" ("+m.Username+")")
 		redirectMsg(w, r, "/admin/staff", nil, "staffadded")
 	}
@@ -123,6 +129,13 @@ func (s *Server) adminStaffAction(w http.ResponseWriter, r *http.Request) {
 		}
 		s.logActivity(r, 0, "gave a waiter a PIN for the till", name)
 		redirectMsg(w, r, "/admin/staff", nil, "pinset")
+	case "chef", "waiter": // the kitchen's login, or a waiter's
+		if err := s.Store.SetStaffChef(id, r.PathValue("action") == "chef"); err != nil {
+			s.notFound(w, r)
+			return
+		}
+		s.logActivity(r, 0, "changed what a login is for", name+" → "+r.PathValue("action"))
+		redirectMsg(w, r, "/admin/staff", nil, "saved")
 	case "remove":
 		if err := s.Store.RemoveStaff(id); err != nil {
 			s.notFound(w, r)

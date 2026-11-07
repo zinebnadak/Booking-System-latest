@@ -240,6 +240,16 @@ internet. If it goes down, the restaurant keeps going on paper:
 
 ---
 
+## The kitchen's own login
+
+On **Staff**, the manager adds a login and picks **This login is for: The
+kitchen (chef)** (or switches an existing one with "Make it the kitchen's
+login"). The chef logs in with that username and password and lands on the
+kitchen screen; that login opens only the kitchen screen and the stock.
+Waiters don't see the kitchen screen at all: they see on Orders when food is
+ready (the table turns green), tap **Served** there, and tap **Brought** for
+drinks. The manager sees everything.
+
 ## Switched off for now
 
 Two features are built but switched off, so the staff screens don't show

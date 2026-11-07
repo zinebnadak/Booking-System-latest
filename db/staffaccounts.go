@@ -48,6 +48,10 @@ type StaffMember struct {
 	// PIN, stored like the password (a slow fingerprint, never the PIN).
 	No  int    `json:"no,omitempty"`
 	PIN string `json:"pin,omitempty"`
+
+	// Chef: this login is for the kitchen. It opens only the kitchen
+	// screen, and waiters don't see the kitchen screen.
+	Chef bool `json:"chef,omitempty"`
 }
 
 // HasPIN reports whether the waiter can log in at the till with a PIN.
@@ -335,4 +339,21 @@ func (s *Store) CheckStaffPIN(no int, pin string) (StaffMember, bool) {
 	}
 	found.Pass, found.PIN = "", ""
 	return *found, true
+}
+
+// SetStaffChef makes a login the chef's (the kitchen screen only) or a
+// waiter's.
+func (s *Store) SetStaffChef(id int, chef bool) error {
+	return s.changeOrders(func() (bool, error) {
+		for _, m := range s.d.Staff {
+			if m.ID == id && m.Active {
+				if m.Chef == chef {
+					return false, nil
+				}
+				m.Chef = chef
+				return true, nil
+			}
+		}
+		return false, ErrNotFound
+	})
 }
