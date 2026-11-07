@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // ---------- Bookings made by staff ----------

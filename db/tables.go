@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // The buttons on the tables and the "3 meals" weekend deal.

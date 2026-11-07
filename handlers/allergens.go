@@ -3,7 +3,7 @@ package handlers
 import (
 	"strings"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // The 14 main allergens, in the guests' words (short, next to a dish) and in

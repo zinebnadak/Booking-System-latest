@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // The "3 meals" deal in the kitchen.

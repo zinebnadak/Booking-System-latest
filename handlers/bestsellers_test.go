@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // The head manager sees the best dish and the best drink of the month,
@@ -17,7 +17,7 @@ func TestBestDishAndDrink(t *testing.T) {
 	e := newEnv(t, nil)
 	e.srv.Cfg.OwnerUser, e.srv.Cfg.OwnerPassword = "owner", "boss"
 	e.h = e.srv.Routes()
-	burger, soda := e.menuItem("Ozmo-burgare"), e.menuItem("Läsk 33 cl")
+	burger, soda := e.menuItem("E-Meal-burgare"), e.menuItem("Läsk 33 cl")
 	if !soda.Drink || burger.Drink {
 		t.Fatal("menu: soda should be a drink, the burger not")
 	}
@@ -38,7 +38,7 @@ func TestBestDishAndDrink(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.h.ServeHTTP(rec, req)
 	page := rec.Body.String()
-	for _, want := range []string{"Best dish", "Ozmo-burgare", "2 sold", "Best drink", "Läsk 33 cl", "3 sold", "Best-selling drinks"} {
+	for _, want := range []string{"Best dish", "E-Meal-burgare", "2 sold", "Best drink", "Läsk 33 cl", "3 sold", "Best-selling drinks"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("charts page missing %q", want)
 		}

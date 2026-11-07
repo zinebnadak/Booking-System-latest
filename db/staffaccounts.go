@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Waiters' own logins, and what staff did with money (the activity list).

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/db"
-	"ozmo-booking/payments"
+	"emeal-booking/db"
+	"emeal-booking/payments"
 )
 
 func TestTipWhenPayingOnThePhone(t *testing.T) {
@@ -15,7 +15,7 @@ func TestTipWhenPayingOnThePhone(t *testing.T) {
 	code := tableCode(t, e, 5)
 	e.do("POST", "/admin/orders/5/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
-	lax, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "Ozmo-burgare")
+	lax, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + lax: {"1"}})    // 26,90
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}}) // 19,90
 

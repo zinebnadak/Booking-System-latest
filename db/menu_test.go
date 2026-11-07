@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 func TestRealMenu(t *testing.T) {

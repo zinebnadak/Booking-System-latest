@@ -1,4 +1,4 @@
-// Ozmo booking: small enhancements on top of pages that already work
+// E-Meal Kitchen booking: small enhancements on top of pages that already work
 // without JavaScript. Every part checks that its page elements exist first.
 (function () {
   'use strict';

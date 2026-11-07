@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // The waitress orders for a guest at table 5; then he scans the QR code and
@@ -14,7 +14,7 @@ import (
 // bring, the stock counts it, and one tap takes the payment for everything.
 func TestWaiterAndPhoneOrdersOnOneBill(t *testing.T) {
 	e := newEnv(t, nil)
-	wine, burger := e.menuItem("Husets vin, glas"), e.menuItem("Ozmo-burgare")
+	wine, burger := e.menuItem("Husets vin, glas"), e.menuItem("E-Meal-burgare")
 	e.do("POST", fmt.Sprintf("/admin/stock/%d", wine.ID), url.Values{"do": {"count"}, "left": {"5"}}, true)
 
 	// 1. The waitress takes his order on her phone.
@@ -33,8 +33,8 @@ func TestWaiterAndPhoneOrdersOnOneBill(t *testing.T) {
 	}
 	// The waiters see the drink to bring (with a chime), and on the table's bill.
 	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Drinks to bring", "1× Husets vin, glas", "Erik", `data-alert-key="drink-`)
-	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Ozmo-burgare", "Husets vin, glas", "Erik", "To bring")
-	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "Ozmo-burgare")
+	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "E-Meal-burgare", "Husets vin, glas", "Erik", "To bring")
+	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "E-Meal-burgare")
 	if m, _ := e.store.MenuItem(wine.ID); m.Left != 4 {
 		t.Fatalf("wine left: %d", m.Left)
 	}

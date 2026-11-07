@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/mailer"
-	"ozmo-booking/payments"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/mailer"
+	"emeal-booking/payments"
+	"emeal-booking/schedule"
 )
 
 // Monday 26 Oct 2026, 09:00 in Mariehamn.
@@ -39,7 +39,7 @@ func newEnv(t *testing.T, pay *payments.Client) *env {
 		t.Fatal(err)
 	}
 	cfg := Config{
-		BaseURL: "http://example.test", RestaurantName: "Ozmo",
+		BaseURL: "http://example.test", RestaurantName: "E-Meal Kitchen",
 		ManagerEmail: "manager@example.test", AdminUser: "admin", AdminPassword: "pw", CalendarToken: "tok",
 	}
 	if pay == nil {
@@ -119,7 +119,7 @@ func TestPagesRender(t *testing.T) {
 	// No date picked: starts on the first open day (today) and shows times grouped.
 	e.expect(e.do("GET", "/book", nil, false), 200, "How many guests?", "Lunch", "Afternoon", "Evening", "10:30")
 	e.expect(e.do("GET", "/book?date=2026-10-26&size=4", nil, false), 200, "10:30", "19:00", "20,00 €")
-	closeSundays(t) // Ozmo is open on Sundays: pretend it isn't, to see the "closed" message
+	closeSundays(t) // the restaurant is open on Sundays: pretend it isn't, to see the "closed" message
 	e.expect(e.do("GET", "/book?date=2026-11-01&size=2", nil, false), 200, "closed on Sunday 1 November")
 	e.expect(e.do("GET", "/book?date=2026-10-20&size=2", nil, false), 200, "already passed")
 	e.expect(e.do("GET", "/takeaway", nil, false), 200, "Fisksoppa", "Förrätter", "11:00")
@@ -609,7 +609,7 @@ func TestSmoothPartsAndCalendar(t *testing.T) {
 	ref := refFromLocation(t, e.do("POST", "/book", bookingForm("18:00", "2"), false).Header().Get("Location"))
 	e.expect(e.do("GET", "/b/"+ref+"/calendar.ics", nil, false), 404)
 	e.do("POST", "/dev/pay/"+ref, url.Values{}, false)
-	e.expect(e.do("GET", "/b/"+ref+"/calendar.ics", nil, false), 200, "BEGIN:VEVENT", "DTSTART:20261026T160000Z", "Table at Ozmo")
+	e.expect(e.do("GET", "/b/"+ref+"/calendar.ics", nil, false), 200, "BEGIN:VEVENT", "DTSTART:20261026T160000Z", "Table at E-Meal Kitchen")
 	e.expect(e.do("GET", "/b/"+ref, nil, false), 200, "Add to calendar")
 
 	// Menu: the on/off switch hides a dish from the takeaway page.

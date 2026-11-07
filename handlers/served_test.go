@@ -16,7 +16,7 @@ import (
 // waiting to pay", and the guest's phone stops saying "Ready".
 func TestFoodReadyThenServed(t *testing.T) {
 	e := newEnv(t, nil)
-	burger, soda := e.menuItem("Ozmo-burgare"), e.menuItem("Läsk 33 cl")
+	burger, soda := e.menuItem("E-Meal-burgare"), e.menuItem("Läsk 33 cl")
 	location(t, e.do("POST", "/admin/orders/5/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", soda.ID): {"1"}}, true), "msg=added")
 	a := join(t, e, tableCode(t, e, 5), 1)
 	a.do("POST", "/g/"+a.key+"/name", url.Values{"name": {"Erik"}})
@@ -57,10 +57,10 @@ func TestFoodReadyThenServed(t *testing.T) {
 	}
 	key := fmt.Sprintf(`data-alert-key="ready-%d"`, id)
 	for _, p := range []string{"/admin/orders?part=tiles"} {
-		e.expect(e.as(waiter, "GET", p, nil), 200, "Food ready to pick up", "Table 5", "1× Ozmo-burgare", "Erik", key)
+		e.expect(e.as(waiter, "GET", p, nil), 200, "Food ready to pick up", "Table 5", "1× E-Meal-burgare", "Erik", key)
 	}
 	e.expect(e.as(waiter, "GET", "/admin/orders?part=tiles", nil), 200, "ot-ready", "Food ready")
-	e.expect(e.as(waiter, "GET", "/admin/kitchen?part=tickets", nil), 200, "Ready at the pass", "Ozmo-burgare", "Served", "Not done yet")
+	e.expect(e.as(waiter, "GET", "/admin/kitchen?part=tickets", nil), 200, "Ready at the pass", "E-Meal-burgare", "Served", "Not done yet")
 	e.expect(a.do("GET", "/g/"+a.key, nil), 200, `badge-ok">Ready<`)
 
 	// Five minutes at the pass: it turns red.

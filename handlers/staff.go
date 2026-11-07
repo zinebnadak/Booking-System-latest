@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Bookings the staff make themselves: a guest who calls, or guests who walk

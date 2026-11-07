@@ -3,7 +3,7 @@ package handlers
 import (
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Food at the pass: when the chef taps Done, the waiters' Orders and Tables

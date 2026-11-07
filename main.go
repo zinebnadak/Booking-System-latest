@@ -1,4 +1,4 @@
-// Ozmo booking system.
+// E-Meal Kitchen booking system.
 //
 // Run it with:   go run .
 // Then open:     http://localhost:8080
@@ -20,11 +20,11 @@ import (
 	"syscall"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/handlers"
-	"ozmo-booking/mailer"
-	"ozmo-booking/payments"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/handlers"
+	"emeal-booking/mailer"
+	"emeal-booking/payments"
+	"emeal-booking/schedule"
 )
 
 // The HTML templates and CSS are built into the program, so deploying
@@ -39,10 +39,10 @@ func main() {
 	port := env("PORT", "8080")
 	cfg := handlers.Config{
 		BaseURL:         strings.TrimRight(env("BASE_URL", "http://localhost:"+port), "/"),
-		RestaurantName:  env("RESTAURANT_NAME", "Ozmo"),
-		RestaurantPhone: env("RESTAURANT_PHONE", ""),
-		RestaurantEmail: env("RESTAURANT_EMAIL", ""),
-		Address:         env("RESTAURANT_ADDRESS", ""),
+		RestaurantName:  env("RESTAURANT_NAME", "E-Meal Kitchen"),
+		RestaurantPhone: env("RESTAURANT_PHONE", "0400 796 789"),
+		RestaurantEmail: env("RESTAURANT_EMAIL", "info@emeal.ax"),
+		Address:         env("RESTAURANT_ADDRESS", "Ålandsvägen 40, 22100 Mariehamn"),
 		BusinessID:      env("BUSINESS_ID", ""),
 		ManagerEmail:    env("MANAGER_EMAIL", ""),
 		ReportEmail:     env("REPORT_EMAIL", ""),
@@ -89,7 +89,7 @@ func main() {
 		log.Println("SMTP not configured: emails are printed here instead of sent")
 	}
 
-	store, err := db.Open(env("DATA_FILE", "data/ozmo.json"))
+	store, err := db.Open(env("DATA_FILE", "data/emeal.json"))
 	if err != nil {
 		log.Fatalf("opening data file: %v", err)
 	}

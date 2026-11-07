@@ -3,7 +3,7 @@ package db
 import (
 	"testing"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // The numbers on a receipt from the old till: 84,00 € of wine and 130,00 € of food.

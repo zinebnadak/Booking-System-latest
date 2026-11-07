@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Feedback from guests: /review (the review QR code, the table page,

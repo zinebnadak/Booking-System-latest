@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Guest pages and guest emails come in Swedish and English.

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Table bills and the chef's kitchen tickets.

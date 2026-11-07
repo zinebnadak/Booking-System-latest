@@ -23,7 +23,7 @@ type Mailer struct {
 	Port     string // 587 (STARTTLS) or 465 (TLS)
 	User     string
 	Password string
-	From     string // e.g. "Ozmo <bokning@example.com>"
+	From     string // e.g. "E-Meal Kitchen <bokning@example.com>"
 
 	// Capture, if set, receives every email instead of sending it. The
 	// tests use it to check what guests and the manager are told.

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // legalPage shows the booking terms or the privacy notice, in the guest's
@@ -44,10 +44,10 @@ func daysText(lang string, days int) string {
 // bookings).
 func (s *Server) manifest(staff bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name, short, start, bg, theme := s.Cfg.RestaurantName, "Ozmo", "/", "#f8f4ec", "#f8f4ec"
+		name, short, start, bg, theme := s.Cfg.RestaurantName, "E-Meal", "/", "#171d1d", "#171d1d"
 		id := "/"
 		if staff {
-			name, short, start, bg, theme = s.Cfg.RestaurantName+" Staff", "Ozmo Staff", "/admin/orders", "#1c1915", "#1c1915"
+			name, short, start, bg, theme = s.Cfg.RestaurantName+" Staff", "E-Meal Staff", "/admin/orders", "#171d1d", "#171d1d"
 			id = "/admin/day" // kept: phones that already added the app keep it
 		}
 		icon := func(file, size, purpose string) map[string]string {

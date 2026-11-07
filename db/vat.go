@@ -3,7 +3,7 @@ package db
 import (
 	"sort"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // VAT on receipts and in the day report, the way the old till printed it:

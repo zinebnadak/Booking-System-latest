@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 func at(clock string) time.Time {

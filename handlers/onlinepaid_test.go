@@ -11,7 +11,7 @@ import (
 // leaves. The waiters are told (with a chime) until one taps OK.
 func TestWaitersSeeAPhonePayment(t *testing.T) {
 	e := newEnv(t, nil)
-	burger := e.menuItem("Ozmo-burgare")
+	burger := e.menuItem("E-Meal-burgare")
 	location(t, e.do("POST", "/admin/orders/5/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {"1"}}, true), "msg=addedfood")
 	a := join(t, e, tableCode(t, e, 5), 1)
 	a.do("POST", "/g/"+a.key+"/name", url.Values{"name": {"Erik"}})

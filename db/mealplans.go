@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // The "3 meals" deal: which dish is meal 1, 2 and 3 is chosen per table (rice

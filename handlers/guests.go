@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/payments"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/payments"
+	"emeal-booking/schedule"
 )
 
 // Ordering and paying from the guests' own phones.

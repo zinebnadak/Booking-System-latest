@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Logging in for staff.

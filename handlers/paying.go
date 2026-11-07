@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Ways to pay on the staff screens: their names, paying a bill in parts

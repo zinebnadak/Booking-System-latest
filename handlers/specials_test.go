@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 func TestTuesdaySpecialWithIngredients(t *testing.T) {

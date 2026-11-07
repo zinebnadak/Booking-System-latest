@@ -89,7 +89,7 @@ func TestWaitersHaveTheirOwnLogin(t *testing.T) {
 	}
 
 	// What she does with money is recorded with her name.
-	burger := menuID(t, e, "Ozmo-burgare")
+	burger := menuID(t, e, "E-Meal-burgare")
 	e.as(lisa, "POST", "/admin/orders/2/add", url.Values{"bill": {"0"}, "qty_" + burger: {"2"}})
 	b, _ := e.store.OpenBill(2)
 	// A lower price is the manager's: refused.

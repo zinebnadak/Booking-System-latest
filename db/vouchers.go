@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Gift cards (presentkort) and lunch coupon booklets (lunchkuponghäfte).

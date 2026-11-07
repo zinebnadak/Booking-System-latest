@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // A guest orders a meal (not just a drink) on his phone, at a table where the
@@ -15,7 +15,7 @@ import (
 // waiters see when it's ready.
 func TestPhoneMealAtAWaiterTable(t *testing.T) {
 	e := newEnv(t, nil)
-	soda, burger := e.menuItem("Läsk 33 cl"), e.menuItem("Ozmo-burgare")
+	soda, burger := e.menuItem("Läsk 33 cl"), e.menuItem("E-Meal-burgare")
 	beef, _ := e.store.AddIngredient("Burgare 150 g", "st", 3, 0)
 	burger.Uses = append(burger.Uses, db.IngredientUse{ID: beef.ID, Amount: 1})
 	if _, err := e.store.SaveMenuItem(burger); err != nil {
@@ -33,8 +33,8 @@ func TestPhoneMealAtAWaiterTable(t *testing.T) {
 	if len(b.Lines) != 2 {
 		t.Fatalf("bill: %+v", b.Lines)
 	}
-	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "Table 5", "Ozmo-burgare", "Erik", "no onions")
-	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Ozmo-burgare", "Erik", "With the chef", "Still to pay at this table")
+	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "Table 5", "E-Meal-burgare", "Erik", "no onions")
+	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "E-Meal-burgare", "Erik", "With the chef", "Still to pay at this table")
 	if ing := e.store.Ingredients()[0]; ing.Left != 2 {
 		t.Fatalf("burgers left: %d", ing.Left)
 	}

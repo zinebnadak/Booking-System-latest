@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="{{if .Admin}}#1c1915{{else}}#f8f4ec{{end}}">
+<meta name="theme-color" content="#171d1d">
 <title>{{if .Title}}{{.Title}} · {{end}}{{.Cfg.RestaurantName}}</title>
 <script>document.documentElement.classList.add('js')</script>
-<link rel="preload" href="/static/fonts/dm-sans-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/roboto-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/style.css?v={{.V}}">
 <link rel="manifest" href="{{if .Admin}}/staff.webmanifest{{else}}/manifest.webmanifest{{end}}">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/{{if .Admin}}staff{{else}}icon{{end}}-32.png?v={{.V}}">
 <link rel="apple-touch-icon" href="/static/icons/{{if .Admin}}staff{{else}}icon{{end}}-180.png?v={{.V}}">
-<meta name="apple-mobile-web-app-title" content="{{if .Admin}}Ozmo Staff{{else}}Ozmo{{end}}">
+<meta name="apple-mobile-web-app-title" content="{{if .Admin}}E-Meal Staff{{else}}E-Meal{{end}}">
 {{if .QR}}<script src="/static/qrcode.js?v={{.V}}" defer></script>{{end}}
 <script src="/static/app.js?v={{.V}}" defer></script>
 {{if .Charts}}<script src="/static/charts.js?v={{.V}}" defer></script>{{end}}
@@ -85,14 +85,12 @@
     <a href="{{.SwitchEN}}" lang="en"{{if eq .Lang "en"}} aria-current="true"{{end}}>English</a>
   </nav>
   <a href="/" class="brand" aria-label="{{.Cfg.RestaurantName}}, {{.T.home_link}}">
-    <svg class="fan" viewBox="0 0 120 44" aria-hidden="true">
-      <line x1="0" y1="43" x2="120" y2="43"/>
-      <circle cx="38" cy="26" r="10"/>
-      <circle cx="60" cy="26" r="10"/>
-      <circle cx="82" cy="26" r="10"/>
+    <svg class="emblem" viewBox="0 0 46 46" aria-hidden="true">
+      <circle cx="23" cy="23" r="21"/>
+      <text x="23" y="31" text-anchor="middle">E</text>
     </svg>
     <span class="brand-small">{{if eq .Lang "sv"}}Restaurang{{else}}Restaurant{{end}}</span>
-    <span class="brand-big">Ozmo</span>
+    <span class="brand-big">{{.Cfg.RestaurantName}}</span>
   </a>
 </header>
 {{if .DemoMode}}<div class="demo-banner">{{.T.demo_banner}}</div>{{end}}

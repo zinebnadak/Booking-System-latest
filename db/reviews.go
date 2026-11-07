@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Guests' feedback: 1–5 stars and a comment. It's private: the restaurant

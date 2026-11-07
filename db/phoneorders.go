@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Checking phone orders before the chef gets them.

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Stock: what's left in the storeroom, so a waiter can tell a guest "sorry,

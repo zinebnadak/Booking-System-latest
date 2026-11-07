@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // The end-of-day email: 30 minutes after closing, the owner gets the day in

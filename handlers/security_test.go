@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // from sends a request as if it came from the visitor address ip.

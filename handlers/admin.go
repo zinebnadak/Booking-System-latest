@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Short messages shown after an action (?msg=...).
@@ -773,7 +773,7 @@ func (s *Server) calendarFeed(w http.ResponseWriter, r *http.Request) {
 	line := func(s string) { sb.WriteString(foldICS(s) + "\r\n") }
 	line("BEGIN:VCALENDAR")
 	line("VERSION:2.0")
-	line("PRODID:-//ozmo-booking//EN")
+	line("PRODID:-//emeal-booking//EN")
 	line("CALSCALE:GREGORIAN")
 	line("X-WR-CALNAME:" + escICS(s.Cfg.RestaurantName+" bookings"))
 	line("REFRESH-INTERVAL;VALUE=DURATION:PT15M")
@@ -794,7 +794,7 @@ func (s *Server) calendarFeed(w http.ResponseWriter, r *http.Request) {
 				summary = "Takeaway pickup – " + b.Name
 			}
 			line("BEGIN:VEVENT")
-			line("UID:" + b.Ref + "@ozmo-booking")
+			line("UID:" + b.Ref + "@emeal-booking")
 			line("DTSTAMP:" + now.UTC().Format("20060102T150405Z"))
 			line("DTSTART:" + start.UTC().Format("20060102T150405Z"))
 			line("DTEND:" + end.UTC().Format("20060102T150405Z"))

@@ -3,7 +3,7 @@ package db
 import (
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Kind is what a booking is: a table reservation or a takeaway order.

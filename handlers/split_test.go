@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Four friends at table 5 each pay for their own dish; two of them shared
@@ -21,7 +21,7 @@ func TestSplitBillEachPaysTheirOwn(t *testing.T) {
 	e.srv.Now = func() time.Time { return saturday }
 	id := func(name string) string { return fmt.Sprint(e.menuItem(name).ID) }
 	location(t, e.do("POST", "/admin/orders/5/add", url.Values{"bill": {"0"},
-		"qty_" + id("Ozmo-burgare"): {"1"}, "qty_" + id("Fisksoppa"): {"1"}, "qty_" + id("Laxfilé"): {"1"},
+		"qty_" + id("E-Meal-burgare"): {"1"}, "qty_" + id("Fisksoppa"): {"1"}, "qty_" + id("Laxfilé"): {"1"},
 		"qty_" + id("Svamprisotto"): {"1"}, "qty_" + id("Husets vin, glas"): {"1"},
 	}, true), "msg=addedfood")
 	bill, _ := e.store.OpenBill(5)
@@ -38,7 +38,7 @@ func TestSplitBillEachPaysTheirOwn(t *testing.T) {
 	// Nobody can pay until every dish has an owner.
 	location(t, e.do("POST", "/admin/orders/5/split/pay", url.Values{"bill": {b}, "guest": {"1"}, "method": {"card"}}, true), "msg=unassigned")
 	for name, who := range map[string][]string{
-		"Ozmo-burgare": {"1"}, "Fisksoppa": {"2"}, "Laxfilé": {"3"}, "Svamprisotto": {"4"}, "Husets vin, glas": {"1", "2"},
+		"E-Meal-burgare": {"1"}, "Fisksoppa": {"2"}, "Laxfilé": {"3"}, "Svamprisotto": {"4"}, "Husets vin, glas": {"1", "2"},
 	} {
 		location(t, e.do("POST", "/admin/orders/5/split/assign", url.Values{"bill": {b}, "line": {lineOf[name]}, "g": who}, true), "msg=assigned")
 	}
@@ -76,7 +76,7 @@ func TestSplitBillEachPaysTheirOwn(t *testing.T) {
 	guest2 := codes[1][1]
 	pub := e.do("GET", "/r/"+guest2, nil, false)
 	e.expect(pub, 200, "Guest 2 of 4", "Fisksoppa", "Husets vin, glas", "shared by 2", "19,75 €", "Your part", "Paid in cash")
-	for _, other := range []string{"Ozmo-burgare", "Laxfilé", "Svamprisotto", "Guest 1 of 4"} {
+	for _, other := range []string{"E-Meal-burgare", "Laxfilé", "Svamprisotto", "Guest 1 of 4"} {
 		if strings.Contains(pub.Body.String(), other) {
 			t.Fatalf("guest 2's receipt shows %q", other)
 		}
@@ -151,7 +151,7 @@ func TestAddAFifthGuestAfterSomePaid(t *testing.T) {
 	e.srv.Now = func() time.Time { return saturday }
 	id := func(name string) string { return fmt.Sprint(e.menuItem(name).ID) }
 	e.do("POST", "/admin/orders/5/add", url.Values{"bill": {"0"},
-		"qty_" + id("Ozmo-burgare"): {"1"}, "qty_" + id("Fisksoppa"): {"1"}, "qty_" + id("Laxfilé"): {"1"},
+		"qty_" + id("E-Meal-burgare"): {"1"}, "qty_" + id("Fisksoppa"): {"1"}, "qty_" + id("Laxfilé"): {"1"},
 		"qty_" + id("Svamprisotto"): {"1"}, "qty_" + id("Pannacotta"): {"1"},
 	}, true)
 	bill, _ := e.store.OpenBill(5)
@@ -161,7 +161,7 @@ func TestAddAFifthGuestAfterSomePaid(t *testing.T) {
 		line[l.Name] = fmt.Sprint(l.ID)
 	}
 	e.do("POST", "/admin/orders/5/split/guests", url.Values{"bill": {b}, "guests": {"4"}}, true)
-	for name, g := range map[string]string{"Ozmo-burgare": "1", "Fisksoppa": "2", "Laxfilé": "3", "Svamprisotto": "4", "Pannacotta": "4"} {
+	for name, g := range map[string]string{"E-Meal-burgare": "1", "Fisksoppa": "2", "Laxfilé": "3", "Svamprisotto": "4", "Pannacotta": "4"} {
 		e.do("POST", "/admin/orders/5/split/assign", url.Values{"bill": {b}, "line": {line[name]}, "g": {g}}, true)
 	}
 	e.do("POST", "/admin/orders/5/split/pay", url.Values{"bill": {b}, "guest": {"1"}, "method": {"card"}}, true)
@@ -193,7 +193,7 @@ func TestOnePaymentForSeveralGuests(t *testing.T) {
 	e := newEnv(t, nil)
 	e.srv.Now = func() time.Time { return saturday }
 	id := func(name string) string { return fmt.Sprint(e.menuItem(name).ID) }
-	e.do("POST", "/admin/orders/6/add", url.Values{"bill": {"0"}, "qty_" + id("Ozmo-burgare"): {"6"}}, true)
+	e.do("POST", "/admin/orders/6/add", url.Values{"bill": {"0"}, "qty_" + id("E-Meal-burgare"): {"6"}}, true)
 	bill, _ := e.store.OpenBill(6)
 	b := fmt.Sprint(bill.ID)
 	e.do("POST", "/admin/orders/6/split/guests", url.Values{"bill": {b}, "guests": {"6"}}, true)

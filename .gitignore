@@ -5,7 +5,7 @@
 data/
 
 # built program
-/ozmo-booking
+/emeal-booking
 *.exe
 
 # Each table button's Wi-Fi password and secret code

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // outbox collects the emails the server sends during a test.

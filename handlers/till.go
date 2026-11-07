@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // The shared till, like the old one's "Servitör" keypad: a waiter types

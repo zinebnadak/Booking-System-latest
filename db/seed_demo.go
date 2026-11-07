@@ -18,7 +18,7 @@ func DemoMenu() []MenuItem {
 		{Category: main, Name: "Kycklinglårfilé", Description: "Med rostad potatis, citronsås & grillade grönsaker", PriceCents: 2390, Tags: "L, G", Course: CourseMain},
 		{Category: main, Name: "Laxfilé", Description: "Med dillstuvad potatis & ärtpuré", PriceCents: 2690, Tags: "G", Course: CourseMain},
 		{Category: main, Name: "Svamprisotto", Description: "Med parmesan & krispig grönkål", PriceCents: 2190, Tags: "V, G", Course: CourseMain},
-		{Category: main, Name: "Ozmo-burgare", Description: "Med cheddar, picklad lök & pommes frites", PriceCents: 1990, Tags: "*L", Course: CourseMain},
+		{Category: main, Name: "E-Meal-burgare", Description: "Med cheddar, picklad lök & pommes frites", PriceCents: 1990, Tags: "*L", Course: CourseMain},
 
 		{Category: dessert, Name: "Chokladfondant", Description: "Med vaniljglass", PriceCents: 950, Tags: "V", Course: CourseDessert},
 		{Category: dessert, Name: "Pannacotta", Description: "Med bärkompott", PriceCents: 850, Tags: "V, G", Course: CourseDessert},

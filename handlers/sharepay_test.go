@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Two guests ordered on their phones at table 5. Anna pays part of hers with
@@ -16,7 +16,7 @@ func TestSplitGuestPaysWithGiftCard(t *testing.T) {
 	code := tableCode(t, e, 5)
 	e.do("POST", "/admin/orders/5/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
-	lax, soda, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "Läsk 33 cl"), menuID(t, e, "Ozmo-burgare")
+	lax, soda, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "Läsk 33 cl"), menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + lax: {"1"}, "qty_" + soda: {"2"}}) // 26,90 + 7,00
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}})                    // 19,90
 	bill, _ := e.store.OpenBill(5)

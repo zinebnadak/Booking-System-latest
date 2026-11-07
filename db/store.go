@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 var (

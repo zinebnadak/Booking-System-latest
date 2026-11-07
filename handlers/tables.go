@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // The table buttons and the "3 meals" weekend deal.

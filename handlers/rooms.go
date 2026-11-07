@@ -3,7 +3,7 @@ package handlers
 import (
 	"strconv"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Tables are shown room by room (Utrymme 1, Utrymme 2, Terrassen), with tabs

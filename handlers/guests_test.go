@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/payments"
+	"emeal-booking/db"
+	"emeal-booking/payments"
 )
 
 // phone is one guest's browser at the table: it keeps its own cookie.
@@ -116,7 +116,7 @@ func TestQRGuestsOrderAndOnePaysForAll(t *testing.T) {
 	e.expect(a.do("GET", "/g/"+a.key, nil), 200, "Guest 1", "Your order", "Send order", "Laxfilé")
 
 	// Each orders their own; the price always comes from the menu.
-	lax, soda, burger, risotto := menuID(t, e, "Laxfilé"), menuID(t, e, "Läsk 33 cl"), menuID(t, e, "Ozmo-burgare"), menuID(t, e, "Svamprisotto")
+	lax, soda, burger, risotto := menuID(t, e, "Laxfilé"), menuID(t, e, "Läsk 33 cl"), menuID(t, e, "E-Meal-burgare"), menuID(t, e, "Svamprisotto")
 	a.do("POST", "/g/"+a.key+"/name", url.Values{"name": {"Anna"}})
 	if rec := a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + lax: {"1"}, "qty_" + soda: {"2"}, "price_" + lax: {"0,01"}, "note_" + lax: {"no dill"}}); loc(rec) != "/g/"+a.key+"?msg=ordered" {
 		t.Fatalf("order: %d %s", rec.Code, loc(rec))
@@ -133,7 +133,7 @@ func TestQRGuestsOrderAndOnePaysForAll(t *testing.T) {
 		t.Fatalf("parts %v", pay)
 	}
 	// The chef sees the food with whose it is; the waiters get the sodas.
-	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, "Laxfilé", "Guest 1 · Anna", "no dill", "Ozmo-burgare")
+	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, "Laxfilé", "Guest 1 · Anna", "no dill", "E-Meal-burgare")
 	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Drinks to bring", "2× Läsk 33 cl")
 	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200)
 	if strings.Contains(e.do("GET", "/admin/kitchen", nil, true).Body.String(), "Läsk") {
@@ -193,7 +193,7 @@ func TestQRPayForAllTimesOut(t *testing.T) {
 	code := tableCode(t, e, 2)
 	e.do("POST", "/admin/orders/2/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
-	burger := menuID(t, e, "Ozmo-burgare")
+	burger := menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	demo := loc(a.do("POST", "/g/"+a.key+"/pay", url.Values{"all": {"1"}}))
@@ -301,7 +301,7 @@ func TestQRStripePayments(t *testing.T) {
 	code := tableCode(t, e, 6)
 	e.do("POST", "/admin/orders/6/qr", url.Values{"open": {"1"}}, true)
 	a, b, c := join(t, e, code, 1), join(t, e, code, 2), join(t, e, code, 3)
-	lax, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "Ozmo-burgare")
+	lax, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + lax: {"1"}})
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	c.do("POST", "/g/"+c.key+"/order", url.Values{"qty_" + burger: {"1"}})
@@ -371,7 +371,7 @@ func TestQRStripeWebhookAndReturn(t *testing.T) {
 	code := tableCode(t, e, 3)
 	e.do("POST", "/admin/orders/3/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
-	burger := menuID(t, e, "Ozmo-burgare")
+	burger := menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"2"}})
 
@@ -467,7 +467,7 @@ func TestQRReceiptChoices(t *testing.T) {
 	code := tableCode(t, e, 5)
 	e.do("POST", "/admin/orders/5/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
-	lax, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "Ozmo-burgare")
+	lax, burger := menuID(t, e, "Laxfilé"), menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + lax: {"1"}})
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}})
 
@@ -492,7 +492,7 @@ func TestQRReceiptChoices(t *testing.T) {
 	if len(mails) != 1 || mails[0].to != "bo@example.fi" {
 		t.Fatalf("mails %+v", mails)
 	}
-	for _, want := range []string{"Your receipt from Ozmo", "Table 5 · Guest 2", "1 × Ozmo-burgare", "19,90 €", "Paid online", "Guest 1 paid this for you.", "/r/"} {
+	for _, want := range []string{"Your receipt from E-Meal Kitchen", "Table 5 · Guest 2", "1 × E-Meal-burgare", "19,90 €", "Paid online", "Guest 1 paid this for you.", "/r/"} {
 		if !strings.Contains(mails[0].subject+"\n"+mails[0].body, want) {
 			t.Fatalf("email missing %q:\n%s\n%s", want, mails[0].subject, mails[0].body)
 		}
@@ -518,7 +518,7 @@ func TestQRReceiptChoices(t *testing.T) {
 	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Receipts to print", "Guest 2 · 19,90 €",
 		fmt.Sprintf("/admin/orders/5/receipts?bill=%d&amp;guest=2", bill.ID))
 	only := e.do("GET", fmt.Sprintf("/admin/orders/5/receipts?bill=%d&guest=2", bill.ID), nil, true)
-	e.expect(only, 200, "Guest 2 of 2", "Ozmo-burgare")
+	e.expect(only, 200, "Guest 2 of 2", "E-Meal-burgare")
 	if strings.Contains(only.Body.String(), "Laxfilé") {
 		t.Fatal("printed guest 1's receipt too")
 	}
@@ -534,7 +534,7 @@ func TestQRNotPaidYetAlert(t *testing.T) {
 	code := tableCode(t, e, 5)
 	e.do("POST", "/admin/orders/5/qr", url.Values{"open": {"1"}}, true)
 	a, b, c := join(t, e, code, 1), join(t, e, code, 2), join(t, e, code, 3)
-	burger := menuID(t, e, "Ozmo-burgare")
+	burger := menuID(t, e, "E-Meal-burgare")
 	for _, p := range []*phone{a, b, c} {
 		p.do("POST", "/g/"+p.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	}
@@ -567,7 +567,7 @@ func TestQRSomethingNobodysAfterAllPaid(t *testing.T) {
 	code := tableCode(t, e, 5)
 	e.do("POST", "/admin/orders/5/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
-	burger, water := menuID(t, e, "Ozmo-burgare"), menuID(t, e, "Mineralvatten")
+	burger, water := menuID(t, e, "E-Meal-burgare"), menuID(t, e, "Mineralvatten")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	bill, _ := e.store.OpenBill(5)
@@ -592,7 +592,7 @@ func TestStaffAddsForOneGuest(t *testing.T) {
 	e.do("POST", "/admin/orders/5/qr", url.Values{"open": {"1"}}, true)
 	a, b := join(t, e, code, 1), join(t, e, code, 2)
 	a.do("POST", "/g/"+a.key+"/name", url.Values{"name": {"Anna"}})
-	burger, coffee := menuID(t, e, "Ozmo-burgare"), menuID(t, e, "Kaffe")
+	burger, coffee := menuID(t, e, "E-Meal-burgare"), menuID(t, e, "Kaffe")
 	b.do("POST", "/g/"+b.key+"/order", url.Values{"qty_" + burger: {"1"}})
 	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Who is it for?", "The table", "Guest 1 · Anna", "Guest 2")
 	bill, _ := e.store.OpenBill(5)
@@ -623,7 +623,7 @@ func TestQROpensWhenGuestsArrive(t *testing.T) {
 	bk, _ := e.store.Get(ref)
 	// Nobody tapped "Turn on": the guests can scan and order straight away.
 	a := join(t, e, tableCode(t, e, bk.TableNo), 1)
-	burger := menuID(t, e, "Ozmo-burgare")
+	burger := menuID(t, e, "E-Meal-burgare")
 	a.do("POST", "/g/"+a.key+"/order", url.Values{"qty_" + burger: {"2"}})
 	// Their deposit comes off: 39,80 € − 20,00 €.
 	e.expect(a.do("GET", "/g/"+a.key+"?part=live", nil), 200, "19,80 €")
@@ -758,7 +758,7 @@ func TestTableCodeForBookedTables(t *testing.T) {
 
 func TestTakeawayOnTheKitchenScreen(t *testing.T) {
 	e := newEnv(t, nil) // Monday 09:00
-	burger := menuID(t, e, "Ozmo-burgare")
+	burger := menuID(t, e, "E-Meal-burgare")
 	f := url.Values{"date": {"2026-10-26"}, "time": {"12:30"}, "name": {"Erik"}, "email": {"erik@example.com"},
 		"phone": {"0401234567"}, "notes": {"Extra napkins"}, "qty_" + burger: {"2"}}
 	ref := refFromLocation(t, e.do("POST", "/takeaway", f, false).Header().Get("Location"))
@@ -769,7 +769,7 @@ func TestTakeawayOnTheKitchenScreen(t *testing.T) {
 	e.do("POST", "/dev/pay/"+ref, url.Values{}, false)
 	bk, _ := e.store.Get(ref)
 	no := fmt.Sprint(bk.ID)
-	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, "Takeaway #"+no, "2×", "Ozmo-burgare",
+	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, "Takeaway #"+no, "2×", "E-Meal-burgare",
 		"Ordered online. Erik picks it up at 12:30.", "Extra napkins", "Seen · remind me at 11:30")
 	// The chef taps Seen: it moves to "coming up".
 	active, _ := e.store.KitchenNow(e.srv.Now())
@@ -858,7 +858,7 @@ func TestEndOfDayEmail(t *testing.T) {
 		e.srv.Now = func() time.Time { return time.Date(2026, 10, 26, h, m, 0, 0, fixedNow.Location()) }
 	}
 	at(12, 0)
-	burger, soda := menuID(t, e, "Ozmo-burgare"), menuID(t, e, "Läsk 33 cl")
+	burger, soda := menuID(t, e, "E-Meal-burgare"), menuID(t, e, "Läsk 33 cl")
 	e.do("POST", "/admin/orders/2/add", url.Values{"bill": {"0"}, "qty_" + burger: {"2"}, "qty_" + soda: {"3"}}, true)
 	b2, _ := e.store.OpenBill(2)
 	e.do("POST", "/admin/orders/2/pay", url.Values{"bill": {fmt.Sprint(b2.ID)}, "method": {"card"}}, true)
@@ -874,7 +874,7 @@ func TestEndOfDayEmail(t *testing.T) {
 	if len(mails) != 1 {
 		t.Fatalf("%d emails", len(mails))
 	}
-	for _, want := range []string{"boss@example.fi", "50,30 € at the tables", "Card terminal:        50,30 €", "3 × Läsk 33 cl", "2 × Ozmo-burgare", "(1 bill)",
+	for _, want := range []string{"boss@example.fi", "50,30 € at the tables", "Card terminal:        50,30 €", "3 × Läsk 33 cl", "2 × E-Meal-burgare", "(1 bill)",
 		"Table 3: bill still open, 19,90 € not paid", "/owner?date=2026-10-26"} {
 		if !strings.Contains(mails[0], want) {
 			t.Fatalf("email missing %q:\n%s", want, mails[0])

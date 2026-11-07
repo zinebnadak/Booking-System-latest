@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Lisa opens table 5: it's hers. Erik adds a drink there but it stays
@@ -103,7 +103,7 @@ func TestPayFromTheTile(t *testing.T) {
 // dish has quick notes for the chef.
 func TestFavouritesAndQuickNotes(t *testing.T) {
 	e := newEnv(t, nil)
-	burger, soda := e.menuItem("Ozmo-burgare"), e.menuItem("Läsk 33 cl")
+	burger, soda := e.menuItem("E-Meal-burgare"), e.menuItem("Läsk 33 cl")
 	e.expect(e.do("GET", "/admin/orders/3", nil, true), 200, `class="note-chip" data-note="No onions"`)
 	if strings.Contains(e.do("GET", "/admin/orders/3", nil, true).Body.String(), "data-fav=") {
 		t.Fatal("favourites before anything was sold")

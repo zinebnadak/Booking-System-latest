@@ -1,4 +1,11 @@
-# Ozmo: booking system with table buttons, table bills and a kitchen screen
+# E-Meal Kitchen: booking system with table buttons, table bills and a kitchen screen
+
+> This is the E-Meal Kitchen copy of the booking system: the same program,
+> with E-Meal Kitchen's name, contact details (Ålandsvägen 40, Mariehamn ·
+> 0400 796 789 · info@emeal.ax) and colours: dark green-black `#171d1d`,
+> brown `#612b18` and gold `#d2aa45`, Cinzel headings and Roboto text. The
+> menu is still the demo menu. It runs on port 8080 (`go run .`) and keeps its
+> data in `data/emeal.json`; `phone-test.command` uses port 8098.
 
 Table bookings and takeaway orders with a Stripe deposit, confirmation emails,
 a manager dashboard with a calendar, and in the restaurant itself:
@@ -22,7 +29,7 @@ a manager dashboard with a calendar, and in the restaurant itself:
   paying in parts, gift cards and lunch booklets, a PIN keypad for waiters and a
   clock card (section 10).
 
-> **Ozmo is a working name.** The name is one setting (`RESTAURANT_NAME` in
+> **E-Meal Kitchen is a working name.** The name is one setting (`RESTAURANT_NAME` in
 > `.env`). The menu and tables are copied from the old till and printed menus;
 > opening hours, seats per table and some prices are still placeholders until
 > the restaurant confirms them (`schedule/schedule.go` and the Menu page).
@@ -36,7 +43,7 @@ Every page is in **Swedish and English**, for guests and staff, with a switch at
 ## 1. Run it on your Mac (demo mode)
 
 ```bash
-cd ozmo-booking
+cd emeal-booking
 go run .
 ```
 
@@ -72,7 +79,7 @@ Run the tests: `go test ./...`
 |---|---|
 | `main.go` | Reads settings from `.env`, starts the web server |
 | `schedule/` | **The restaurant's rules**: opening hours, slots, 2-hour bookings, deposits. Change rules here. |
-| `db/` | Saves bookings, menu, closed days, table buttons, bills and kitchen tickets in `data/ozmo.json`. Prevents double booking. `seed.go` is the restaurant's menu, `tables.go` the buttons and the 3 meals deal, `orders.go` the bills and the kitchen, `courses.go` "Vänta varmt" and kitchen messages, `vat.go` VAT, `payments.go` ways to pay and paying in parts, `vouchers.go` gift cards and lunch booklets, `shifts.go` the clock card, `guests.go` QR guests and the payment lock, `phoneorders.go` the waiter check, `reviews.go` feedback, `staffaccounts.go` waiters' logins, PINs and the activity list. |
+| `db/` | Saves bookings, menu, closed days, table buttons, bills and kitchen tickets in `data/emeal.json`. Prevents double booking. `seed.go` is the restaurant's menu, `tables.go` the buttons and the 3 meals deal, `orders.go` the bills and the kitchen, `courses.go` "Vänta varmt" and kitchen messages, `vat.go` VAT, `payments.go` ways to pay and paying in parts, `vouchers.go` gift cards and lunch booklets, `shifts.go` the clock card, `guests.go` QR guests and the payment lock, `phoneorders.go` the waiter check, `reviews.go` feedback, `staffaccounts.go` waiters' logins, PINs and the activity list. |
 | `payments/` | Talks to Stripe: payment page, refunds, and checking webhooks are real |
 | `mailer/` | Sends emails via SMTP |
 | `handlers/` | Every page: booking, takeaway, status page, webhook, manager dashboard. `manage.go` (guests changing and cancelling, waiting list), `staff.go` (phone bookings, walk-ins), `tables.go` (table buttons, the live Tables screen), `orders.go` (bills at the tables, the kitchen screen), `guests.go` (ordering and paying from the table's QR code), `photos.go` (dish photos), `reviews.go` (feedback), `staffpages.go` (waiters and activity), `summary.go` (end-of-day email), `rooms.go` (rooms on the staff screens), `paying.go` (ways to pay), `giftcards.go`, `till.go` (PIN keypad, clock card), `hours.go`, `jobs.go` (reminders, waiting list, privacy clean-up every 5 minutes) |
@@ -477,10 +484,10 @@ Open it on a screen or tablet in the kitchen, logged in as the manager, and tap
 **Turn on sound** once.
 
 - A new card with a chime every time food is ordered: **Table 5 · 18:42**,
-  **2× Ozmo-burgare**, **→ no onions**. No prices, no drinks.
+  **2× E-Meal-burgare**, **→ no onions**. No prices, no drinks.
 - Cards turn orange after 15 minutes and red after 25.
 - The chef taps **Done**. The food is now **Ready at the pass**, and the waiters'
-  Orders and Tables screens show **Food ready to pick up: Table 5 · 1× Ozmo-burgare
+  Orders and Tables screens show **Food ready to pick up: Table 5 · 1× E-Meal-burgare
   (Erik)** with a chime, again every 2 minutes, red after 4 minutes.
 - When a waiter takes it, the chef (or the waiter, on their own screen) taps
   **Served**. The table then shows **Served · waiting to pay**.
@@ -803,7 +810,7 @@ The choices are one setting: `TipChoices` in `db/guests.go`.
 
 ### Try it with phones (demo)
 
-1. Start Ozmo on your Mac and open it on your phone on the same Wi-Fi
+1. Start E-Meal Kitchen on your Mac and open it on your phone on the same Wi-Fi
    (section 7, "Open it on your phone").
 2. Open **Orders → Table QR codes** *on that address* (not `localhost`), so the
    codes point at your Mac.
@@ -821,15 +828,15 @@ their phone at the table and on the takeaway page.
   is removed.
 - **Remove photo** takes it off again.
 - Photos are kept in the `photos` folder next to the data file
-  (`data/photos`). Back it up together with `data/ozmo.json`.
+  (`data/photos`). Back it up together with `data/emeal.json`.
 
 ---
 
 ## 10. Everything the old till did (Restolution)
 
-Ozmo replaces the old till. This is where each of its buttons went.
+E-Meal Kitchen replaces the old till. This is where each of its buttons went.
 
-| Old till | In Ozmo |
+| Old till | In E-Meal Kitchen |
 |---|---|
 | Servitör + number, Klockkort | **Till keypad** (`/till`): number + PIN to log in, **Clock in** / **Clock out** |
 | Utrymme 1, Utrymme 2, terassen, table map | **Room tabs** on Orders and Tables, the same table numbers |
@@ -852,7 +859,7 @@ Ozmo replaces the old till. This is where each of its buttons went.
 | Receipt with VAT 25,50 / 13,50 and FO-nummer | Every receipt and the end-of-day email |
 
 Not built: **Rum** (charging a hotel room), customer accounts (**Kund funktioner**),
-and the till's own printer and cash drawer: Ozmo prints from the browser (a receipt
+and the till's own printer and cash drawer: E-Meal Kitchen prints from the browser (a receipt
 printer set as the default printer works; many open the cash drawer when they print).
 
 ### Rooms and tables
@@ -960,7 +967,7 @@ On the bill, besides **Paid at the terminal** and **Paid in cash**:
   to e.g. 12,90 €) and the booklet's price. Code `LH-…`.
 - **Paying:** on the bill, **Other ways to pay → How: Gift card** (or **Lunch
   coupons** and how many), type the code. A gift card pays up to what's on it and
-  what's left on the bill; the rest is paid another way. Lunch coupons: Ozmo
+  what's left on the bill; the rest is paid another way. Lunch coupons: E-Meal Kitchen
   refuses more coupons than needed (if one less already covers what's left), so
   none are wasted.
 - **Look up a card** shows what's left and when it was sold. The manager can void
@@ -1171,7 +1178,7 @@ Only money paid through the website is counted. What guests pay at the table goe
 - **Google:** in the restaurant's Google Business Profile, add `https://<your-domain>/book` as the reservations link and `/takeaway` as the order link (Edit profile, look for the booking or reservation links; Google moves the menu around now and then). Guests then book straight from Google Search and Maps.
 - **Instagram and Facebook:** put the `/book` link in the bio and on the page's "Book now" button.
 - **MobilePay, Apple Pay and Google Pay:** turn them on in Stripe (**Settings → Payment methods**). The payment page shows them automatically, nothing to change here. MobilePay is what most guests on Åland use.
-- **Add to home screen:** guests can add the site to their phone like an app. Staff should do the same from the dashboard: on the iPad or phone, open `/admin/orders`, then Share → **Add to Home Screen**. It opens straight on **Orders**, with its own dark "Ozmo Staff" icon.
+- **Add to home screen:** guests can add the site to their phone like an app. Staff should do the same from the dashboard: on the iPad or phone, open `/admin/orders`, then Share → **Add to Home Screen**. It opens straight on **Orders**, with its own dark "E-Meal Kitchen Staff" icon.
 
 ## 18. Phase 2 (not built yet)
 

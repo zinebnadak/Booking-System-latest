@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/handlers"
+	"emeal-booking/handlers"
 )
 
 func TestIsLocal(t *testing.T) {

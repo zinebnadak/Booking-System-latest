@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 func TestAllergens(t *testing.T) {

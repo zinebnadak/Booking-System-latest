@@ -4,8 +4,8 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Quicker for waiters on the table page: the dishes and drinks that sell

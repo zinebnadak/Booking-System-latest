@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Most tests were written for a small restaurant: 6 tables of 6 seats in one

@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Gift cards (presentkort) and lunch coupon booklets (lunchkuponghäfte):

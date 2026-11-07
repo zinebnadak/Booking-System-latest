@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Work that happens by itself every few minutes, while the server runs:

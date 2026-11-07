@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Every sentence on the staff pages must have a Swedish version.

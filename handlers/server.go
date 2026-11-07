@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/mailer"
-	"ozmo-booking/payments"
+	"emeal-booking/db"
+	"emeal-booking/mailer"
+	"emeal-booking/payments"
 )
 
 // Config holds the settings that come from the .env file.

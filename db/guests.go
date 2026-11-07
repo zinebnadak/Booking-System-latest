@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Guests ordering and paying with the QR code on their table.

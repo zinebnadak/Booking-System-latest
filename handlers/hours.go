@@ -5,8 +5,8 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // The manager's Hours page: who clocked in and out at the till ("Klockkort"),

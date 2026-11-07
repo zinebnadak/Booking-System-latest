@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // The old till's features, at a table: courses, a kitchen message, a

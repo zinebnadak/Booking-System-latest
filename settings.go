@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"ozmo-booking/handlers"
+	"emeal-booking/handlers"
 )
 
 // Minimum lengths for the secrets in .env when the site is on the internet.

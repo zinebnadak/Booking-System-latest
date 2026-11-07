@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/payments"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/payments"
+	"emeal-booking/schedule"
 )
 
 const maxFormBytes = 64 << 10
@@ -242,8 +242,8 @@ func (s *Server) guestICS(w http.ResponseWriter, r *http.Request) {
 		title = fmt.Sprintf(t["ics_takeaway"], s.Cfg.RestaurantName)
 	}
 	desc := s.Cfg.BaseURL + "/b/" + b.Ref
-	ics := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ozmo-booking//EN\r\nBEGIN:VEVENT\r\n" +
-		"UID:" + b.Ref + "@ozmo-booking\r\n" +
+	ics := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//emeal-booking//EN\r\nBEGIN:VEVENT\r\n" +
+		"UID:" + b.Ref + "@emeal-booking\r\n" +
 		"DTSTAMP:" + s.Now().UTC().Format("20060102T150405Z") + "\r\n" +
 		"DTSTART:" + start.UTC().Format("20060102T150405Z") + "\r\n" +
 		"DTEND:" + end.UTC().Format("20060102T150405Z") + "\r\n" +
@@ -251,7 +251,7 @@ func (s *Server) guestICS(w http.ResponseWriter, r *http.Request) {
 		foldICS("DESCRIPTION:"+escICS(desc)) + "\r\n" +
 		"END:VEVENT\r\nEND:VCALENDAR\r\n"
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="ozmo-booking.ics"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="emeal-booking.ics"`)
 	w.Write([]byte(ics))
 }
 

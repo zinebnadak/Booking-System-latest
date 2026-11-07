@@ -11,7 +11,7 @@ import (
 // table, a guest with the table's QR code, or online for takeaway.
 func TestStockCountsEveryWayToOrder(t *testing.T) {
 	e := newEnv(t, nil)
-	burger := e.menuItem("Ozmo-burgare")
+	burger := e.menuItem("E-Meal-burgare")
 	id := fmt.Sprint(burger.ID)
 	left := func() int {
 		for _, m := range e.store.Menu(false) {
@@ -51,7 +51,7 @@ func TestStockCountsEveryWayToOrder(t *testing.T) {
 	f.Set("email", "lisa@example.com")
 	f.Set("phone", "0407654321")
 	rec := e.do("POST", "/takeaway", f, false)
-	e.expect(rec, 422, "only 1 left of Ozmo-burgare")
+	e.expect(rec, 422, "only 1 left of E-Meal-burgare")
 	// The waiters see it on the Stock page, under Food.
 	page := e.do("GET", "/admin/stock", nil, true).Body.String()
 	for _, want := range []string{`data-kind-filter`, `id="s-` + id + `" data-kind="food"`, `data-kind="drink"`, `data-kind-section="food"`} {

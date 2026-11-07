@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 func (e *env) menuItem(name string) db.MenuItem {
@@ -160,7 +160,7 @@ func TestDepositComesOffTheBill(t *testing.T) {
 
 	page := fmt.Sprintf("/admin/orders/%d", bk.TableNo)
 	e.expect(e.do("GET", page, nil, true), 200, "These guests paid a 20,00 € deposit online.")
-	burger := e.menuItem("Ozmo-burgare")
+	burger := e.menuItem("E-Meal-burgare")
 	location(t, e.do("POST", page+"/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {"2"}}, true), "msg=addedfood")
 	b, _ := e.store.OpenBill(bk.TableNo)
 	if b.BookingRef != ref || b.Deposit() != 2000 || b.ToPay() != 2*1990-2000 {

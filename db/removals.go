@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // Nothing disappears from a bill without the manager.

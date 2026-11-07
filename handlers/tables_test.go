@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/payments"
-	"ozmo-booking/schedule"
+	"emeal-booking/payments"
+	"emeal-booking/schedule"
 )
 
 // Saturday 31 October 2026, 18:00: a "3 meals" day.

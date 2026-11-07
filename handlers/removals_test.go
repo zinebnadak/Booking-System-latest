@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
+	"emeal-booking/db"
 )
 
 // Once something is on a bill, a waiter can't take it off, lower it, give a
@@ -19,7 +19,7 @@ import (
 // show everything that was taken off.
 func TestOnlyTheManagerTakesThingsOff(t *testing.T) {
 	e := newEnv(t, nil)
-	burger, soda := e.menuItem("Ozmo-burgare"), e.menuItem("Läsk 33 cl")
+	burger, soda := e.menuItem("E-Meal-burgare"), e.menuItem("Läsk 33 cl")
 	m, err := e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +102,7 @@ func TestOnlyTheManagerTakesThingsOff(t *testing.T) {
 	req.Header.Set("Accept-Language", "en")
 	rec := httptest.NewRecorder()
 	e.h.ServeHTTP(rec, req)
-	e.expect(rec, 200, "Taken off bills", "1× Läsk 33 cl", "Added by mistake", "Never paid", "Left without paying", "2× Ozmo-burgare", "3× Läsk 33 cl", "By waiter", "Lisa")
+	e.expect(rec, 200, "Taken off bills", "1× Läsk 33 cl", "Added by mistake", "Never paid", "Left without paying", "2× E-Meal-burgare", "3× Läsk 33 cl", "By waiter", "Lisa")
 }
 
 // A skipped bill can go back on a free table, and be paid later.
@@ -130,7 +130,7 @@ func TestSkippedBillBackAndPaid(t *testing.T) {
 func TestPINUndoBadgeAndFlags(t *testing.T) {
 	e := newEnv(t, nil)
 	soda := e.menuItem("Läsk 33 cl")
-	burger := e.menuItem("Ozmo-burgare")
+	burger := e.menuItem("E-Meal-burgare")
 	m, err := e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
 	if err != nil {
 		t.Fatal(err)

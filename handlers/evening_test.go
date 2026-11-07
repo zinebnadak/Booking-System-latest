@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // One lunch, start to finish, through the screens staff use: an online
@@ -19,7 +19,7 @@ import (
 func TestAWholeLunch(t *testing.T) {
 	wrongPasswordDelay = 0
 	e := newEnv(t, nil)
-	wine, burger := e.menuItem("Husets vin, glas"), e.menuItem("Ozmo-burgare")
+	wine, burger := e.menuItem("Husets vin, glas"), e.menuItem("E-Meal-burgare")
 	qty := func(m db.MenuItem) string { return fmt.Sprintf("qty_%d", m.ID) }
 
 	// 1. An online booking for 4 at 12:00 with a 20 € deposit. They arrive.
@@ -40,7 +40,7 @@ func TestAWholeLunch(t *testing.T) {
 
 	// 3. The order: 2 burgers (to the chef), 2 glasses of wine. 1 glass left.
 	location(t, e.as(lisa, "POST", page+"/add", url.Values{"bill": {"0"}, qty(burger): {"2"}, qty(wine): {"2"}}), "msg=addedfood")
-	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "Ozmo-burgare")
+	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "E-Meal-burgare")
 	e.expect(e.as(lisa, "GET", "/admin/orders", nil), 200, "Running low:", "Husets vin, glas (1 left)")
 	b, _ := e.store.OpenBill(table)
 	id := fmt.Sprint(b.ID)

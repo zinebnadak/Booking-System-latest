@@ -227,7 +227,7 @@ func seedMenu() []MenuItem {
 // demoMenuNames is the made-up menu the first versions started with.
 var demoMenuNames = map[string]bool{
 	"Toast skagen": true, "Rödbetssallad": true, "Fisksoppa": true, "Kycklinglårfilé": true,
-	"Laxfilé": true, "Svamprisotto": true, "Ozmo-burgare": true, "Chokladfondant": true,
+	"Laxfilé": true, "Svamprisotto": true, "E-Meal-burgare": true, "Chokladfondant": true,
 	"Pannacotta": true, "Sorbet": true, "Läsk 33 cl": true, "Mineralvatten": true,
 	"Kaffe": true, "Husets vin, glas": true,
 }

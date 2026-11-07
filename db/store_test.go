@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 func newStore(t *testing.T) *Store {

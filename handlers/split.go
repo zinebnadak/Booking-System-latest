@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"ozmo-booking/db"
-	"ozmo-booking/schedule"
+	"emeal-booking/db"
+	"emeal-booking/schedule"
 )
 
 // Splitting a bill, and receipts with a QR code.

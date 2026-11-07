@@ -1,12 +1,12 @@
 #!/bin/bash
-# Ozmo on your phone: starts Ozmo and a temporary public link (a free
+# E-Meal on your phone: starts E-Meal and a temporary public link (a free
 # Cloudflare quick tunnel, no account), so you can test from any phone.
 #
 # Double-click this file in Finder to start. Keep the window open while you
 # test. Close the window (or press Ctrl+C) to stop everything: the link
 # stops working at once.
 #
-# It uses its own test data (data/phone-test.json), its own port (8097) and
+# It uses its own test data (data/phone-test.json), its own port (8098) and
 # new passwords each time, never admin/admin. The link and passwords are
 # shown here and saved in data/phone-link.txt (deleted when you stop).
 
@@ -30,8 +30,8 @@ if [ ! -x "$CF" ]; then
 		tar -xzf "$HOME/cloudflared.tgz" -C "$HOME" || stop "The download didn't work. Check the internet and try again."
 fi
 
-say "Building Ozmo…"
-go build -o /tmp/ozmo-phone . || stop "Ozmo didn't build. The lines above say why."
+say "Building E-Meal…"
+go build -o /tmp/emeal-phone . || stop "E-Meal didn't build. The lines above say why."
 
 pw() { printf '%s-%04d-%04d' "$1" $((RANDOM % 10000)) $((RANDOM % 10000)); }
 MGR=$(pw manager)
@@ -44,18 +44,18 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 0' INT TERM HUP
 
-PORT=8097 DATA_FILE=data/phone-test.json ADMIN_PASSWORD="$MGR" \
-	/tmp/ozmo-phone >data/phone-server.log 2>&1 &
+PORT=8098 DATA_FILE=data/phone-test.json ADMIN_PASSWORD="$MGR" \
+	/tmp/emeal-phone >data/phone-server.log 2>&1 &
 SRV=$!
 for _ in $(seq 1 30); do
-	curl -s -o /dev/null http://localhost:8097/ && break
+	curl -s -o /dev/null http://localhost:8098/ && break
 	sleep 1
 done
-curl -s -o /dev/null http://localhost:8097/ || { tail -20 data/phone-server.log; stop "Ozmo didn't start. The lines above say why."; }
+curl -s -o /dev/null http://localhost:8098/ || { tail -20 data/phone-server.log; stop "E-Meal didn't start. The lines above say why."; }
 
 say "Opening the public link…"
 caffeinate -dims -w $$ & # keeps the Mac awake while this window is open
-"$CF" tunnel --no-autoupdate --url http://localhost:8097 >data/phone-tunnel.log 2>&1 &
+"$CF" tunnel --no-autoupdate --url http://localhost:8098 >data/phone-tunnel.log 2>&1 &
 TUN=$!
 URL=""
 for _ in $(seq 1 60); do
@@ -77,7 +77,7 @@ grep -q 'Registered tunnel connection' data/phone-tunnel.log || { tail -20 data/
 sleep 15
 
 printf 'Link: %s\nStaff login: %s/login\nManager: admin / %s\n' "$URL" "$URL" "$MGR" >"$LINKFILE"
-say "Ozmo is online. Open this on your phone:"
+say "E-Meal is online. Open this on your phone:"
 cat "$LINKFILE"
 say "Keep this window open while you test. Close it (or press Ctrl+C) to stop."
 echo "If the phone says it can't find the site: wait a minute, then open the link in a private tab (or switch the phone to mobile data)."

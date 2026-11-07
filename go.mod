@@ -1,3 +1,3 @@
-module ozmo-booking
+module emeal-booking
 
 go 1.22

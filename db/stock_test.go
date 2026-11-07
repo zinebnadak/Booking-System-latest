@@ -235,7 +235,7 @@ func TestTakeawayTakesStock(t *testing.T) {
 	now := at("10:00")
 	var burger MenuItem
 	for _, m := range s.Menu(false) {
-		if m.Name == "Ozmo-burgare" {
+		if m.Name == "E-Meal-burgare" {
 			burger = m
 		}
 	}

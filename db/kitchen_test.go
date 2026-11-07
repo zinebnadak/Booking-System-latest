@@ -57,7 +57,7 @@ func TestTableCodeUnlocksTheBookedTable(t *testing.T) {
 func TestTakeawayOnTheKitchenScreen(t *testing.T) {
 	s := newStore(t)
 	b, err := s.CreateTakeaway(Booking{Date: "2026-10-31", Time: "18:00", Name: "Erik", Email: "e@x.fi", Notes: "extra napkins",
-		Items: []OrderItem{{Name: "Ozmo-burgare", Quantity: 2, UnitPriceCents: 1990}}, TotalCents: 3980}, at("10:00"))
+		Items: []OrderItem{{Name: "E-Meal-burgare", Quantity: 2, UnitPriceCents: 1990}}, TotalCents: 3980}, at("10:00"))
 	if err != nil {
 		t.Fatal(err)
 	}

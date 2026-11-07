@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 // ---------- table codes: guests who booked unlock their table's QR code ----------

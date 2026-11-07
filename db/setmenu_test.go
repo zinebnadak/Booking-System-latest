@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"ozmo-booking/schedule"
+	"emeal-booking/schedule"
 )
 
 func TestAfterWorkSetMenu(t *testing.T) {
