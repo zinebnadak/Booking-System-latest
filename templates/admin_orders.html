@@ -223,10 +223,16 @@
     </span>
   </a>
   {{if and .Bill (or .Served .Billed) (not .Paying) (not .Bill.IsSplit) (gt .Bill.Left 0)}}
-  <form method="post" action="/admin/orders/{{.No}}/pay" class="ot-pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .No (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
-    <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="card">
-    <button class="btn btn-ok btn-block btn-sm">{{trf "Card · %s" (euro .Bill.Left)}}</button>
-  </form>
+  <div class="ot-pay">
+    <form method="post" action="/admin/orders/{{.No}}/pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .No (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+      <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="card">
+      <button class="btn btn-ok btn-block btn-sm" aria-label="{{trf "Card · %s" (euro .Bill.Left)}}">{{tr "Card"}}</button>
+    </form>
+    <form method="post" action="/admin/orders/{{.No}}/pay" data-confirm="{{trf "Table %d paid %s in cash?" .No (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
+      <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="cash">
+      <button class="btn btn-secondary btn-block btn-sm" aria-label="{{trf "Cash · %s" (euro .Bill.Left)}}">{{tr "Cash"}}</button>
+    </form>
+  </div>
   {{end}}
   </div>
   {{end}}

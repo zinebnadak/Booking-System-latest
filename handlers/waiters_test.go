@@ -92,7 +92,7 @@ func TestPayFromTheTile(t *testing.T) {
 	soda := e.menuItem("Läsk 33 cl")
 	location(t, e.do("POST", "/admin/orders/5/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", soda.ID): {"1"}}, true), "msg=added")
 	b, _ := e.store.OpenBill(5)
-	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Card · "+euro(b.Left()), `action="/admin/orders/5/pay"`)
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Card · "+euro(b.Left()), "Cash · "+euro(b.Left()), `value="cash"`, `action="/admin/orders/5/pay"`)
 	location(t, e.do("POST", "/admin/orders/5/pay", url.Values{"bill": {fmt.Sprint(b.ID)}, "method": {"card"}}, true), "/admin/orders?msg=billpaid")
 	if _, open := e.store.OpenBill(5); open {
 		t.Fatal("still open")

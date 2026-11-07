@@ -1552,4 +1552,8 @@ var staffSV = map[string]string{
 	"Feedback QR code":                                                                                        "QR-kod för omdömen",
 	"3 meals runs today. When guests are ready for the next meal, open the table and send it to the kitchen.": "3 rätter gäller i dag. När gästerna är redo för nästa rätt, öppna bordet och skicka den till köket.",
 	"Print this and put it on the tables or by the door. Guests scan it to tell you how it was. Their feedback comes to you by email and under Feedback; it is never published.": "Skriv ut den och ställ den på borden eller vid dörren. Gästerna skannar den för att berätta hur det var. Omdömet kommer till er via e-post och under Omdömen; det publiceras aldrig.",
+
+	// tile pay
+	"Card":      "Kort",
+	"Cash · %s": "Kontant · %s",
 }

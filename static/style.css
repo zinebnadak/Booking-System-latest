@@ -687,7 +687,7 @@ dialog .dlg-form .dlg-body { flex: 1 1 auto; min-height: 0; }
 
 .tt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); margin-bottom: var(--s4); }
 .tt { display: flex; flex-direction: column; gap: 4px; min-height: 176px; padding: 14px; border-radius: var(--r-lg); border: 1.5px solid var(--line); background: var(--card); scroll-margin-top: 120px; }
-.tt-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.tt-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px var(--s2); }
 .tt-no { font-weight: 700; font-size: 1.1rem; white-space: nowrap; }
 .tt-who { font-size: .85rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tt-dots { display: inline-flex; gap: 4px; }
@@ -753,7 +753,7 @@ a.ot { text-decoration: none; color: var(--ink); min-height: 132px; }
 a.ot:hover { border-color: var(--ink); }
 .ot-open { background: var(--card); border-color: var(--line-2); }
 .ot-ready { border: 2px solid var(--ok); background: var(--ok-soft); }
-.ot-total { font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.ot-total { margin-left: auto; font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ot-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .ot-go { margin-top: auto; padding-top: var(--s2); font-size: .86rem; font-weight: 600; color: var(--muted); }
 
@@ -1485,7 +1485,8 @@ body.admin:has(.kitchen) { background: #171d1d; }
 .ot-waiter { font-size: .85rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ot-waiter.none { color: var(--muted); font-weight: 500; }
 .ot-mine { border-color: var(--brass); }
-.ot-pay { margin: 0; }
+.ot-pay { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ot-pay form { margin: 0; }
 .ot-pay .btn { min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .waiter-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0 0 var(--s3); }
 .waiter-now { font-weight: 600; }
@@ -1510,8 +1511,9 @@ body.admin:has(.kitchen) { background: #171d1d; }
 .note-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 .note-chip { min-height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font: inherit; font-size: .84rem; color: var(--ink); cursor: pointer; }
 .note-chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--card); }
-.ot-foot { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; min-width: 0; }
-.ot-foot .ot-waiter { font-size: .78rem; font-weight: 600; color: var(--muted); max-width: 50%; }
+.ot-foot { margin-top: auto; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 2px 6px; min-width: 0; }
+.ot-foot .ot-waiter { font-size: .78rem; font-weight: 600; color: var(--muted); max-width: 100%; }
+.ot-foot .ot-go { white-space: nowrap; }
 .ot-foot .ot-waiter.none { color: #612b18; font-weight: 600; }
 .ot-foot .ot-waiter + .ot-go { margin-left: auto; }
 /* Needs a waiter: one row that scrolls sideways */
