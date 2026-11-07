@@ -1,4 +1,5 @@
 {{define "content"}}
+<div class="page-in">
 <div class="day-head" data-live-screen="/admin/orders?part=tiles{{if .Waiter}}&amp;view={{.View}}{{end}}">
   <h1>{{tr "Orders"}}</h1>
   <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
@@ -20,6 +21,7 @@
   <button class="btn btn-sm {{if .CheckPhoneOrders}}btn-secondary{{else}}btn-ok{{end}}">{{if .CheckPhoneOrders}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>{{end}}
 <div data-room-view="orders"><div data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "tiles" .}}</div></div>
+</div>
 {{end}}
 
 {{define "tiles"}}
@@ -197,6 +199,7 @@
       <span class="tt-no">{{trf "Table %d" .No}}{{if .Guests}} <span class="ot-ppl" title="{{trf "%d guests" .Guests}}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>{{.Guests}}<span class="sr-only"> {{tr "guests"}}</span></span>{{end}}</span>
       {{if .Bill}}<span class="ot-total">{{euro .Bill.ToPay}}</span>{{end}}
     </div>
+    {{if .Ready}}<span class="ot-pickup" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16M5 18a7 7 0 0 1 14 0M12 8V6M10 6h4"/></svg><span><strong>{{tr "Ready to pick up"}}</strong><small>{{trf "Go to the kitchen · ready %s" .ReadyAt}}</small></span></span>{{end}}
     {{with .Who}}<span class="tt-who">{{.}}</span>{{end}}
     {{range .Booked}}<span class="ot-booked">{{trf "Booked %s" .}}</span>{{end}}
     {{with .Deal}}<span class="ot-deal ot-deal-{{.State}}">{{if .Dots}}<span class="tt-dots" aria-hidden="true">{{range .Dots}}<i{{if .}} class="on"{{end}}></i>{{end}}</span>{{end}}{{if eq .State "next"}}{{trf "Ready for meal %d" .Next}}{{with .NextDish}} · {{.}}{{end}}{{else if eq .State "last"}}{{tr "Finished all meals"}}{{else if eq .State "waiter"}}{{tr "Wants a waiter"}}{{else}}{{trf "Eating meal %d of %d" .Meal $.MealsInDeal}}{{end}}</span>{{end}}
@@ -205,7 +208,6 @@
       <span class="ot-badges">
         {{if .Cooking}}<span class="badge badge-wait">{{tr "With the chef"}}</span>{{end}}
         {{if .Held}}<span class="badge badge-muted">{{tr "Waits for your go"}}</span>{{end}}
-        {{if .Ready}}<span class="badge badge-ok">{{trf "Food ready %s · pick up" .ReadyAt}}</span>{{end}}
         {{if .Bring}}<span class="badge badge-wait">{{tr "Drinks to bring"}}</span>{{end}}
         {{if .Paying}}<span class="badge badge-wait">{{tr "Paying on a phone"}}</span>
         {{else if .Billed}}<span class="badge badge-pay">{{tr "Bill shown · waiting for payment"}}</span>
@@ -222,7 +224,8 @@
       <span class="ot-go">{{if .Bill}}{{tr "Open the bill"}}{{else}}{{tr "Take an order"}}{{end}} ›</span>
     </span>
   </a>
-  {{if and .Bill (or .Served .Billed) (not .Paying) (not .Bill.IsSplit) (gt .Bill.Left 0)}}
+  {{if and .Bill (or .Served .Billed) (not .Paying) (gt .Bill.Left 0)}}
+  {{if not .Bill.IsSplit}}
   <div class="ot-pay">
     <form method="post" action="/admin/orders/{{.No}}/pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .No (euro .Bill.Left)}}" data-confirm-ok="{{tr "Yes, paid"}}">
       <input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="method" value="card">
@@ -233,6 +236,8 @@
       <button class="btn btn-secondary btn-block btn-sm" aria-label="{{trf "Cash · %s" (euro .Bill.Left)}}">{{tr "Cash"}}</button>
     </form>
   </div>
+  {{end}}
+  {{if not .Bill.Payments}}<a class="btn btn-secondary btn-block btn-sm ot-split" href="/admin/orders/{{.No}}/split">{{if .Bill.IsSplit}}{{tr "Pay each guest"}}{{else}}{{tr "Split the bill"}}{{end}}</a>{{end}}
   {{end}}
   </div>
   {{end}}

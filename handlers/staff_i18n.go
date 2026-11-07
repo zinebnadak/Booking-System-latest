@@ -1556,4 +1556,11 @@ var staffSV = map[string]string{
 	// tile pay
 	"Card":      "Kort",
 	"Cash · %s": "Kontant · %s",
+
+	// tile split
+	"Pay each guest": "Betala per gäst",
+
+	// ready tile
+	"Ready to pick up":             "Klar att hämta",
+	"Go to the kitchen · ready %s": "Gå till köket · klar %s",
 }

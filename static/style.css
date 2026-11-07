@@ -1487,6 +1487,7 @@ body.admin:has(.kitchen) { background: #171d1d; }
 .ot-mine { border-color: var(--brass); }
 .ot-pay { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .ot-pay form { margin: 0; }
+.ot-split { min-height: 40px; }
 .ot-pay .btn { min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .waiter-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0 0 var(--s3); }
 .waiter-now { font-weight: 600; }
@@ -1591,3 +1592,24 @@ body.admin:has(.kitchen) { background: #171d1d; }
 .pin-take { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px dashed var(--line-2); }
 .pin-take summary { cursor: pointer; font-weight: 600; }
 .pin-take input[name=pin] { width: 120px; letter-spacing: .2em; }
+
+/* Back on Orders (the home page): a very short fade in. Only on arriving,
+   not when the tables refresh by themselves. */
+.page-in { animation: page-in .28s cubic-bezier(.2, .7, .2, 1) backwards; }
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .page-in { animation: none; } }
+
+/* Food ready at the pass: the whole table box turns solid green and
+   breathes, so waiters see it from across the room. Green only ever means
+   "go and pick it up". */
+.ot.ot-ready { --ink: #fff; --muted: rgba(255, 255, 255, .82); --ink-2: #fff; background: var(--ok); border: 2px solid var(--ok); color: #fff; animation: ready-glow 1.6s ease-in-out infinite; }
+.ot.ot-ready .ot-go, .ot.ot-ready .ot-waiter, .ot.ot-ready .tt-sub, .ot.ot-ready .tt-who { color: rgba(255, 255, 255, .85); }
+.ot.ot-ready .ot-ppl { background: rgba(255, 255, 255, .2); color: #fff; }
+.ot.ot-ready .badge { color: #1c1f1f; }
+.ot-pickup { display: flex; align-items: center; gap: 10px; margin: 2px 0; padding: 8px 10px; border-radius: 12px; background: #fff; color: var(--ok); }
+.ot-pickup svg { flex: none; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.ot-pickup span { display: flex; flex-direction: column; min-width: 0; }
+.ot-pickup strong { font-size: 1rem; line-height: 1.15; }
+.ot-pickup small { font-size: .78rem; font-weight: 600; color: #3d6b52; }
+@keyframes ready-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(44, 107, 73, .55); } 50% { box-shadow: 0 0 0 7px rgba(44, 107, 73, 0); } }
+@media (prefers-reduced-motion: reduce) { .ot.ot-ready { animation: none; } }

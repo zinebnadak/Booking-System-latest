@@ -77,7 +77,7 @@ func TestTableOrderToPaidBill(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.h.ServeHTTP(rec, live)
 	e.expect(rec, 204)
-	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Food ready 18:00 · pick up", "Food ready to pick up", fmt.Sprintf(`data-alert-key="ready-%d"`, ticket.ID))
+	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "ot-ready", "Ready to pick up", "Go to the kitchen · ready 18:00", "Food ready to pick up", fmt.Sprintf(`data-alert-key="ready-%d"`, ticket.ID))
 	e.expect(e.do("GET", "/admin/orders?part=tiles", nil, true), 200, "Food ready to pick up")
 	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "Ready 18:00 · pick up")
 	e.expect(e.do("GET", "/admin/kitchen?part=tickets", nil, true), 200, "No orders right now", "Ready at the pass", "Not done yet")
