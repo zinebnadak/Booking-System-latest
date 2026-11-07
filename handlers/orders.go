@@ -50,6 +50,7 @@ type orderTile struct {
 	OldOpen bool       // still open from an earlier day: someone forgot to close it
 	Paying  bool       // a guest is paying on their phone right now
 	Waiter  string     // the waiter looking after it ("" = nobody yet)
+	Guests  int        // how many sit there (0 = not said)
 	Mine    bool       // it's the logged-in waiter's table
 
 	// Split tables where some guests paid and others haven't yet.
@@ -96,6 +97,7 @@ func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
 			continue
 		}
 		t.Bill = &b
+		t.Guests = b.Guests
 		if b.Waiter != 0 {
 			t.Waiter = names[b.Waiter]
 			if t.Waiter == "" {
@@ -207,6 +209,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		"Rooms": byRoom(shown, func(t orderTile) string { return t.Room }, func(t orderTile) bool { return t.Bill != nil }),
 		"View":  view, "Waiter": me.Role == roleWaiter, "MineCount": mine, "Others": others,
 		"Me": me.StaffID, "StaffList": staff, "NoWaiter": noWaiter, "Manager": rank(me.Role) >= rank(roleManager),
+		"Asks": askViews(lang, s.Store.Asks()), "Skipped": s.skippedViews(lang, now), "FreeTables": s.freeTables(),
 		"Drinks": s.drinksToBring(), "Receipts": s.receiptsToPrint(lang), "Calls": s.callsNow(lang, now),
 		"PhoneOrders": s.pendingOrders(lang, now), "CheckPhoneOrders": s.Store.CheckPhoneOrders(),
 		"Stock": s.stockStrip(), "OnlinePaid": s.onlinePaid(lang, now), "ReadyFood": s.readyFood(now),
@@ -238,6 +241,70 @@ func ordersView(w http.ResponseWriter, r *http.Request) string {
 	return "all"
 }
 
+// askView is a waiter's question for the manager, on Orders.
+type askView struct {
+	db.AskedLine
+	At, By string
+}
+
+func askViews(lang string, asks []db.AskedLine) []askView {
+	out := make([]askView, 0, len(asks))
+	for _, a := range asks {
+		out = append(out, askView{AskedLine: a, At: clockOf(a.Line.Ask.At), By: whoL(lang, a.Line.Ask.By)})
+	}
+	return out
+}
+
+// whoL shows who did something: a waiter's name, or "Manager" in the
+// screen's language.
+func whoL(lang, who string) string {
+	switch who {
+	case "Manager", "Manager (PIN)":
+		return st(lang, who)
+	}
+	return who
+}
+
+// skippedView is a bill skipped for now, waiting for the manager.
+type skippedView struct {
+	db.Bill
+	At, By string
+}
+
+func (s *Server) skippedViews(lang string, now time.Time) []skippedView {
+	var out []skippedView
+	for _, b := range s.Store.SkippedBills() {
+		v := skippedView{Bill: b, By: whoL(lang, b.SkippedBy), At: clockOf(*b.SkippedAt)}
+		if schedule.FormatDate(*b.SkippedAt) != schedule.FormatDate(now) {
+			v.At = shortDateL(lang, schedule.FormatDate(*b.SkippedAt)) + " " + v.At
+		}
+		out = append(out, v)
+	}
+	return out
+}
+
+// freeTables are the tables with no open bill.
+func (s *Server) freeTables() []int {
+	busy := map[int]bool{}
+	for _, b := range s.Store.OpenBills() {
+		busy[b.Table] = true
+	}
+	var out []int
+	for _, t := range schedule.TableNos() {
+		if !busy[t] {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// removeReasons are the usual reasons a waiter gives for taking something
+// off (translated on screen; stored as shown).
+var removeReasons = []string{"Added by mistake", "Wrong table", "The guest changed their mind", "It never came out of the kitchen", "Something was wrong with it"}
+
+// isManager: the manager (not a waiter) is logged in.
+func isManager(r *http.Request) bool { return rank(roleOf(r)) >= rank(roleManager) }
+
 // claimTable: a waiter who opens a table's bill looks after that table
 // (unless a colleague already does).
 func (s *Server) claimTable(r *http.Request, billID int) {
@@ -255,6 +322,8 @@ type lineView struct {
 	Status string // "", "cooking", "held", "ready" (at the pass), "served"; drinks guests ordered: "bring", "brought"
 	Ready  string // when the chef finished it, or when it was served
 	Who    string // whose it is, when guests ordered it from their phones
+	Counts []int  // 1..Qty, for "take off how many"
+	Undo   int    // seconds left to undo it (just added, chef hasn't finished it)
 }
 
 func tableFromPath(r *http.Request) int {
@@ -304,6 +373,14 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 		tickets := s.Store.TicketsForBill(bill.ID)
 		for _, l := range bill.Lines {
 			v := lineView{BillLine: l}
+			if left := db.UndoWindow - now.Sub(l.AddedAt); left > 0 && !now.Before(l.AddedAt) {
+				if tk, ok := tickets[l.TicketID]; !ok || tk.DoneAt == nil {
+					v.Undo = int(left / time.Second)
+				}
+			}
+			for n := 1; n <= l.Qty && n <= maxQty; n++ {
+				v.Counts = append(v.Counts, n)
+			}
 			if tk, ok := tickets[l.TicketID]; ok && tk.Bar {
 				v.Status = "bring"
 				if tk.DoneAt != nil {
@@ -366,6 +443,15 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	if open && bill.Guests > 0 {
+		data["DealGuests"] = bill.Guests // 3 meals for everyone at the table
+	}
+	data["Manager"] = isManager(r)
+	data["HasPIN"] = s.Store.HasManagerPIN()
+	data["MeName"] = actor(r)
+	data["Reasons"] = removeReasons
+	data["GuestChoices"] = []int{1, 2, 3, 4, 5, 6, 7, 8}
+	data["MaxGuests"] = db.MaxTableGuests
 	data["Favourites"] = s.favourites(now)
 	data["QuickNotes"] = quickNotes
 	var food []string
@@ -563,6 +649,14 @@ func orderError(err error) string {
 		return "orderwaiting"
 	case errors.Is(err, db.ErrPartlyPaid):
 		return "partlypaid"
+	case errors.Is(err, db.ErrNoReason):
+		return "noreason"
+	case errors.Is(err, db.ErrBadQty):
+		return "invalid"
+	case errors.Is(err, db.ErrTableBusy):
+		return "tabletaken"
+	case errors.Is(err, db.ErrNotSkip):
+		return "billstale"
 	}
 	log.Printf("orders: %v", err)
 	return "invalid"
@@ -650,20 +744,136 @@ func (s *Server) orderLine(w http.ResponseWriter, r *http.Request) {
 			old = l
 		}
 	}
-	if r.PathValue("action") == "remove" {
-		if _, err := s.Store.RemoveLine(billID, lineID); err != nil {
+	now := s.Now()
+	switch r.PathValue("action") {
+	case "remove", "approve": // only the manager takes things off
+		if !isManager(r) {
+			redirectMsg(w, r, orderPath(table), nil, "askmanager")
+			return
+		}
+		qty := atoiDefault(r.FormValue("qty"), 0)
+		if r.PathValue("action") == "approve" && old.Ask != nil {
+			qty = old.Ask.Qty
+		}
+		if qty <= 0 || qty > old.Qty {
+			qty = old.Qty
+		}
+		if _, err := s.Store.TakeOff(billID, lineID, qty, r.FormValue("why"), actor(r), now); err != nil {
 			redirectMsg(w, r, orderPath(table), nil, orderError(err))
 			return
 		}
-		s.logActivity(r, table, "took off the bill", fmt.Sprintf("%d× %s · %s", old.Qty, old.Name, euro(old.Total())))
+		what := fmt.Sprintf("%d× %s · %s", qty, old.Name, euro(old.Total()*qty/max(old.Qty, 1)))
+		if old.Ask != nil {
+			what += " (" + stf(langEN, "asked by %s: %s", old.Ask.By, old.Ask.Why) + ")"
+		}
+		s.logActivity(r, table, "took off the bill", what)
+		s.live.publish()
+		back := orderPath(table)
+		if r.FormValue("back") == "orders" {
+			back = "/admin/orders"
+		}
+		redirectMsg(w, r, back, nil, "lineremoved")
+		return
+	case "undo": // a mis-tap, within a minute of adding
+		if err := s.Store.UndoLine(billID, lineID, actor(r), now); err != nil {
+			msg := orderError(err)
+			if errors.Is(err, db.ErrTooLate) {
+				msg = "undolate"
+			}
+			redirectMsg(w, r, orderPath(table), nil, msg)
+			return
+		}
+		s.logActivity(r, table, "undid right after adding", fmt.Sprintf("%d× %s · %s", old.Qty, old.Name, euro(old.Total())))
+		s.live.publish()
+		redirectMsg(w, r, orderPath(table), nil, "undone")
+		return
+	case "pin": // the manager stands at the waiter's device and types their PIN
+		key := "mgrpin|" + s.clientIP(r)
+		if s.rl.over(key, limitLogin, now) {
+			s.tooMany(w, r, orderPath(table))
+			return
+		}
+		if !s.Store.CheckManagerPIN(strings.TrimSpace(r.FormValue("pin"))) {
+			s.rl.hit(key, now)
+			redirectMsg(w, r, orderPath(table), nil, "pinwrong")
+			return
+		}
+		qty := atoiDefault(r.FormValue("qty"), 0)
+		why := strings.TrimSpace(r.FormValue("why"))
+		if more := strings.TrimSpace(r.FormValue("more")); more != "" {
+			why = strings.TrimSpace(why + " · " + more)
+		}
+		if old.Ask != nil {
+			if qty == 0 {
+				qty = old.Ask.Qty
+			}
+			if why == "" {
+				why = old.Ask.Why
+			}
+		}
+		if why == "" {
+			redirectMsg(w, r, orderPath(table), nil, "noreason")
+			return
+		}
+		if qty <= 0 || qty > old.Qty {
+			qty = old.Qty
+		}
+		asked := actor(r)
+		if old.Ask != nil {
+			asked = old.Ask.By
+		}
+		if err := s.Store.TakeOffAsked(billID, lineID, qty, why, asked, "Manager (PIN)", now); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, orderError(err))
+			return
+		}
+		s.logActivity(r, table, "took off the bill with the manager's PIN", fmt.Sprintf("%d× %s · %s · %s", qty, old.Name, euro(old.Total()*qty/max(old.Qty, 1)), why))
 		s.live.publish()
 		redirectMsg(w, r, orderPath(table), nil, "lineremoved")
+		return
+	case "ask": // a waiter asks the manager to take it off
+		qty := atoiDefault(r.FormValue("qty"), old.Qty)
+		why := strings.TrimSpace(r.FormValue("why"))
+		if more := strings.TrimSpace(r.FormValue("more")); more != "" {
+			why = strings.TrimSpace(why + " · " + more)
+		}
+		if err := s.Store.AskRemove(billID, lineID, qty, why, actor(r), now); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, orderError(err))
+			return
+		}
+		s.logActivity(r, table, "asked the manager to take off the bill", fmt.Sprintf("%d× %s · %s", qty, old.Name, why))
+		s.live.publish()
+		redirectMsg(w, r, orderPath(table), nil, "asksent")
+		return
+	case "drop": // the manager says no, or the waiter takes the question back
+		if !isManager(r) && (old.Ask == nil || old.Ask.By != actor(r)) {
+			redirectMsg(w, r, orderPath(table), nil, "askmanager")
+			return
+		}
+		if err := s.Store.DropAsk(billID, lineID); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, orderError(err))
+			return
+		}
+		if old.Ask != nil && isManager(r) {
+			s.logActivity(r, table, "said no to taking off the bill", fmt.Sprintf("%d× %s (%s)", old.Ask.Qty, old.Name, old.Ask.By))
+		}
+		s.live.publish()
+		back := orderPath(table)
+		if r.FormValue("back") == "orders" {
+			back = "/admin/orders"
+		}
+		redirectMsg(w, r, back, nil, "askdropped")
 		return
 	}
 	price, err := parseEuro(r.FormValue("price"))
 	qty := atoiDefault(r.FormValue("qty"), 0)
 	if err != nil || qty < 1 || qty > maxQty {
 		redirectMsg(w, r, orderPath(table), nil, "invalid")
+		return
+	}
+	// A waiter can add more, but not fewer, a lower price or a discount:
+	// that's the manager's (see db/removals.go).
+	if !isManager(r) && (qty < old.Qty || price != old.PriceCents || atoiDefault(r.FormValue("discount"), old.DiscountPct) != old.DiscountPct) {
+		redirectMsg(w, r, orderPath(table), nil, "askmanager")
 		return
 	}
 	bill, berr := s.Store.BillByID(billID)
@@ -675,7 +885,7 @@ func (s *Server) orderLine(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if err := s.Store.UpdateLine(billID, lineID, price, qty, note); err != nil {
+	if err := s.Store.UpdateLineBy(billID, lineID, price, qty, note, actor(r), now); err != nil {
 		if q, ok := soldOutQuery(err); ok {
 			redirectMsg(w, r, orderPath(table), q, "soldout")
 			return
@@ -726,6 +936,10 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		s.live.publish()
 		redirectMsg(w, r, "/admin/orders", nil, "allpaid")
 	case "discount":
+		if !isManager(r) {
+			redirectMsg(w, r, orderPath(table), nil, "askmanager")
+			return
+		}
 		pct := atoiDefault(r.FormValue("pct"), -1)
 		n, err := s.Store.DiscountBill(billID, pct)
 		if err != nil {
@@ -777,6 +991,20 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		s.logActivity(r, table, what, euro(amount)+" ("+st(langEN, "whole bill")+")")
 		s.live.publish()
 		redirectMsg(w, r, "/admin/orders", nil, "billpaid")
+	case "guests": // how many people sit there (seats them at a free table)
+		n := atoiDefault(r.FormValue("guests"), 0)
+		b, err := s.Store.SetGuests(table, n, now)
+		if err != nil {
+			msg := orderError(err)
+			if errors.Is(err, db.ErrBadGuests) {
+				msg = "guestsbad"
+			}
+			redirectMsg(w, r, orderPath(table), nil, msg)
+			return
+		}
+		s.claimTable(r, b.ID)
+		s.live.publish()
+		redirectMsg(w, r, orderPath(table), nil, "guestsset")
 	case "waiter": // who looks after the table
 		id, name := atoiDefault(r.FormValue("staff"), 0), ""
 		if r.FormValue("staff") == "me" {
@@ -820,15 +1048,45 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		s.logActivity(r, table, "moved the bill", stf(langEN, "to table %d", to))
 		s.live.publish()
 		redirectMsg(w, r, orderPath(to), nil, "billmoved")
-	case "void":
+	case "void", "writeoff": // the whole bill: opened by mistake, or never paid
+		if !isManager(r) {
+			redirectMsg(w, r, orderPath(table), nil, "askmanager")
+			return
+		}
 		before, _ := s.Store.BillByID(billID)
-		if err := s.Store.VoidBill(billID); err != nil {
+		kind, what, msg := db.RemovedBill, "voided the bill", "billvoided"
+		if r.PathValue("action") == "writeoff" {
+			kind, what, msg = db.RemovedUnpaid, "wrote off an unpaid bill", "writtenoff"
+		}
+		if err := s.Store.VoidBillBy(billID, kind, r.FormValue("why"), actor(r), now); err != nil {
 			redirectMsg(w, r, orderPath(table), nil, orderError(err))
 			return
 		}
-		s.logActivity(r, table, "voided the bill", euro(before.Total()))
+		detail := euro(before.Total())
+		if why := strings.TrimSpace(r.FormValue("why")); why != "" {
+			detail += " · " + why
+		}
+		s.logActivity(r, table, what, detail)
 		s.live.publish()
-		redirectMsg(w, r, "/admin/orders", nil, "billvoided")
+		redirectMsg(w, r, "/admin/orders", nil, msg)
+	case "skip": // "Skip for now": the bill waits for the manager, the table is free
+		before, _ := s.Store.BillByID(billID)
+		if err := s.Store.SkipBill(billID, actor(r), now); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, orderError(err))
+			return
+		}
+		s.logActivity(r, table, "skipped an unpaid bill for now", euro(before.ToPay()))
+		s.live.publish()
+		redirectMsg(w, r, orderPath(table), nil, "skipped")
+	case "back": // a skipped bill goes back on a table
+		to := atoiDefault(r.FormValue("to"), 0)
+		if err := s.Store.BackToTable(billID, to); err != nil {
+			redirectMsg(w, r, "/admin/orders", nil, orderError(err))
+			return
+		}
+		s.logActivity(r, to, "put a skipped bill back on the table", "")
+		s.live.publish()
+		redirectMsg(w, r, orderPath(to), nil, "billback")
 	default:
 		s.notFound(w, r)
 	}

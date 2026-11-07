@@ -41,8 +41,8 @@ go run .
 ```
 
 Open **http://localhost:8080**. Staff log in at **http://localhost:8080/login**:
-- **Manager:** `admin` / `admin`. Sees bookings, calendar, menu and closed days.
-- **Head manager:** `owner` / `owner`. Sees everything the manager does, plus the money pages and charts.
+- **Manager:** `admin` / `admin`. Sees everything: orders, bookings, menu, staff, and the money pages and charts.
+  (There used to be a separate head manager; that's now the same as the manager.)
 - **Waiters:** the manager adds them on **Staff** (section 12).
 
 You stay logged in for 14 days on that device, or until you press **Log out**.
@@ -232,6 +232,38 @@ internet. If it goes down, the restaurant keeps going on paper:
 - **Table buttons:** each button has its own random 32-character code; the site compares codes in a way that doesn't leak them through timing, never accepts a code in the address (addresses end up in logs), and stops listening to an address after 20 wrong codes in 10 minutes. A right code always works, so a guest sending wrong codes over the restaurant's Wi-Fi can't block the real buttons. Staff taps carry the meal number, so two waiters tapping "Meal 2 served" at once can't skip a meal.
 
 ---
+
+## Nothing comes off a bill without the manager
+
+Against "take the cash and delete the order":
+- **Waiters can only add and take payment.** Once something is on a bill, a
+  waiter can't take it off, lower how many or the price, give a discount or
+  void the bill. (Before tapping "Add to bill" they can change what they
+  picked as much as they like.)
+- **Added by mistake?** Open the dish and tap **Ask the manager to take it
+  off**, with how many and why. It stays on the bill. The manager sees it at
+  the top of Orders (and on the table's page) and taps **Take off** or **No,
+  keep it**.
+- **Skip for now:** guests left without paying, or new guests need the table.
+  The bill leaves the table, still open and unpaid, and waits under
+  **Skipped, not paid yet** on Orders. The table is free. If the guests come
+  back, anyone can take the payment there. The manager can put it back on a
+  table or **Write off** as never paid, with why.
+- **Undo for one minute:** right after "Add to bill" the line has an
+  **Undo** button for a minute (if the chef hasn't finished it). It shows on
+  the charts as "Undone by the waiter".
+- **Manager's PIN:** the manager sets a PIN on the Staff page. Standing next
+  to a waiter, they type it in the dish's window on the waiter's iPad or
+  phone and it comes off at once, recorded as "Manager (PIN)", asked by that
+  waiter. Wrong PINs are slowed down like wrong passwords.
+- **Red number in the top bar:** the manager sees how many questions and
+  skipped bills wait, next to Orders, on every page.
+- **Charts → Taken off bills:** everything taken off, for the month or year:
+  how many times, how many dishes and drinks, what it was worth (taken off,
+  voided bills, never paid), per waiter, and every one with when, table,
+  what, why, who asked and who took it off. Bills skipped and still unpaid
+  are shown too. A waiter with 3 or more taken off or skipped in the last 7
+  days is marked "Many this week" (their own one-minute undos don't count).
 
 ## Waiters: quicker on the floor
 
@@ -1090,14 +1122,17 @@ Waiters see Tables, Orders, Kitchen, Bookings and Calendar only.
 
 ---
 
-## 15. Head manager (`/owner`)
+## 15. Money pages (`/owner`)
 
-These pages have their own login, `OWNER_USER` and `OWNER_PASSWORD`. In demo mode it's `owner` / `owner`. The normal manager login can't open them.
+The manager opens these from the top bar (Money today, Charts, Table buttons,
+Feedback). Waiters can't. `OWNER_USER` / `OWNER_PASSWORD` in `.env` is an
+optional second manager login with the same rights; leave the password empty
+to switch it off.
 
 **Today** (the page you land on):
 - **Made today**, compared with the same weekday last week
 - **The month so far**, compared with the same days last month
-- **Table guests:** booked, arrived, not here yet, no-shows
+
 - **Deposits:** paid, refunded, cancelled but kept, left without paying
 - **Takeaway:** orders, money still to collect at pickup, cancelled, average order
 - **Everything booked for the day**, with its status

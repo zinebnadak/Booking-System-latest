@@ -7,6 +7,16 @@
 </div>
 <p class="muted small">{{tr "Each waiter logs in with their own username and password. They can use the tables, orders, kitchen and bookings, but not the menu, closed days or this page. Payments, voids and price changes are recorded with their name."}}</p>
 
+<section class="panel mgr-pin" id="manager-pin">
+  <h2>{{tr "Manager's PIN"}}</h2>
+  <p class="muted small">{{tr "Waiters can't take anything off a bill. When you're next to them, type this PIN on their iPad or phone to take it off right there. It's recorded as yours."}}</p>
+  <form method="post" action="/admin/staff/managerpin" class="row">
+    <label class="field">{{if .HasPIN}}{{tr "New PIN"}}{{else}}{{tr "PIN (4–6 digits)"}}{{end}}<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="new-password" required></label>
+    <button class="btn btn-primary btn-sm">{{tr "Save PIN"}}</button>
+  </form>
+  {{if .HasPIN}}<form method="post" action="/admin/staff/managerpin"><input type="hidden" name="off" value="1"><button class="btn-link">{{tr "Turn the PIN off"}}</button></form>{{end}}
+</section>
+
 <section class="panel served-by" id="served">
   <h2>{{tr "Who served the most tables"}}</h2>
   <p class="muted small">{{tr "Paid tables, counted for the waiter who had the table when it was paid."}}</p>

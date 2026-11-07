@@ -1505,6 +1505,61 @@ body.admin:has(.kitchen) { background: #15130f; }
 .ot-foot .ot-waiter { font-size: .78rem; font-weight: 600; color: var(--muted); max-width: 50%; }
 .ot-foot .ot-waiter.none { color: #b4532a; font-weight: 600; }
 .ot-foot .ot-waiter + .ot-go { margin-left: auto; }
-.no-waiter { border-color: #e4b48f; background: #fff6ee; }
-.nw-assign { display: inline-flex; gap: 6px; align-items: center; }
-.nw-assign select { min-height: 36px; }
+/* Needs a waiter: one row that scrolls sideways */
+.no-waiter { margin: 0 0 var(--s4); }
+.no-waiter h2 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 var(--s2); font-size: 1.05rem; }
+.nw-count { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; padding: 0 6px; border-radius: 999px; background: #b4532a; color: #fff; font-size: .85rem; }
+.nw-bar { list-style: none; margin: 0 calc(-1 * var(--s3)); padding: 2px var(--s3) 10px; display: flex; gap: var(--s2); overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.nw-card { flex: 0 0 auto; width: 190px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1.5px solid #e4b48f; border-radius: 14px; background: #fff6ee; }
+.nw-table { font-weight: 700; font-size: 1.05rem; color: var(--ink); text-decoration: none; }
+.nw-sub { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nw-card form { margin: 0 0 0; margin-top: auto; }
+.nw-assign { display: flex; gap: 6px; align-items: center; }
+.nw-assign select { min-height: 36px; min-width: 0; flex: 1; }
+
+/* How many sit at the table */
+.ot-ppl { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; padding: 1px 7px 1px 5px; border-radius: 999px; background: var(--paper-2); color: var(--ink); font-size: .78rem; font-weight: 700; vertical-align: middle; }
+.ot-ppl svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.guests-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin: 0 0 var(--s2); }
+.guests-label { font-weight: 600; }
+.guests-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gchip { min-width: 40px; min-height: 40px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; }
+.gchip.on { background: var(--ink); border-color: var(--ink); color: var(--card); }
+.gmore input { width: 64px; min-height: 40px; text-align: center; }
+
+/* Only the manager takes things off a bill */
+.bl-ask { display: block; margin-top: 4px; font-size: .84rem; font-weight: 600; color: var(--warn); }
+.bl-ask-act { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.bl-ask-act form { margin: 0; }
+.take-off { margin: var(--s4) 0 0; padding: var(--s3); border: 1px solid var(--bad-soft); border-radius: var(--r); }
+.take-off legend { padding: 0 6px; font-weight: 700; color: var(--bad); }
+.ask-form { margin-top: var(--s3); }
+.skip-form { margin-top: var(--s3); }
+.mgr-asks { border-color: var(--warn); }
+.mgr-asks h2, .skipped-bills h2 { display: flex; align-items: center; gap: 8px; }
+.mgr-asks .bring-list li { flex-wrap: wrap; }
+.skip-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.skip-card { padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+.skip-head { display: flex; justify-content: space-between; gap: var(--s2); font-size: 1.05rem; }
+.skip-sum { font-weight: 700; font-variant-numeric: tabular-nums; }
+.skip-card p { margin: 4px 0 var(--s2); }
+.skip-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.skip-acts form { margin: 0; display: flex; gap: 6px; align-items: center; }
+.skip-acts select, .skip-acts input { min-height: 36px; }
+.skip-off input { width: 200px; max-width: 100%; }
+.charts-grid > .span-all { grid-column: 1 / -1; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.removed-kpis { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); margin: var(--s2) 0 var(--s4); }
+.removed-kpis div { display: flex; flex-direction: column; }
+.removed-kpis strong { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.removed-kpis span { color: var(--muted); font-size: .85rem; }
+.removed-kpis .warn strong { color: var(--warn); }
+.removed-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.removed-table th, .removed-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.removed-table td:nth-child(6) { white-space: normal; min-width: 12em; }
+.removed-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.nav-badge { display: inline-grid; place-items: center; min-width: 1.5em; height: 1.5em; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: #d64a2f; color: #fff; font-size: .75rem; font-weight: 700; vertical-align: 1px; }
+.bl-undo { margin: 0; }
+.pin-take { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px dashed var(--line-2); }
+.pin-take summary { cursor: pointer; font-weight: 600; }
+.pin-take input[name=pin] { width: 120px; letter-spacing: .2em; }

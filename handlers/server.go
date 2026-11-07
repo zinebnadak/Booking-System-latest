@@ -35,7 +35,7 @@ type Config struct {
 	ManagerPhone    string // for SMS notifications (phase 2)
 	AdminUser       string
 	AdminPassword   string
-	OwnerUser       string // head manager: sees the money reports
+	OwnerUser       string // a second manager login (was the head manager)
 	OwnerPassword   string
 	CalendarToken   string // secret part of the manager's calendar-feed link
 	SessionSecret   string // signs the staff login cookie (random if empty)
@@ -252,6 +252,7 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("GET /admin/staff", s.managerOnly(s.adminStaff))
 	admin.HandleFunc("POST /admin/staff", s.managerOnly(s.adminStaffAdd))
 	admin.HandleFunc("POST /admin/staff/till", s.managerOnly(s.adminTillDevice))
+	admin.HandleFunc("POST /admin/staff/managerpin", s.managerOnly(s.adminManagerPIN))
 	admin.HandleFunc("GET /admin/hours", s.managerOnly(s.adminHours))
 	admin.HandleFunc("POST /admin/hours/{id}", s.managerOnly(s.adminHoursFix))
 	admin.HandleFunc("POST /admin/staff/{id}/{action}", s.managerOnly(s.adminStaffAction))
@@ -267,7 +268,7 @@ func (s *Server) Routes() http.Handler {
 	mux.Handle("/admin", s.requireRole(roleWaiter, admin))
 	mux.Handle("/admin/", s.requireRole(roleWaiter, admin))
 
-	// Head manager only (own login): money reports
+	// The manager's money pages (waiters can't open them)
 	owner := http.NewServeMux()
 	owner.HandleFunc("GET /owner", s.ownerToday)
 	owner.HandleFunc("GET /owner/charts", s.ownerCharts)
@@ -279,8 +280,8 @@ func (s *Server) Routes() http.Handler {
 	owner.HandleFunc("GET /owner/feedback", s.ownerFeedback)
 	owner.HandleFunc("GET /owner/buttons", s.ownerButtons)
 	owner.HandleFunc("POST /owner/buttons/{no}/new", s.ownerNewCode)
-	mux.Handle("/owner", s.requireRole(roleOwner, owner))
-	mux.Handle("/owner/", s.requireRole(roleOwner, owner))
+	mux.Handle("/owner", s.requireRole(roleManager, owner))
+	mux.Handle("/owner/", s.requireRole(roleManager, owner))
 
 	return logRequests(s.securityHeaders(rememberLang(mux)))
 }
@@ -310,6 +311,9 @@ func (s *Server) renderBlock(w http.ResponseWriter, r *http.Request, page, block
 	}
 	data["Path"] = r.URL.Path
 	data["TillDevice"] = s.isTill(r)
+	if rank(roleOf(r)) >= rank(roleManager) {
+		data["MgrWaiting"] = s.Store.WaitingForManager() // the red number next to Orders
+	}
 	if l := loginOf(r); l.Role == roleWaiter {
 		data["StaffName"] = l.Name
 	}

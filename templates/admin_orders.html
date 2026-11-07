@@ -22,17 +22,64 @@
 {{end}}
 
 {{define "tiles"}}
+{{if and .Manager .Asks}}
+<section class="panel mgr-asks" aria-labelledby="ask-h">
+  <h2 id="ask-h">{{tr "Asked to take off a bill"}} <span class="nw-count">{{len .Asks}}</span></h2>
+  <p class="muted small">{{tr "Waiters can't take anything off a bill. Take off: it comes off and shows on the charts. No: it stays on the bill."}}</p>
+  <ul class="bring-list">
+    {{range .Asks}}
+    <li data-alert-key="ask-{{.Bill.ID}}-{{.Line.ID}}">
+      <a class="bring-table" href="/admin/orders/{{.Bill.Table}}">{{trf "Table %d" .Bill.Table}}</a>
+      <span class="bring-items"><strong>{{.Line.Ask.Qty}}× {{.Line.Name}}</strong> · {{tr .Line.Ask.Why}} <small>({{.By}}, {{.At}})</small></span>
+      <form method="post" action="/admin/orders/{{.Bill.Table}}/lines/{{.Line.ID}}/drop"><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders"><button class="btn btn-secondary btn-sm">{{tr "No, keep it"}}</button></form>
+      <form method="post" action="/admin/orders/{{.Bill.Table}}/lines/{{.Line.ID}}/approve" data-confirm="{{trf "Take %d× %s off the bill? It shows on the charts as taken off." .Line.Ask.Qty .Line.Name}}" data-confirm-ok="{{tr "Take off"}}" data-danger><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders"><button class="btn btn-danger btn-sm">{{tr "Take off"}}</button></form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+{{if .Skipped}}
+<section class="panel skipped-bills" aria-labelledby="skip-h">
+  <h2 id="skip-h">{{tr "Skipped, not paid yet"}} <span class="nw-count">{{len .Skipped}}</span></h2>
+  <p class="muted small">{{if .Manager}}{{tr "These bills left their table without being paid. Take the payment if the guests come back, put a bill back on a table, or write it off as unpaid (it shows on the charts)."}}{{else}}{{tr "These bills left their table without being paid. If the guests come back, take the payment here. Only the manager can write one off."}}{{end}}</p>
+  <ul class="skip-list">
+    {{range .Skipped}}
+    <li class="skip-card">
+      <div class="skip-head"><strong>{{trf "Table %d" .Table}}</strong> <span class="skip-sum">{{euro .ToPay}}</span></div>
+      <p class="muted small">{{trf "Skipped %s by %s" .At .By}}{{with .WaiterName}} · {{trf "Waiter: %s" .}}{{end}} · {{range $i, $l := .Lines}}{{if $i}}, {{end}}{{$l.Qty}}× {{$l.Name}}{{end}}</p>
+      <div class="skip-acts">
+        {{if not .IsSplit}}
+        <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .Table (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}"><input type="hidden" name="bill" value="{{.ID}}"><input type="hidden" name="method" value="card"><button class="btn btn-ok btn-sm">{{trf "Card · %s" (euro .Left)}}</button></form>
+        <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s in cash?" .Table (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}"><input type="hidden" name="bill" value="{{.ID}}"><input type="hidden" name="method" value="cash"><button class="btn btn-secondary btn-sm">{{tr "Cash"}}</button></form>
+        {{end}}
+        {{if $.FreeTables}}
+        <form method="post" action="/admin/orders/{{.Table}}/back" class="skip-back"><input type="hidden" name="bill" value="{{.ID}}">
+          <select name="to" aria-label="{{tr "Back to table"}}">{{$t := .Table}}{{range $.FreeTables}}<option value="{{.}}"{{if eq . $t}} selected{{end}}>{{tableLabel .}}</option>{{end}}</select>
+          <button class="btn btn-secondary btn-sm">{{tr "Back to the table"}}</button>
+        </form>
+        {{end}}
+        {{if $.Manager}}
+        <form method="post" action="/admin/orders/{{.Table}}/writeoff" class="skip-off" data-confirm="{{trf "Write off %s for table %d as never paid? It shows on the charts. It can't be undone." (euro .ToPay) .Table}}" data-confirm-ok="{{tr "Write off"}}" data-danger><input type="hidden" name="bill" value="{{.ID}}">
+          <input name="why" maxlength="200" required placeholder="{{tr "Why, e.g. left without paying"}}" aria-label="{{tr "Why"}}">
+          <button class="btn btn-danger btn-sm">{{tr "Write off"}}</button>
+        </form>
+        {{end}}
+      </div>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
 {{if .NoWaiter}}
-<section class="panel no-waiter" aria-labelledby="nw-h">
-  <h2 id="nw-h">{{tr "Needs a waiter"}}</h2>
-  <p class="muted small">{{tr "Nobody looks after these tables yet. Take one, or give it to a waiter."}}</p>
-  <ul class="bring-list nw-list">
+<section class="no-waiter" aria-labelledby="nw-h">
+  <h2 id="nw-h">{{tr "Needs a waiter"}} <span class="nw-count">{{len .NoWaiter}}</span> {{if gt (len .NoWaiter) 1}}<span class="muted small">{{tr "swipe for more"}}</span>{{end}}</h2>
+  <ul class="nw-bar">
     {{range .NoWaiter}}
-    <li data-alert-key="nowaiter-{{.Bill.ID}}">
-      <a class="bring-table" href="/admin/orders/{{.No}}">{{trf "Table %d" .No}}</a>
-      <span class="bring-items">{{if .Bill.QRGuests}}{{tr "Guests ordered with the QR code"}}{{else}}{{tr "Opened without a waiter"}}{{end}} · {{trf "since %s" .Opened}}{{if .Bill.Count}} · {{trf "%d items" .Bill.Count}}{{end}}</span>
+    <li class="nw-card" data-alert-key="nowaiter-{{.Bill.ID}}">
+      <a class="nw-table" href="/admin/orders/{{.No}}">{{trf "Table %d" .No}}</a>
+      <span class="nw-sub">{{if .Bill.QRGuests}}{{tr "QR code"}}{{else}}{{tr "No waiter"}}{{end}} · {{.Opened}}{{if .Bill.Count}} · {{trf "%d items" .Bill.Count}}{{end}}</span>
       {{if $.Me}}
-      <form method="post" action="/admin/orders/{{.No}}/waiter" data-live><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders"><button class="btn btn-ok btn-sm" name="staff" value="me">{{tr "Take it"}}</button></form>
+      <form method="post" action="/admin/orders/{{.No}}/waiter" data-live><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders"><button class="btn btn-ok btn-sm btn-block" name="staff" value="me">{{tr "Take it"}}</button></form>
       {{else}}
       <form method="post" action="/admin/orders/{{.No}}/waiter" class="nw-assign" data-live><input type="hidden" name="bill" value="{{.Bill.ID}}"><input type="hidden" name="back" value="orders">
         <select name="staff" aria-label="{{trf "Waiter for table %d" .No}}">{{range $.StaffList}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
@@ -146,7 +193,7 @@
   <div class="ot-cell">
   <a class="tt ot{{if .Mine}} ot-mine{{end}}{{if .Bill}} ot-open{{else}} tt-free{{end}}{{if .Ready}} ot-ready{{else if .Served}} ot-served{{end}}{{if .Alert}} ot-alert{{end}}{{with .Deal}}{{if .Waiting}} ot-call{{end}}{{end}}" href="/admin/orders/{{.No}}">
     <div class="tt-top">
-      <span class="tt-no">{{trf "Table %d" .No}}</span>
+      <span class="tt-no">{{trf "Table %d" .No}}{{if .Guests}} <span class="ot-ppl" title="{{trf "%d guests" .Guests}}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>{{.Guests}}<span class="sr-only"> {{tr "guests"}}</span></span>{{end}}</span>
       {{if .Bill}}<span class="ot-total">{{euro .Bill.ToPay}}</span>{{end}}
     </div>
     {{with .Who}}<span class="tt-who">{{.}}</span>{{end}}

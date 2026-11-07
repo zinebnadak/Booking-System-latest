@@ -82,7 +82,7 @@ func (s *Store) decide(o *PhoneOrder, accept, auto bool, now time.Time) {
 		return
 	}
 	b := s.billByID(o.BillID)
-	if b == nil || !b.Open() {
+	if b == nil || !b.Open() || b.SkippedAt != nil {
 		s.giveLines(o.Lines)
 		return
 	}

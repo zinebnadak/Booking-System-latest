@@ -85,6 +85,38 @@
     {{template "sellers" .Drinks}}
   </section>
 
+  <section class="panel span-all removed-panel" id="removed">
+    <h2>{{tr "Taken off bills"}}</h2>
+    <p class="muted small">{{trf "Everything taken off a bill, %s: what, how much, why, who asked and who took it off. Waiters can't take anything off themselves." .PeriodLabel}}</p>
+    {{with .Removed}}
+    {{range .Flags}}<p class="notice removed-flag">{{trf "Check %s: %d taken off and %d skipped bills in the last 7 days." .Name .Removed .Skips}}</p>{{end}}
+    <div class="removed-kpis">
+      <div><strong>{{.Count}}</strong><span>{{tr "times"}}</span></div>
+      <div><strong>{{.Items}}</strong><span>{{tr "dishes and drinks"}}</span></div>
+      <div><strong>{{euro .Cents}}</strong><span>{{tr "worth"}}</span></div>
+      <div><strong>{{euro .LineCents}}</strong><span>{{tr "Taken off"}}</span></div>
+      <div><strong>{{euro .BillCents}}</strong><span>{{tr "Bill voided"}}</span></div>
+      <div><strong>{{euro .UnpaidCents}}</strong><span>{{tr "Never paid"}}</span></div>
+      {{if .UndoCents}}<div><strong>{{euro .UndoCents}}</strong><span>{{tr "Undone by the waiter"}}</span></div>{{end}}
+      {{if .Skipped}}<div class="warn"><strong>{{euro .SkippedCents}}</strong><span>{{trf "%d skipped, not paid yet" .Skipped}}</span></div>{{end}}
+    </div>
+    {{if .ByWaiter}}
+    <h3>{{tr "By waiter"}}</h3>
+    <ol class="hbars">{{range .ByWaiter}}<li><div class="hbar-text"><span>{{.Name}}{{if .Flag}} <span class="badge badge-bad">{{tr "Many this week"}}</span>{{end}}</span><span class="muted">{{trf "%d times · %s" .Count (euro .Cents)}}</span></div></li>{{end}}</ol>
+    {{end}}
+    {{if .Rows}}
+    <div class="table-wrap">
+    <table class="removed-table">
+      <thead><tr><th>{{tr "When"}}</th><th>{{tr "Table"}}</th><th>{{tr "What"}}</th><th class="num">{{tr "Worth"}}</th><th>{{tr "Kind"}}</th><th>{{tr "Why"}}</th><th>{{tr "Asked by"}}</th><th>{{tr "Taken off by"}}</th><th>{{tr "Waiter"}}</th></tr></thead>
+      <tbody>{{range .Rows}}<tr><td>{{.When}}</td><td>{{.Table}}</td><td>{{.What}}</td><td class="num">{{euro .Cents}}</td><td>{{.Kind}}</td><td>{{with .Why}}{{tr .}}{{else}}–{{end}}</td><td>{{with .AskedBy}}{{.}}{{else}}–{{end}}</td><td>{{with .By}}{{.}}{{else}}–{{end}}</td><td>{{with .Waiter}}{{.}}{{else}}–{{end}}</td></tr>{{end}}</tbody>
+    </table>
+    </div>
+    {{else}}
+    <p class="muted">{{tr "Nothing was taken off a bill."}}</p>
+    {{end}}
+    {{end}}
+  </section>
+
   <section class="panel">
     <h2>{{tr "What happened to bookings"}}</h2>
     <p class="muted small">{{trf "All table bookings and takeaway orders, %s." .PeriodLabel}}</p>

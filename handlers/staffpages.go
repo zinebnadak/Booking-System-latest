@@ -20,7 +20,7 @@ func (s *Server) adminStaff(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "admin_staff", http.StatusOK, M{
 		"Admin": true, "Nav": "staff", "Title": st(lang, "Staff"),
 		"List": list, "Min": db.MinStaffPassword, "Toast": flashText(r),
-		"IsTill": s.isTill(r), "Served": s.servedBy(list, s.Now()),
+		"IsTill": s.isTill(r), "Served": s.servedBy(list, s.Now()), "HasPIN": s.Store.HasManagerPIN(),
 	})
 }
 
@@ -192,4 +192,26 @@ func (s *Server) offlinePlan(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "admin_offline", http.StatusOK, M{
 		"Admin": true, "Nav": "orders", "Title": st(langOf(r), "When the internet is down"),
 	})
+}
+
+// adminManagerPIN sets (or removes) the PIN the manager types on a waiter's
+// device to take something off a bill there and then.
+func (s *Server) adminManagerPIN(w http.ResponseWriter, r *http.Request) {
+	if !s.parseStaffForm(w, r) {
+		return
+	}
+	pin := strings.TrimSpace(r.FormValue("pin"))
+	if r.FormValue("off") == "1" {
+		pin = ""
+	}
+	if err := s.Store.SetManagerPIN(pin); err != nil {
+		redirectMsg(w, r, "/admin/staff", nil, "pinbad")
+		return
+	}
+	msg := "mgrpinset"
+	if pin == "" {
+		msg = "mgrpinoff"
+	}
+	s.logActivity(r, 0, "changed the manager's PIN", "")
+	redirectMsg(w, r, "/admin/staff", nil, msg)
 }

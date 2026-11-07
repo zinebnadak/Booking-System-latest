@@ -35,7 +35,6 @@ go build -o /tmp/ozmo-phone . || stop "Ozmo didn't build. The lines above say wh
 
 pw() { printf '%s-%04d-%04d' "$1" $((RANDOM % 10000)) $((RANDOM % 10000)); }
 MGR=$(pw manager)
-OWN=$(pw owner)
 
 cleanup() {
 	[ -n "$TUN" ] && kill "$TUN" 2>/dev/null
@@ -45,7 +44,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 0' INT TERM HUP
 
-PORT=8097 DATA_FILE=data/phone-test.json ADMIN_PASSWORD="$MGR" OWNER_PASSWORD="$OWN" \
+PORT=8097 DATA_FILE=data/phone-test.json ADMIN_PASSWORD="$MGR" \
 	/tmp/ozmo-phone >data/phone-server.log 2>&1 &
 SRV=$!
 for _ in $(seq 1 30); do
@@ -77,7 +76,7 @@ done
 grep -q 'Registered tunnel connection' data/phone-tunnel.log || { tail -20 data/phone-tunnel.log; stop "Cloudflare didn't connect. The lines above say why."; }
 sleep 15
 
-printf 'Link: %s\nStaff login: %s/login\nManager: admin / %s\nHead manager: owner / %s\n' "$URL" "$URL" "$MGR" "$OWN" >"$LINKFILE"
+printf 'Link: %s\nStaff login: %s/login\nManager: admin / %s\n' "$URL" "$URL" "$MGR" >"$LINKFILE"
 say "Ozmo is online. Open this on your phone:"
 cat "$LINKFILE"
 say "Keep this window open while you test. Close it (or press Ctrl+C) to stop."

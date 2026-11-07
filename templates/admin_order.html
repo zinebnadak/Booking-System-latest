@@ -92,6 +92,16 @@
   <button class="btn btn-sm {{if .QROpen}}btn-secondary{{else}}btn-ok{{end}}">{{if .QROpen}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>
 
+<form method="post" action="/admin/orders/{{.Table}}/guests" class="guests-row">
+  <span class="guests-label">{{tr "Guests at the table"}}</span>
+  <span class="guests-pick" role="group" aria-label="{{tr "Guests at the table"}}">
+    {{range .GuestChoices}}<button class="gchip{{if and $.Open (eq . $.Bill.Guests)}} on{{end}}" name="guests" value="{{.}}"{{if and $.Open (eq . $.Bill.Guests)}} aria-pressed="true"{{end}}>{{.}}</button>{{end}}
+    <label class="gmore"><span class="sr-only">{{tr "More guests"}}</span><input type="number" name="guests" min="9" max="{{.MaxGuests}}" inputmode="numeric" placeholder="9+" form="guests-more-{{.Table}}"{{if and .Open (gt .Bill.Guests 8)}} value="{{.Bill.Guests}}"{{end}}></label>
+    <button class="btn btn-secondary btn-sm" form="guests-more-{{.Table}}">{{tr "OK"}}</button>
+  </span>
+  {{if not .Open}}<span class="muted small">{{tr "Seats them here: the table opens for QR orders too."}}</span>{{end}}
+</form>
+<form method="post" action="/admin/orders/{{.Table}}/guests" id="guests-more-{{.Table}}" hidden></form>
 {{if .Open}}
 <form method="post" action="/admin/orders/{{.Table}}/waiter" class="waiter-row">
   <input type="hidden" name="bill" value="{{.Bill.ID}}">
@@ -137,9 +147,17 @@
             {{if .PriceChanged}}<span class="bl-was">{{trf "menu price %s" (euro .ListCents)}}</span>{{end}}
             {{if .DiscountPct}}<span class="badge badge-wait">{{if eq .DiscountPct 100}}{{tr "On the house"}}{{else}}{{trf "Discount %d %%" .DiscountPct}}{{end}}</span>{{end}}
           </span>
+          {{with .Ask}}<span class="bl-ask">{{trf "Asked to take off %d · %s · %s" .Qty (tr .Why) (tr .By)}}</span>{{end}}
+          {{if and .Ask $.Manager}}
+          <span class="bl-ask-act">
+            <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/approve" data-confirm="{{trf "Take %d× %s off the bill? It shows on the charts as taken off." .Ask.Qty .Name}}" data-confirm-ok="{{tr "Take off"}}" data-danger><input type="hidden" name="bill" value="{{$.Bill.ID}}"><button class="btn btn-danger btn-sm">{{tr "Take off"}}</button></form>
+            <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/drop"><input type="hidden" name="bill" value="{{$.Bill.ID}}"><button class="btn btn-secondary btn-sm">{{tr "No, keep it"}}</button></form>
+          </span>
+          {{end}}
         </div>
         <div class="bl-right">
           <span class="bl-price">{{euro .Total}}</span>
+          {{if .Undo}}<form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/undo" class="bl-undo" data-hide-after="{{.Undo}}"><input type="hidden" name="bill" value="{{$.Bill.ID}}"><button class="btn btn-secondary btn-sm">{{tr "Undo"}}</button></form>{{end}}
           <button type="button" class="btn-link" data-open="line-{{.ID}}">{{tr "Change"}}</button>
         </div>
       </li>
@@ -243,7 +261,8 @@
       {{end}}
       {{end}}
       <details class="bill-more">
-        <summary>{{tr "Discount, move or void"}}</summary>
+        <summary>{{if .Manager}}{{tr "Discount, move or void"}}{{else}}{{tr "Move, or skip for now"}}{{end}}</summary>
+        {{if .Manager}}
         <form method="post" action="/admin/orders/{{.Table}}/discount" class="row">
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
           <label class="field">{{tr "Discount on the whole bill (Rabatt)"}}
@@ -251,6 +270,7 @@
           </label>
           <button class="btn btn-secondary btn-sm">{{tr "Give discount"}}</button>
         </form>
+        {{end}}
         {{if .FreeTables}}
         <form method="post" action="/admin/orders/{{.Table}}/move" class="row">
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
@@ -260,15 +280,24 @@
           <button class="btn btn-secondary btn-sm">{{tr "Move"}}</button>
         </form>
         {{end}}
-        <form method="post" action="/admin/orders/{{.Table}}/void" data-confirm="{{trf "Void the bill for table %d? Use this only if it was opened by mistake or the guests left. It can't be undone." .Table}}" data-confirm-ok="{{tr "Void bill"}}" data-danger>
+        <form method="post" action="/admin/orders/{{.Table}}/skip" class="skip-form" data-confirm="{{trf "Skip the bill for table %d for now? It stays unpaid and waits for the manager, and the table is free for new guests." .Table}}" data-confirm-ok="{{tr "Skip for now"}}">
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <p class="small muted">{{tr "Guests left without paying, or new guests need the table? Skip it for now: the bill keeps everything on it and waits for the manager. It isn't paid or removed."}}</p>
+          <button class="btn btn-secondary btn-sm">{{tr "Skip for now"}}</button>
+        </form>
+        {{if .Manager}}
+        <form method="post" action="/admin/orders/{{.Table}}/void" class="row" data-confirm="{{trf "Void the bill for table %d? Use this only if it was opened by mistake. Everything on it shows on the charts as taken off. It can't be undone." .Table}}" data-confirm-ok="{{tr "Void bill"}}" data-danger>
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <label class="field grow">{{tr "Why"}}<input name="why" maxlength="200" required placeholder="{{tr "e.g. opened on the wrong table"}}"></label>
           <button class="btn btn-danger btn-sm">{{tr "Void bill"}}</button>
         </form>
+        {{end}}
       </details>
     </div>
 
     {{range .Lines}}
     <dialog id="line-{{.ID}}" aria-labelledby="line-h-{{.ID}}">
+      {{if $.Manager}}
       <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/save">
         <div class="dlg-head">
           <h2 id="line-h-{{.ID}}">{{.Name}}</h2>
@@ -286,6 +315,14 @@
             <label class="field">{{tr "How many"}}<input name="qty" type="number" min="1" max="50" value="{{.Qty}}" inputmode="numeric" required></label>
             {{end}}
           </div>
+          <fieldset class="take-off">
+            <legend>{{tr "Take off the bill"}}</legend>
+            <p class="muted small">{{tr "Shows on the charts as taken off, with why and who."}}</p>
+            <div class="dlg-grid">
+              <label class="field">{{tr "How many"}}<select name="qty" form="rm-{{.ID}}">{{$q := .Qty}}{{range .Counts}}<option value="{{.}}"{{if eq . $q}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+              <label class="field">{{tr "Why"}}<input name="why" form="rm-{{.ID}}" maxlength="200" required placeholder="{{tr "e.g. added by mistake"}}"{{with .Ask}} value="{{tr .Why}}"{{end}}></label>
+            </div>
+          </fieldset>
         </div>
         <div class="dlg-foot">
           <button type="submit" class="btn btn-danger btn-sm" form="rm-{{.ID}}" style="margin-right:auto">{{tr "Take off the bill"}}</button>
@@ -296,6 +333,56 @@
       <form id="rm-{{.ID}}" method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/remove" data-confirm="{{if .TicketID}}{{trf "Take %s off the bill? The chef sees it crossed out." .Name}}{{else}}{{trf "Take %s off the bill?" .Name}}{{end}}" data-confirm-ok="{{tr "Take off the bill"}}" data-danger>
         <input type="hidden" name="bill" value="{{$.Bill.ID}}">
       </form>
+      {{else}}
+      <div class="dlg-head">
+        <h2 id="line-h-{{.ID}}">{{.Qty}}× {{.Name}} · {{euro .Total}}</h2>
+        <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="dlg-body">
+        {{if not .TicketID}}
+        <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/save" class="row">
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}"><input type="hidden" name="price" value="{{euro .PriceCents}}"><input type="hidden" name="discount" value="{{.DiscountPct}}">
+          <label class="field">{{tr "How many (more only)"}}<input name="qty" type="number" min="{{.Qty}}" max="50" value="{{.Qty}}" inputmode="numeric" required></label>
+          <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+        </form>
+        {{end}}
+        {{$lid := .ID}}
+        {{with .Ask}}
+        <p class="notice info">{{trf "%s asked the manager to take off %d: %s. It stays on the bill until the manager decides." .By .Qty (tr .Why)}}</p>
+        {{if eq .By $.MeName}}<form method="post" action="/admin/orders/{{$.Table}}/lines/{{$lid}}/drop"><input type="hidden" name="bill" value="{{$.Bill.ID}}"><button class="btn-link">{{tr "Take the question back"}}</button></form>{{end}}
+        {{if $.HasPIN}}
+        <details class="pin-take">
+          <summary>{{tr "The manager is here"}}</summary>
+          <form method="post" action="/admin/orders/{{$.Table}}/lines/{{$lid}}/pin" class="row" autocomplete="off">
+            <input type="hidden" name="bill" value="{{$.Bill.ID}}">
+            <label class="field">{{tr "Manager's PIN"}}<input name="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" required></label>
+            <button class="btn btn-danger btn-sm">{{tr "Take off now"}}</button>
+          </form>
+        </details>
+        {{end}}
+        {{else}}
+        <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/ask" class="ask-form">
+          <input type="hidden" name="bill" value="{{$.Bill.ID}}">
+          <p class="small muted">{{tr "Once it's on the bill, only the manager can take it off. Added by mistake? Ask the manager: it stays on the bill until they decide."}}</p>
+          <div class="dlg-grid">
+            <label class="field">{{tr "How many"}}<select name="qty">{{$q := .Qty}}{{range .Counts}}<option value="{{.}}"{{if eq . $q}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+            <label class="field">{{tr "Why"}}<select name="why" required><option value="">{{tr "Pick one"}}</option>{{range $.Reasons}}<option value="{{.}}">{{tr .}}</option>{{end}}<option value="Other">{{tr "Other"}}</option></select></label>
+            <label class="field wide">{{tr "More (if needed)"}}<input name="more" maxlength="150"></label>
+          </div>
+          <button class="btn btn-secondary btn-sm">{{tr "Ask the manager to take it off"}}</button>
+          {{if $.HasPIN}}
+          <div class="pin-take">
+            <p class="small muted">{{tr "Or, if the manager is here: the manager types their PIN and it comes off now."}}</p>
+            <div class="row">
+              <label class="field">{{tr "Manager's PIN"}}<input name="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+              <button class="btn btn-danger btn-sm" formaction="/admin/orders/{{$.Table}}/lines/{{.ID}}/pin" data-pin-take>{{tr "Take off now"}}</button>
+            </div>
+          </div>
+          {{end}}
+        </form>
+        {{end}}
+      </div>
+      {{end}}
     </dialog>
     {{end}}
 

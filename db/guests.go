@@ -470,7 +470,7 @@ func (s *Store) StillAtTable(code, key string) bool {
 	defer s.mu.Unlock()
 	table := s.tableForQR(code)
 	b, _ := s.guestByKey(key)
-	return table != 0 && b != nil && b.Table == table && b.Open()
+	return table != 0 && b != nil && b.Table == table && b.Open() && b.SkippedAt == nil
 }
 
 // SetGuestName lets a guest say who they are ("Anna"), so the waiter knows
@@ -499,7 +499,7 @@ func (s *Store) SetGuestName(key, name string) error {
 func (s *Store) GuestOrder(key string, lines []NewLine, now time.Time) (waiting bool, err error) {
 	err = s.changeOrders(func() (bool, error) {
 		b, sh := s.guestByKey(key)
-		if b == nil || !b.Open() {
+		if b == nil || !b.Open() || b.SkippedAt != nil { // skipped: they can still pay, not order
 			return false, ErrBillClosed
 		}
 		if !b.QROpen {
@@ -929,7 +929,7 @@ func (s *Store) CallFromPhone(key string, waiter bool, now time.Time) (PressResu
 	var res PressResult
 	err := s.changeDeal(func() (bool, error) {
 		b, sh := s.guestByKey(key)
-		if b == nil || !b.Open() {
+		if b == nil || !b.Open() || b.SkippedAt != nil {
 			return false, ErrBillClosed
 		}
 		res.Table = b.Table

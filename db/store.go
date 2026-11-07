@@ -62,6 +62,8 @@ type data struct {
 	MealPlans      []*MealPlan `json:"meal_plans,omitempty"`
 	NextMealPlanID int         `json:"next_meal_plan_id,omitempty"`
 	DealItemID     int         `json:"deal_item_id,omitempty"`
+	Removals       []*Removal  `json:"removals,omitempty"`
+	NextRemovalID  int         `json:"next_removal_id,omitempty"`
 
 	// Table bills and the chef's tickets (see orders.go).
 	Bills        []*Bill   `json:"bills"`
@@ -110,6 +112,9 @@ type Settings struct {
 	// RoomsOffline: rooms guests can't book online right now (e.g. the
 	// terrace in winter). Staff can still seat people there.
 	RoomsOffline []string `json:"rooms_offline,omitempty"`
+	// ManagerPIN lets the manager approve on a waiter's device: a slow
+	// fingerprint of the PIN, never the PIN (see removals.go).
+	ManagerPIN string `json:"manager_pin,omitempty"`
 }
 
 // Store is the database. Create it with Open.

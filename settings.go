@@ -36,10 +36,10 @@ func isLocal(baseURL string) bool {
 // checkSettings refuses settings that would leave the site open, and fills in
 // the demo logins on a local computer. It runs once when the program starts.
 //
-//   - On localhost without Stripe (a demo on your own computer), empty
-//     passwords become admin/admin and owner/owner.
-//   - On a public address, both staff passwords must be set, long, and
-//     different. Demo mode (fake payments anyone can click through) is only
+//   - On localhost without Stripe (a demo on your own computer), an empty
+//     manager password becomes admin/admin.
+//   - On a public address, the manager password must be set and long (and
+//     the optional second manager login, OWNER_*, too if it's set). Demo mode (fake payments anyone can click through) is only
 //     allowed there if DEMO_MODE=1 says it's on purpose.
 //   - A calendar link token that is too short to be secret is switched off.
 func checkSettings(cfg *handlers.Config, stripe, demoMode bool) error {
@@ -53,26 +53,19 @@ func checkSettings(cfg *handlers.Config, stripe, demoMode bool) error {
 			cfg.AdminPassword = "admin"
 			log.Println("Manager login for demo mode: admin / admin")
 		}
-		if cfg.OwnerPassword == "" {
-			cfg.OwnerPassword = "owner"
-			log.Println("Head manager login for demo mode: owner / owner")
-		}
 	}
-	if cfg.AdminPassword == "" || cfg.OwnerPassword == "" {
-		return errors.New("ADMIN_PASSWORD and OWNER_PASSWORD must be set (see .env.example)")
+	if cfg.AdminPassword == "" {
+		return errors.New("ADMIN_PASSWORD must be set (see .env.example)")
 	}
 	if !local {
 		for _, p := range []struct{ name, val string }{
 			{"ADMIN_PASSWORD", cfg.AdminPassword}, {"OWNER_PASSWORD", cfg.OwnerPassword},
 		} {
-			if len([]rune(p.val)) < minPasswordLen {
+			if p.val != "" && len([]rune(p.val)) < minPasswordLen {
 				return fmt.Errorf("%s is too short: use at least %d characters (make one with: openssl rand -base64 18)", p.name, minPasswordLen)
 			}
 		}
-		if cfg.AdminPassword == cfg.OwnerPassword {
-			return errors.New("ADMIN_PASSWORD and OWNER_PASSWORD must be different, or the manager could open the money pages")
-		}
-		if strings.EqualFold(cfg.AdminUser, cfg.OwnerUser) {
+		if cfg.OwnerPassword != "" && strings.EqualFold(cfg.AdminUser, cfg.OwnerUser) {
 			return errors.New("ADMIN_USER and OWNER_USER must be different")
 		}
 		if strings.HasPrefix(cfg.BaseURL, "http://") {

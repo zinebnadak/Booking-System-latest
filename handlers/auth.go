@@ -19,9 +19,10 @@ import (
 
 // Logging in for staff.
 //
-// Two people have their username and password in .env:
-//   - the manager:      every staff page, including the menu, closed days and staff
-//   - the head manager: everything the manager has, plus the money pages
+// The manager has their username and password in .env: every staff page,
+// including the menu, closed days, staff and the money pages. (There used
+// to be a separate head manager; its login, if set, now is a second
+// manager login.)
 //
 // Waiters get their own login from the manager (Staff page): the tables,
 // orders, kitchen and bookings, but not the menu, closed days or staff. What
@@ -60,10 +61,8 @@ func rank(r role) int {
 	switch r {
 	case roleWaiter:
 		return 1
-	case roleManager:
+	case roleManager, roleOwner: // one and the same now
 		return 2
-	case roleOwner:
-		return 3
 	}
 	return 0
 }
@@ -84,8 +83,6 @@ func actor(r *http.Request) string {
 	switch l.Role {
 	case roleWaiter:
 		return l.Name
-	case roleOwner:
-		return "Head manager"
 	}
 	return "Manager"
 }
@@ -155,10 +152,8 @@ func (s *Server) readLogin(r *http.Request) login {
 		return login{}
 	}
 	switch role(parts[0]) {
-	case roleManager:
+	case roleManager, roleOwner: // old head-manager cookies are the manager's
 		return login{Role: roleManager}
-	case roleOwner:
-		return login{Role: roleOwner}
 	case roleWaiter:
 		if len(parts) != 4 {
 			return login{}
@@ -202,10 +197,10 @@ func (s *Server) requireRole(need role, next http.Handler) http.Handler {
 		if rank(who) < rank(need) {
 			lang := langOf(r)
 			s.render(w, r, "message", http.StatusForbidden, M{
-				"Admin": true, "Role": string(who), "Title": st(lang, "Head manager only"),
-				"Heading":  st(lang, "Only the head manager can see this"),
-				"Text":     st(lang, "These pages show the money. Log in as the head manager to open them."),
-				"LinkHref": "/admin/day", "LinkText": st(lang, "Back to bookings"),
+				"Admin": true, "Role": string(who), "Title": st(lang, "Manager only"),
+				"Heading":  st(lang, "Only the manager can see this"),
+				"Text":     st(lang, "These pages show the money. Log in as the manager to open them."),
+				"LinkHref": "/admin/orders", "LinkText": st(lang, "Back to orders"),
 			})
 			return
 		}
@@ -254,12 +249,9 @@ func checkPassword(gotUser, gotPass, wantUser, wantPass string) bool {
 func safeNext(next string, who role) string {
 	if strings.HasPrefix(next, "/") && !strings.HasPrefix(next, "//") && !strings.HasPrefix(next, "/\\") &&
 		(strings.HasPrefix(next, "/admin") || strings.HasPrefix(next, "/owner")) {
-		if who == roleOwner || !strings.HasPrefix(next, "/owner") {
+		if rank(who) >= rank(roleManager) || !strings.HasPrefix(next, "/owner") {
 			return next
 		}
-	}
-	if who == roleOwner {
-		return "/owner"
 	}
 	return "/admin/orders" // the staff's home page
 }
@@ -296,9 +288,8 @@ func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case who == roleWaiter:
-	case checkPassword(user, pass, s.Cfg.OwnerUser, s.Cfg.OwnerPassword):
-		who = roleOwner
-	case checkPassword(user, pass, s.Cfg.AdminUser, s.Cfg.AdminPassword):
+	case checkPassword(user, pass, s.Cfg.AdminUser, s.Cfg.AdminPassword),
+		checkPassword(user, pass, s.Cfg.OwnerUser, s.Cfg.OwnerPassword): // the old head manager's login
 		who = roleManager
 	default:
 		s.rl.hit(key, s.Now())

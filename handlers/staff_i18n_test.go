@@ -83,7 +83,7 @@ func TestStaffPagesInSwedish(t *testing.T) {
 		"/admin/calendar":             {"Oktober 2026", "mån", "I din telefon"},
 		"/admin/menu":                 {"Dryck med alkohol (25,5 % moms)", "Lägg till rätt"},
 		"/admin/closed":               {"Stängda dagar", "Stäng en dag"},
-		"/owner?date=2026-10-26":      {"Intäkter i dag", "Bordsgäster", "jämfört med måndag förra veckan"},
+		"/owner?date=2026-10-26":      {"Intäkter i dag", "jämfört med måndag förra veckan"},
 		"/owner/charts?month=2026-10": {"Dag för dag", "Mest sålda rätter", "Oktober 2026", "Pengar"},
 	}
 	for path, want := range checks {

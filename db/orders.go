@@ -63,6 +63,9 @@ type BillLine struct {
 	Course     int       `json:"course,omitempty"`    // CourseStarter, CourseMain, CourseDessert; 0 for drinks
 	// DiscountPct: "Rabatt" off this line, in percent (100 = on the house).
 	DiscountPct int `json:"discount_pct,omitempty"`
+	// Ask: a waiter asked the manager to take (some of) it off the bill.
+	// Waiters can't take anything off themselves (see removals.go).
+	Ask *RemoveAsk `json:"ask,omitempty"`
 }
 
 // VATRate is the line's VAT in hundredths of a percent (1350 = 13,5 %).
@@ -125,6 +128,16 @@ type Bill struct {
 	// the table over later (0 = nobody yet, e.g. guests opened it by QR).
 	Waiter     int    `json:"waiter,omitempty"`
 	WaiterName string `json:"waiter_name,omitempty"`
+
+	// Guests is how many people sit at the table (0 = not said). From the
+	// booking, 3 meals, or set by the waiter.
+	Guests int `json:"guests,omitempty"`
+
+	// SkippedAt: the guests left without paying (or the table was needed),
+	// and a waiter tapped "Skip for now". The bill is still open and unpaid,
+	// but off the table, until the manager decides (see removals.go).
+	SkippedAt *time.Time `json:"skipped_at,omitempty"`
+	SkippedBy string     `json:"skipped_by,omitempty"`
 }
 
 // PaidSplit: every guest paid their own part (see Bill.Split).
@@ -500,6 +513,8 @@ type ordersSnapshot struct {
 	stock      []stockSnap
 	ingr       []Ingredient
 	nextIngr   int
+	removals   []*Removal
+	nextRemove int
 }
 
 // changeOrders runs fn under the lock and saves if it reports a change. If
@@ -570,7 +585,8 @@ func (s *Store) snapshotOrders() (restore func()) {
 		snap.staff = append(snap.staff, *m)
 	}
 	snap.nextStaff = s.d.NextStaffID
-	snap.activity = append([]*Activity(nil), s.d.Activity...) // entries are never changed, only added
+	snap.activity = append([]*Activity(nil), s.d.Activity...)                                    // entries are never changed, only added
+	snap.removals, snap.nextRemove = append([]*Removal(nil), s.d.Removals...), s.d.NextRemovalID // same
 	for _, v := range s.d.Vouchers {
 		snap.vouchers = append(snap.vouchers, v.clone())
 	}
@@ -600,6 +616,7 @@ func (s *Store) snapshotOrders() (restore func()) {
 		}
 		s.d.Settings, s.d.NextPhoneOrderID = snap.settings, snap.nextPhone
 		s.d.Staff, s.d.NextStaffID, s.d.Activity = nil, snap.nextStaff, snap.activity
+		s.d.Removals, s.d.NextRemovalID = snap.removals, snap.nextRemove
 		for i := range snap.staff {
 			m := snap.staff[i]
 			s.d.Staff = append(s.d.Staff, &m)
@@ -654,7 +671,7 @@ func (s *Store) snapshotOrders() (restore func()) {
 // openBillAt is the table's open bill. Callers hold s.mu.
 func (s *Store) openBillAt(table int) *Bill {
 	for _, b := range s.d.Bills {
-		if b.Table == table && b.Open() {
+		if b.Table == table && b.Open() && b.SkippedAt == nil {
 			return b
 		}
 	}
@@ -705,7 +722,7 @@ func (s *Store) OpenBills() []Bill {
 	defer s.mu.Unlock()
 	var out []Bill
 	for _, b := range s.d.Bills {
-		if b.Open() {
+		if b.Open() && b.SkippedAt == nil { // skipped ones aren't at a table
 			out = append(out, b.clone())
 		}
 	}
@@ -913,8 +930,41 @@ func (s *Store) newBill(table int, bookingRef string, deposit int, now time.Time
 	if bookingRef != "" && deposit > 0 && !s.depositUsed(bookingRef) {
 		b.BookingRef, b.DepositCents = bookingRef, deposit
 	}
+	if bookingRef != "" {
+		for _, bk := range s.d.Bookings {
+			if bk.Ref == bookingRef && bk.PartySize > 0 {
+				b.Guests = bk.PartySize // as many as booked, until the waiter says otherwise
+			}
+		}
+	}
 	s.d.Bills = append(s.d.Bills, b)
 	return b
+}
+
+// MaxTableGuests is the most people the waiter can put at one table.
+const MaxTableGuests = 99
+
+// SetGuests says how many people sit at a table. A free table is opened
+// for them (the guests can order with the QR code from now on).
+func (s *Store) SetGuests(table, n int, now time.Time) (Bill, error) {
+	var out Bill
+	err := s.changeOrders(func() (bool, error) {
+		if !validTable(table) {
+			return false, ErrNoTable
+		}
+		if n < 1 || n > MaxTableGuests {
+			return false, ErrBadGuests
+		}
+		b := s.openBillAt(table)
+		if b == nil {
+			b = s.newBill(table, "", 0, now)
+			b.QROpen = true
+		}
+		b.Guests = n
+		out = b.clone()
+		return true, nil
+	})
+	return out, err
 }
 
 // openBill finds an open bill by id. Callers hold s.mu.
@@ -932,6 +982,12 @@ func (s *Store) openBillByID(id int) (*Bill, error) {
 // UpdateLine changes a line's price, and for lines the chef hasn't got
 // (drinks) the quantity and note too.
 func (s *Store) UpdateLine(billID, lineID, price, qty int, note string) error {
+	return s.UpdateLineBy(billID, lineID, price, qty, note, "", s.clock())
+}
+
+// UpdateLineBy is UpdateLine saying who did it: fewer than before is written
+// down as taken off (see removals.go).
+func (s *Store) UpdateLineBy(billID, lineID, price, qty int, note, by string, now time.Time) error {
 	return s.changeOrders(func() (bool, error) {
 		b, err := s.openBillByID(billID)
 		if err != nil {
@@ -959,6 +1015,7 @@ func (s *Store) UpdateLine(billID, lineID, price, qty int, note string) error {
 			}
 		} else if qty < l.Qty {
 			s.giveStock(l.MenuItemID, l.Qty-qty)
+			s.recordRemoval(b, RemovedLine, l.Name, l.Qty-qty, l.Total()*(l.Qty-qty)/l.Qty, "", "", by, now)
 		}
 		if l.Drink && l.TicketID != 0 && qty != l.Qty { // on the waiters' "to bring" list
 			if t := s.ticketByID(l.TicketID); t != nil {
@@ -1044,46 +1101,9 @@ func (s *Store) DiscountBill(billID, pct int) (int, error) {
 	return n, err
 }
 
-// RemoveLine takes a line off the bill. If the chef already has it, it's
-// struck through on the kitchen screen. kitchen reports whether that happened.
+// RemoveLine takes a whole line off the bill (written down, see TakeOff).
 func (s *Store) RemoveLine(billID, lineID int) (kitchen bool, err error) {
-	err = s.changeOrders(func() (bool, error) {
-		b, err := s.openBillByID(billID)
-		if err != nil {
-			return false, err
-		}
-		if len(b.Payments) > 0 {
-			return false, ErrPartlyPaid // take the part payments back first
-		}
-		i, l := b.line(lineID)
-		if l == nil {
-			return false, ErrNoLine
-		}
-		if b.touchesPaid(l.Guests) {
-			return false, ErrSharePaid
-		}
-		if busy := s.holdOn(b, l.Guests, []int{l.ID}, s.clock()); busy != nil {
-			return false, busy
-		}
-		made := false // cooked, or brought to the table: it's used up
-		if l.TicketID != 0 {
-			if t := s.ticketByID(l.TicketID); t != nil {
-				made = t.DoneAt != nil
-				for j := range t.Items {
-					if t.Items[j].LineID == l.ID {
-						t.Items[j].Cancelled = true
-						kitchen = true
-					}
-				}
-			}
-		}
-		if !made {
-			s.giveStock(l.MenuItemID, l.Qty)
-		}
-		b.Lines = append(b.Lines[:i], b.Lines[i+1:]...)
-		return true, nil
-	})
-	return kitchen, err
+	return s.TakeOff(billID, lineID, 0, "", "", s.clock())
 }
 
 // MarkBilled records that the bill was shown (or printed) for the guests.
@@ -1134,33 +1154,10 @@ func (s *Store) PayBill(billID int, method string, now time.Time) (Bill, error) 
 	return out, err
 }
 
-// VoidBill throws a bill away (opened on the wrong table and moved, or the
-// guests left). Anything the chef still has from it is struck through.
+// VoidBill throws a bill away (opened on the wrong table, say), and writes
+// down what was on it (see VoidBillBy).
 func (s *Store) VoidBill(billID int) error {
-	return s.changeOrders(func() (bool, error) {
-		b, err := s.openBillByID(billID)
-		if err != nil {
-			return false, err
-		}
-		if len(b.Payments) > 0 {
-			return false, ErrPartlyPaid // take the part payments back first
-		}
-		if b.AnySharePaid() {
-			return false, ErrSharePaid
-		}
-		if busy := s.anyHold(b, s.clock()); busy != nil {
-			return false, busy
-		}
-		b.Voided = true
-		for _, t := range s.d.Tickets {
-			if t.BillID == b.ID && t.DoneAt == nil {
-				for j := range t.Items {
-					t.Items[j].Cancelled = true
-				}
-			}
-		}
-		return true, nil
-	})
+	return s.VoidBillBy(billID, RemovedBill, "", "", s.clock())
 }
 
 // MoveBill moves an open bill to another table (the guests moved, or it was

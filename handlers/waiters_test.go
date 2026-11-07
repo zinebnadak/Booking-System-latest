@@ -132,3 +132,29 @@ func TestFavouritesAndQuickNotes(t *testing.T) {
 		t.Fatal("the note didn't reach the chef")
 	}
 }
+
+// Two people sit down at free table 3: the waiter taps 2. The table opens
+// (for QR orders too), it's hers, and the tile says 2. Later a third joins.
+func TestGuestsAtTable(t *testing.T) {
+	e := newEnv(t, nil)
+	m, err := e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lisa := &http.Cookie{Name: sessionCookie, Value: e.srv.makeStaffSession(m, e.srv.Now())}
+	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, "Guests at the table", `class="gchip" name="guests" value="2"`)
+	location(t, e.as(lisa, "POST", "/admin/orders/3/guests", url.Values{"guests": {"2"}}), "/admin/orders/3?msg=guestsset")
+	b, open := e.store.OpenBill(3)
+	if !open || b.Guests != 2 || b.WaiterName != "Lisa" || !b.QROpen {
+		t.Fatalf("seated: %+v", b)
+	}
+	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, `class="gchip on" name="guests" value="2" aria-pressed="true"`)
+	e.expect(e.as(lisa, "GET", "/admin/orders?part=tiles", nil), 200, `class="ot-ppl" title="2 guests"`)
+	location(t, e.as(lisa, "POST", "/admin/orders/3/guests", url.Values{"guests": {"12"}}), "msg=guestsset")
+	if b, _ := e.store.OpenBill(3); b.Guests != 12 {
+		t.Fatalf("12: %d", b.Guests)
+	}
+	location(t, e.as(lisa, "POST", "/admin/orders/3/guests", url.Values{"guests": {"0"}}), "msg=guestsbad")
+	// 3 meals for everyone there: the guests field starts at 12.
+	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, `inputmode="numeric" value="12" required`)
+}

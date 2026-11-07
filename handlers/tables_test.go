@@ -257,8 +257,8 @@ func TestOwnerButtonCodes(t *testing.T) {
 		e.h.ServeHTTP(rec, req)
 		return rec
 	}
-	// The manager can't see the codes.
-	e.expect(e.do("GET", "/owner/buttons", nil, true), 403)
+	// The manager sees the codes.
+	e.expect(e.do("GET", "/owner/buttons", nil, true), 200)
 	old := e.token(2)
 	e.expect(asOwner("GET", "/owner/buttons"), 200, old, "http://example.test/api/press", "never: not set up yet")
 

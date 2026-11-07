@@ -23,17 +23,17 @@
 {{if .Admin}}
 <header class="admin-bar">
   <div class="admin-bar-inner">
-    <a class="admin-brand" href="{{if eq .Role "owner"}}/owner{{else}}/admin/orders{{end}}">{{.Cfg.RestaurantName}}<span>{{if eq .Role "owner"}}{{tr "Head manager"}}{{else if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
+    <a class="admin-brand" href="/admin/orders">{{.Cfg.RestaurantName}}<span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
     {{if and .Role (not .Bare)}}
     <nav class="admin-nav" aria-label="{{tr "Staff"}}">
-      {{if eq .Role "owner"}}
+      {{if eq .Role "manager"}}
       <a href="/owner"{{if eq .Nav "today"}} aria-current="page"{{end}}>{{tr "Money today"}}</a>
       <a href="/owner/charts"{{if eq .Nav "charts"}} aria-current="page"{{end}}>{{tr "Charts"}}</a>
       <a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>
       <a href="/owner/feedback"{{if eq .Nav "feedback"}} aria-current="page"{{end}}>{{tr "Feedback"}}</a>
       <span class="nav-sep" aria-hidden="true"></span>
       {{end}}
-      <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}</a>
+      <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}{{with .MgrWaiting}} <span class="nav-badge" title="{{tr "Waiting for the manager"}}">{{.}}<span class="sr-only"> {{tr "waiting for the manager"}}</span></span>{{end}}</a>
       <a href="/admin/kitchen">{{tr "Kitchen"}}</a>
       <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
       <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>

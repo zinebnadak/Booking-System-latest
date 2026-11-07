@@ -33,6 +33,11 @@
     if (e.target.tagName === 'DIALOG') e.target.close(); // click on the dimmed background
   });
 
+  // "Undo" right after adding: gone when its minute is up.
+  $$('[data-hide-after]').forEach(function (el) {
+    setTimeout(function () { el.remove(); }, (parseInt(el.getAttribute('data-hide-after'), 10) || 0) * 1000);
+  });
+
   // Styled confirmation instead of the browser's grey popup.
   var confirmDlg = $('#confirm-dialog');
   document.addEventListener('submit', function (e) {

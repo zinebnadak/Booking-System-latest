@@ -176,6 +176,7 @@ func (s *Store) StartDealWith(table int, dishes []string, guests int, bookingRef
 		}
 		s.addLines(b, lines, nil, false, now)
 		b.BilledAt = nil
+		b.Guests = max(b.Guests, guests)
 		s.sendMeal(r, 1, now)
 		out = b.clone()
 		return true, nil

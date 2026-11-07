@@ -92,10 +92,15 @@ func TestWaitersHaveTheirOwnLogin(t *testing.T) {
 	burger := menuID(t, e, "Ozmo-burgare")
 	e.as(lisa, "POST", "/admin/orders/2/add", url.Values{"bill": {"0"}, "qty_" + burger: {"2"}})
 	b, _ := e.store.OpenBill(2)
-	e.as(lisa, "POST", fmt.Sprintf("/admin/orders/2/lines/%d/save", b.Lines[0].ID), url.Values{"bill": {fmt.Sprint(b.ID)}, "price": {"15,00"}, "qty": {"2"}})
+	// A lower price is the manager's: refused.
+	rec = e.as(lisa, "POST", fmt.Sprintf("/admin/orders/2/lines/%d/save", b.Lines[0].ID), url.Values{"bill": {fmt.Sprint(b.ID)}, "price": {"15,00"}, "qty": {"2"}})
+	location(t, rec, "msg=askmanager")
 	e.as(lisa, "POST", "/admin/orders/2/pay", url.Values{"bill": {fmt.Sprint(b.ID)}, "method": {"cash"}})
 	act := e.do("GET", "/admin/activity?date=2026-10-26", nil, true)
-	e.expect(act, 200, "Lisa", "changed a price", "Ozmo-burgare: 2× 19,90 € → 2× 15,00 €", "paid in cash", "30,00 €", "Table 2")
+	e.expect(act, 200, "Lisa", "paid in cash", "39,80 €", "Table 2")
+	if strings.Contains(act.Body.String(), "changed a price") {
+		t.Fatal("a waiter changed a price")
+	}
 
 	// A new password logs her out everywhere at once.
 	id := e.store.StaffList()[0].ID

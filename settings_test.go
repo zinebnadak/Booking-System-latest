@@ -28,9 +28,10 @@ func TestCheckSettings(t *testing.T) {
 	}
 	strong1, strong2 := "correct-horse-battery", "staple-lantern-river"
 
-	// Your own computer, no Stripe: demo logins are filled in.
+	// Your own computer, no Stripe: the demo login is filled in. There's one
+	// manager now; the second login (OWNER_*) stays off unless it's set.
 	c := cfg("http://localhost:8080", "", "")
-	if err := checkSettings(c, false, false); err != nil || c.AdminPassword != "admin" || c.OwnerPassword != "owner" {
+	if err := checkSettings(c, false, false); err != nil || c.AdminPassword != "admin" || c.OwnerPassword != "" {
 		t.Fatalf("local demo: %v %+v", err, c)
 	}
 	// Public address: no demo logins, no fake payments by accident.
@@ -45,7 +46,10 @@ func TestCheckSettings(t *testing.T) {
 	mustFail("public demo without passwords", cfg("https://book.pizza.ax", "", ""), false, true, "must be set")
 	mustFail("stripe without passwords", cfg("https://book.pizza.ax", "", strong2), true, false, "must be set")
 	mustFail("short password", cfg("https://book.pizza.ax", "hunter2", strong2), true, false, "too short")
-	mustFail("same passwords", cfg("https://book.pizza.ax", strong1, strong1), true, false, "different")
+	mustFail("short second login", cfg("https://book.pizza.ax", strong1, "hunter2"), true, false, "OWNER_PASSWORD is too short")
+	if err := checkSettings(cfg("https://book.pizza.ax", strong1, ""), true, false); err != nil {
+		t.Fatalf("one manager login refused: %v", err)
+	}
 	same := cfg("https://book.pizza.ax", strong1, strong2)
 	same.OwnerUser = "Admin"
 	mustFail("same usernames", same, true, false, "ADMIN_USER and OWNER_USER")

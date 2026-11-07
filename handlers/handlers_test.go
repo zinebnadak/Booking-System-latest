@@ -506,10 +506,8 @@ func TestOwnerReports(t *testing.T) {
 	e.h = e.srv.Routes()
 	menu := e.store.Menu(true)
 
-	// The manager login doesn't open the reports, the head-manager one does.
-	if rec := e.do("GET", "/owner", nil, true); rec.Code != 403 || !strings.Contains(rec.Body.String(), "Only the head manager") {
-		t.Fatalf("manager login opened the money pages: %d", rec.Code)
-	}
+	// The manager opens the money pages (there's no separate head manager).
+	e.expect(e.do("GET", "/owner", nil, true), 200, "Money today")
 
 	pay := func(f url.Values, path string) string {
 		ref := refFromLocation(t, e.do("POST", path, f, false).Header().Get("Location"))
@@ -556,8 +554,12 @@ func TestOwnerReports(t *testing.T) {
 		e.h.ServeHTTP(rec, req)
 		return rec
 	}
-	// Today page: money made and what happened.
-	e.expect(owner("/owner?date=2026-10-26"), 200, "78,38 €", "Arrived", "No-shows", "Refunded", "Left without paying", "Takeaway", "Erik")
+	// Today page: money made and what happened. (The booked / arrived /
+	// no-show boxes are gone from it.)
+	if strings.Contains(owner("/owner?date=2026-10-26").Body.String(), "Not here yet") {
+		t.Fatal("the not-arrived boxes are back")
+	}
+	e.expect(owner("/owner?date=2026-10-26"), 200, "78,38 €", "Refunded", "Left without paying", "Takeaway", "Erik")
 	// Charts: day by day and month by month, every metric.
 	for _, m := range []string{"money", "tables", "guests", "orders", "lost"} {
 		e.expect(owner("/owner/charts?view=days&month=2026-10&metric="+m), 200, "Day by day", `id="c-main"`, "Show as a table")
@@ -655,27 +657,25 @@ func TestStaffLogin(t *testing.T) {
 	e.expect(get("/login", nil), 200, "Staff login")
 	e.expect(post("admin", "wrong", ""), 401, "username or password")
 
-	// Head manager: lands on the money page and can open every staff page.
+	// The old head-manager login is just a second manager login: Orders,
+	// with the money pages too.
 	rec := post("owner", "boss", "")
-	if rec.Code != 303 || rec.Header().Get("Location") != "/owner" {
+	if rec.Code != 303 || rec.Header().Get("Location") != "/admin/orders" {
 		t.Fatalf("owner login: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
 	oc := cookie(rec)
 	e.expect(get("/owner", oc), 200, "Money today", "Bookings", "Log out")
-	e.expect(get("/admin/day", oc), 200, "Money today", "Table bookings")
+	e.expect(get("/admin/day", oc), 200, "Money today", "Table bookings", ">Manager<")
 	e.expect(get("/admin/menu", oc), 200, "Drink with alcohol (25,5 % VAT): tables only")
 
-	// Manager: lands on Orders (the staff's home page), no money links, money pages are refused.
+	// Manager: lands on Orders, or the money page they wanted.
 	rec = post("admin", "pw", "/owner/charts")
-	if rec.Header().Get("Location") != "/admin/orders" {
-		t.Fatalf("manager should not be sent to the money pages: %s", rec.Header().Get("Location"))
+	if rec.Header().Get("Location") != "/owner/charts" {
+		t.Fatalf("manager to the money pages: %s", rec.Header().Get("Location"))
 	}
 	mc := cookie(rec)
-	body := get("/admin/day", mc).Body.String()
-	if strings.Contains(body, "Money today") {
-		t.Fatal("manager sees the money link")
-	}
-	e.expect(get("/owner/charts", mc), 403, "Only the head manager")
+	e.expect(get("/admin/day", mc), 200, "Money today")
+	e.expect(get("/owner/charts", mc), 200, "Charts")
 
 	// Going back to the page you wanted after logging in, but never to another site.
 	if loc := post("admin", "pw", "/admin/menu").Header().Get("Location"); loc != "/admin/menu" {

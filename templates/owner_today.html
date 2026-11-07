@@ -32,16 +32,6 @@
 </section>
 
 <div class="stat-groups">
-  <section class="panel stat-group span2">
-    <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v9M18 10v9M3 7l9-3 9 3"/></svg>{{tr "Table guests"}}</h2>
-    <div class="stat-grid">
-      <div class="stat"><strong>{{.S.TableBookings}}</strong><span class="lbl">{{tr "Booked"}}</span><span class="amt">{{trf "%d guests" .S.Guests}}{{if or .S.ByPhone .S.WalkIns}} · {{if .S.ByPhone}}{{trf "%d by phone" .S.ByPhone}}{{end}}{{if and .S.ByPhone .S.WalkIns}}, {{end}}{{if .S.WalkIns}}{{trf "%d walk-in" .S.WalkIns}}{{end}}{{end}}</span></div>
-      <div class="stat ok"><strong>{{.S.Arrived}}</strong><span class="lbl">{{tr "Arrived"}}</span><span class="amt">{{trf "%d guests" .S.GuestsArrived}}</span></div>
-      <div class="stat wait"><strong>{{.S.Upcoming}}</strong><span class="lbl">{{tr "Not here yet"}}</span><span class="amt">{{tr "booked, not checked in"}}</span></div>
-      <div class="stat bad"><strong>{{.S.NoShows}}</strong><span class="lbl">{{tr "No-shows"}}</span><span class="amt">{{tr "deposit kept"}}</span></div>
-    </div>
-  </section>
-
   <section class="panel stat-group">
     <h2><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>{{tr "Deposits"}}</h2>
     <div class="stat-grid">

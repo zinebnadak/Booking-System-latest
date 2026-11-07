@@ -558,6 +558,7 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 		"Hours":       hours,
 		"Dishes":      dishes,
 		"Drinks":      drinks,
+		"Removed":     s.removedReport(lang, schedule.FormatDate(periodFrom), schedule.FormatDate(periodTo)),
 		"Outcomes":    outcomes,
 	})
 }
@@ -749,4 +750,142 @@ func csvPhone(v string) string {
 		}
 	}
 	return v
+}
+
+// removedReport: what was taken off bills in the period, and the bills
+// skipped and still unpaid now (see db/removals.go).
+type removedRow struct {
+	When, What, Kind, Why, AskedBy, By, Waiter string
+	Table, Cents                               int
+}
+
+type removedSummary struct {
+	Rows                              []removedRow
+	Count, Items, Cents               int
+	LineCents, BillCents, UnpaidCents int
+	Skipped, SkippedCents             int // bills skipped and still open now
+	UndoCents                         int // undone by the waiter right after adding
+	ByWaiter                          []waiterRemoved
+	Flags                             []waiterFlag // many in the last 7 days
+}
+
+// waiterFlag: a waiter with many removals or skipped bills in a week.
+type waiterFlag struct {
+	Name           string
+	Removed, Skips int
+}
+
+// flagAfter: this many removals or skipped bills in 7 days marks a waiter.
+const flagAfter = 3
+
+type waiterRemoved struct {
+	Name         string
+	Count, Cents int
+	Flag         bool // many in the last 7 days
+}
+
+func (s *Server) removedReport(lang, from, to string) removedSummary {
+	var out removedSummary
+	per := map[string]*waiterRemoved{}
+	var order []string
+	for _, r := range s.Store.Removals(from, to) {
+		row := removedRow{When: shortDateL(lang, schedule.FormatDate(r.At)) + " " + clockOf(r.At), What: fmt.Sprintf("%d× %s", r.Qty, r.Name),
+			Table: r.Table, Cents: r.Cents, Why: r.Why, AskedBy: whoL(lang, r.AskedBy), By: whoL(lang, r.By), Waiter: r.Waiter}
+		switch r.Kind {
+		case db.RemovedBill:
+			row.Kind = st(lang, "Bill voided")
+			out.BillCents += r.Cents
+		case db.RemovedUnpaid:
+			row.Kind = st(lang, "Never paid")
+			out.UnpaidCents += r.Cents
+		case db.RemovedUndo:
+			row.Kind = st(lang, "Undone by the waiter")
+			out.UndoCents += r.Cents
+		default:
+			row.Kind = st(lang, "Taken off")
+			out.LineCents += r.Cents
+		}
+		out.Rows = append(out.Rows, row)
+		out.Count++
+		out.Items += r.Qty
+		out.Cents += r.Cents
+		who := r.Waiter
+		if who == "" {
+			who = r.AskedBy
+		}
+		if who == "" {
+			who = st(lang, "No waiter")
+		}
+		w := per[who]
+		if w == nil {
+			w = &waiterRemoved{Name: who}
+			per[who] = w
+			order = append(order, who)
+		}
+		w.Count++
+		w.Cents += r.Cents
+	}
+	for _, n := range order {
+		out.ByWaiter = append(out.ByWaiter, *per[n])
+	}
+	sort.SliceStable(out.ByWaiter, func(i, j int) bool { return out.ByWaiter[i].Cents > out.ByWaiter[j].Cents })
+	for _, b := range s.Store.SkippedBills() {
+		out.Skipped++
+		out.SkippedCents += b.ToPay()
+	}
+	out.Flags = s.waiterFlags(lang, s.Now())
+	for i := range out.ByWaiter {
+		for _, f := range out.Flags {
+			if f.Name == out.ByWaiter[i].Name {
+				out.ByWaiter[i].Flag = true
+			}
+		}
+	}
+	return out
+}
+
+// waiterFlags: waiters with flagAfter or more removals (not their own
+// one-minute undos) or skipped bills in the last 7 days, most first.
+func (s *Server) waiterFlags(lang string, now time.Time) []waiterFlag {
+	today := schedule.Today(now)
+	from := schedule.FormatDate(today.AddDate(0, 0, -6))
+	per := map[string]*waiterFlag{}
+	get := func(name string) *waiterFlag {
+		if name == "" {
+			name = st(lang, "No waiter")
+		}
+		f := per[name]
+		if f == nil {
+			f = &waiterFlag{Name: name}
+			per[name] = f
+		}
+		return f
+	}
+	for _, r := range s.Store.Removals(from, schedule.FormatDate(today)) {
+		if r.Kind == db.RemovedUndo {
+			continue
+		}
+		who := r.Waiter
+		if who == "" {
+			who = r.AskedBy
+		}
+		get(whoL(lang, who)).Removed++
+	}
+	for _, b := range s.Store.SkippedBills() {
+		if schedule.FormatDate(*b.SkippedAt) >= from {
+			who := b.WaiterName
+			if who == "" {
+				who = b.SkippedBy
+			}
+			get(whoL(lang, who)).Skips++
+		}
+	}
+	var out []waiterFlag
+	for _, f := range per {
+		if f.Removed+f.Skips >= flagAfter {
+			out = append(out, *f)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Removed+out[i].Skips > out[j].Removed+out[j].Skips })
+	return out
 }
