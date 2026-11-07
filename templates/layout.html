@@ -23,7 +23,7 @@
 {{if .Admin}}
 <header class="admin-bar">
   <div class="admin-bar-inner">
-    <a class="admin-brand" href="{{if eq .Role "chef"}}/admin/kitchen{{else}}/admin/orders{{end}}">{{.Cfg.RestaurantName}}<span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
+    <a class="admin-brand" href="{{if eq .Role "chef"}}/admin/kitchen{{else}}/admin/orders{{end}}"><svg class="emblem" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="21"/><text x="23" y="31" text-anchor="middle">E</text></svg><b>{{.Cfg.RestaurantName}}</b><span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
     {{if and .Role (not .Bare)}}
     <nav class="admin-nav" aria-label="{{tr "Staff"}}">
       {{if eq .Role "manager"}}

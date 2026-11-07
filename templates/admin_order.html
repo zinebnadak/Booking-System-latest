@@ -92,6 +92,7 @@
   <button class="btn btn-sm {{if .QROpen}}btn-secondary{{else}}btn-ok{{end}}">{{if .QROpen}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>{{end}}
 
+<div class="panel table-meta">
 <form method="post" action="/admin/orders/{{.Table}}/guests" class="guests-row">
   <span class="guests-label">{{tr "Guests at the table"}}</span>
   <span class="guests-pick" role="group" aria-label="{{tr "Guests at the table"}}">
@@ -122,6 +123,7 @@
 </form>
 <form method="post" action="/admin/orders/{{.Table}}/waiter" id="waiter-pick-{{.Table}}" hidden><input type="hidden" name="bill" value="{{.Bill.ID}}"></form>
 {{end}}
+</div>
 <div class="order-layout">
   <section class="panel bill-panel" aria-labelledby="bill-h">
     <div class="panel-head">

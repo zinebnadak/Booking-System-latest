@@ -1177,7 +1177,7 @@ body.admin:has(.kitchen) { background: #171d1d; }
 .allergen-opt input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--brass); }
 .dish-allergens { display: block; font-size: .78rem; color: var(--muted); margin-top: 2px; }
 .dish-allergens b { font-weight: 600; color: var(--ink-2); }
-.allergy-note { font-size: .85rem; color: var(--muted); border-left: 3px solid var(--brass); padding: 4px 0 4px 10px; margin: 6px 0 12px; }
+.allergy-note { font-size: .85rem; color: var(--muted); background: var(--brass-soft); border-radius: var(--r-sm); padding: 6px 10px; margin: 6px 0 12px; }
 
 /* Tip before paying on the phone */
 .tip-choices { display: grid; gap: 10px; margin: 16px 0 8px; }
@@ -1311,7 +1311,7 @@ body.admin:has(.kitchen) { background: #171d1d; }
 
 /* ---------- Stock ---------- */
 /* Out of stock and running low, at the top of the waiters' screens. */
-.stock-strip { display: flex; flex-wrap: wrap; gap: 4px var(--s4); padding: 10px 14px; margin: 0 0 var(--s3); border: 1px solid #e9b4a9; border-left: 4px solid var(--bad); border-radius: var(--r-sm); background: var(--bad-soft); color: #7c2a1d; text-decoration: none; font-size: .92rem; line-height: 1.4; }
+.stock-strip { display: flex; flex-wrap: wrap; gap: 4px var(--s4); padding: 10px 14px; margin: 0 0 var(--s3); border: 1px solid #e9b4a9; border-radius: var(--r-sm); background: var(--bad-soft); color: #7c2a1d; text-decoration: none; font-size: .92rem; line-height: 1.4; }
 .stock-strip:hover { border-color: var(--bad); }
 .stock-strip-low { color: var(--warn); }
 .stock-strip b { font-weight: 700; }
@@ -1626,3 +1626,57 @@ body.admin:has(.kitchen) { background: #171d1d; }
 @keyframes ready-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(44, 107, 73, .55); } 50% { box-shadow: 0 0 0 7px rgba(44, 107, 73, 0); } }
 @media (prefers-reduced-motion: reduce) { .ot.ot-ready { animation: none; } }
 .k-logout { margin: 0; }
+
+/* ------------------------------------------------------------ one look across staff, guests and kitchen */
+:root {
+  --shadow-1: 0 1px 2px rgba(23, 29, 29, .05), 0 4px 14px rgba(23, 29, 29, .05);
+  --shadow-2: 0 16px 36px rgba(23, 29, 29, .14), 0 3px 8px rgba(23, 29, 29, .06);
+  --ring: 0 0 0 3px rgba(97, 43, 24, .18);
+}
+html { accent-color: var(--brass); caret-color: var(--brass); scrollbar-color: #bdb6ad transparent; }
+::selection { background: rgba(210, 170, 69, .4); color: var(--ink); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: var(--ring); }
+.eyebrow { text-transform: none; letter-spacing: 0; font-size: .9rem; font-weight: 600; color: var(--muted); }
+.hero { padding-top: var(--s6); }
+.cat-tabs { background: rgba(242, 242, 242, .92); }
+
+/* the staff header carries the same mark as the guest site */
+.admin-bar { border-bottom: 2px solid var(--gold); }
+.admin-brand { display: inline-flex; align-items: center; gap: 10px; }
+.admin-brand .emblem { width: 30px; height: 30px; margin: 0; flex: none; }
+.admin-brand .emblem text { font-size: 24px; }
+.admin-brand b { font-family: var(--display); font-weight: 700; font-size: 1rem; letter-spacing: .1em; text-transform: uppercase; }
+.admin-brand span { margin-left: 0; font-size: .9rem; }
+@media (max-width: 480px) { .admin-brand b { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+.admin-nav a[aria-current] { border-bottom-color: var(--gold); }
+.admin-nav { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: 24px; }
+
+/* page titles speak the brand; the working text stays plain */
+.admin-main h1, .login h1, .k-head h1 { font-family: var(--display); font-weight: 700; letter-spacing: .02em; }
+.admin-main h1 { font-size: 1.6rem; }
+.day-head h1 { font-size: 1.4rem; }
+
+/* cards: one surface, one shadow, one radius */
+.panel, .card, .step, .choice { border-color: #e4e1dc; }
+.ot-cell > .tt { box-shadow: var(--shadow-1); transition: border-color var(--t), box-shadow var(--t), transform var(--t); }
+a.ot:hover { transform: translateY(-1px); box-shadow: var(--shadow-2); }
+
+/* a free table is an empty seat, not a blank card: quiet, so busy tables stand out */
+.ot.tt-free { background: rgba(255, 255, 255, .5); border: 1px solid #e4e1dc; box-shadow: none; }
+.ot.tt-free .tt-no { color: var(--ink-2); font-weight: 600; }
+.ot.tt-free .ot-go { color: var(--muted); }
+a.ot.tt-free:hover { background: var(--card); border-style: solid; border-color: var(--ink); box-shadow: var(--shadow-1); }
+
+/* table page: guests and waiter sit together in one card */
+.table-meta { display: grid; gap: var(--s3); }
+.table-meta .guests-row, .table-meta .waiter-row { margin: 0; }
+.table-meta .waiter-row { padding-top: var(--s3); border-top: 1px solid var(--line); }
+.guests-label { font-weight: 600; }
+.gchip { border-radius: 999px; border-color: var(--line-2); transition: background var(--t), border-color var(--t), color var(--t); }
+.gchip:hover { border-color: var(--ink); }
+.gmore input { border-radius: 999px; }
+
+/* kitchen: same brand line and title, calmer cards */
+body.admin:has(.kitchen) { scrollbar-color: #4a5555 transparent; }
+.kitchen ::selection { background: rgba(210, 170, 69, .45); color: #fff; }
+.kt { border-width: 1.5px; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
