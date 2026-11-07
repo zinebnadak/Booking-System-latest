@@ -158,3 +158,17 @@ func TestGuestsAtTable(t *testing.T) {
 	// 3 meals for everyone there: the guests field starts at 12.
 	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, `inputmode="numeric" value="12" required`)
 }
+
+// What was paid today is the manager's to see, not the waiters'.
+func TestPaidTodayManagerOnly(t *testing.T) {
+	e := newEnv(t, nil)
+	m, err := e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lisa := &http.Cookie{Name: sessionCookie, Value: e.srv.makeStaffSession(m, e.srv.Now())}
+	if strings.Contains(e.as(lisa, "GET", "/admin/orders", nil).Body.String(), "Paid today") {
+		t.Fatal("a waiter sees Paid today")
+	}
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Paid today")
+}

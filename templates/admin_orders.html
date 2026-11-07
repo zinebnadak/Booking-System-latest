@@ -271,7 +271,7 @@
 <p class="notice">{{if .Low}}{{trf "The button on table %d is low on battery (%d %%). Charge it with a USB-C cable." .Table .Battery}}{{else}}{{trf "The button on table %d hasn't been heard from in %d days. Check that it's charged and in Wi-Fi range." .Table .Silent}}{{end}}</p>
 {{end}}{{end}}
 
-<section class="panel">
+{{if .Manager}}<section class="panel">
   <h2>{{tr "Paid today"}}</h2>
   {{if or .Day.Bills .Day.Vouchers}}
   <dl class="sum-rows">
@@ -286,7 +286,8 @@
   {{end}}
   <p class="muted small">{{tr "What guests paid at the tables, after online deposits. Gift cards and lunch coupons were paid for when they were sold, so they're listed apart."}}</p>
   <p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a>{{if .Manager}} <a class="btn btn-secondary btn-sm" href="/admin/staff#served">{{tr "Who served the most tables"}}</a>{{end}}</p>
-</section>
+</section>{{else}}
+<p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a></p>{{end}}
 
 <section class="panel">
   <h2>{{tr "Table history"}}</h2>
