@@ -1575,4 +1575,7 @@ var staffSV = map[string]string{
 	// chef login 2
 	"Add a waiter or the kitchen": "Lägg till en servitör eller köket",
 	"Staff logins":                "Personalens inloggningar",
+
+	// skipped compact
+	"Handle": "Hantera",
 }

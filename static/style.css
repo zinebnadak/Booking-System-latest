@@ -1567,11 +1567,23 @@ body.admin:has(.kitchen) { background: #171d1d; }
 .mgr-asks { border-color: var(--warn); }
 .mgr-asks h2, .skipped-bills h2 { display: flex; align-items: center; gap: 8px; }
 .mgr-asks .bring-list li { flex-wrap: wrap; }
-.skip-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
-.skip-card { padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
-.skip-head { display: flex; justify-content: space-between; gap: var(--s2); font-size: 1.05rem; }
-.skip-sum { font-weight: 700; font-variant-numeric: tabular-nums; }
-.skip-card p { margin: 4px 0 var(--s2); }
+.skipped-bills { padding-top: var(--s3); padding-bottom: var(--s3); }
+.skip-summary { display: flex; align-items: center; gap: var(--s3); cursor: pointer; list-style: none; font-weight: 700; font-size: 1.05rem; }
+.skip-summary::-webkit-details-marker, .skip-row summary::-webkit-details-marker { display: none; }
+.skip-title { display: flex; align-items: center; gap: 8px; }
+.skip-total { margin-left: auto; flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.skip-toggle { width: 10px; height: 10px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin: -4px 4px 0; transition: transform var(--t); }
+.skipped-bills[open] .skip-toggle { transform: rotate(-135deg); margin-top: 4px; }
+.skipped-bills > p { margin: var(--s2) 0; }
+.skip-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.skip-list > li { border-bottom: 1px solid var(--line); }
+.skip-row summary { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: var(--s3); min-height: 48px; cursor: pointer; list-style: none; }
+.skip-sum { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.skip-meta { color: var(--muted); font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.skip-open { color: var(--brass-text); font-weight: 600; font-size: .9rem; white-space: nowrap; }
+.skip-row[open] .skip-open { visibility: hidden; }
+.skip-row p { margin: 0 0 var(--s2); }
+.skip-row .skip-acts { padding-bottom: var(--s3); }
 .skip-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .skip-acts form { margin: 0; display: flex; gap: 6px; align-items: center; }
 .skip-acts select, .skip-acts input { min-height: 36px; }

@@ -42,36 +42,47 @@
 </section>
 {{end}}
 {{if .Skipped}}
-<section class="panel skipped-bills" aria-labelledby="skip-h">
-  <h2 id="skip-h">{{tr "Skipped, not paid yet"}} <span class="nw-count">{{len .Skipped}}</span></h2>
+<details class="panel skipped-bills" id="skipped">
+  <summary class="skip-summary">
+    <span class="skip-title">{{tr "Skipped, not paid yet"}} <span class="nw-count">{{len .Skipped}}</span></span>
+    <span class="skip-total">{{euro .SkippedTotal}}</span>
+    <span class="skip-toggle" aria-hidden="true"></span>
+  </summary>
   <p class="muted small">{{if .Manager}}{{tr "These bills left their table without being paid. Take the payment if the guests come back, put a bill back on a table, or write it off as unpaid (it shows on the charts)."}}{{else}}{{tr "These bills left their table without being paid. If the guests come back, take the payment here. Only the manager can write one off."}}{{end}}</p>
   <ul class="skip-list">
     {{range .Skipped}}
-    <li class="skip-card">
-      <div class="skip-head"><strong>{{trf "Table %d" .Table}}</strong> <span class="skip-sum">{{euro .ToPay}}</span></div>
-      <p class="muted small">{{trf "Skipped %s by %s" .At .By}}{{with .WaiterName}} · {{trf "Waiter: %s" .}}{{end}} · {{range $i, $l := .Lines}}{{if $i}}, {{end}}{{$l.Qty}}× {{$l.Name}}{{end}}</p>
-      <div class="skip-acts">
-        {{if not .IsSplit}}
-        <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .Table (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}"><input type="hidden" name="bill" value="{{.ID}}"><input type="hidden" name="method" value="card"><button class="btn btn-ok btn-sm">{{trf "Card · %s" (euro .Left)}}</button></form>
-        <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s in cash?" .Table (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}"><input type="hidden" name="bill" value="{{.ID}}"><input type="hidden" name="method" value="cash"><button class="btn btn-secondary btn-sm">{{tr "Cash"}}</button></form>
-        {{end}}
-        {{if $.FreeTables}}
-        <form method="post" action="/admin/orders/{{.Table}}/back" class="skip-back"><input type="hidden" name="bill" value="{{.ID}}">
-          <select name="to" aria-label="{{tr "Back to table"}}">{{$t := .Table}}{{range $.FreeTables}}<option value="{{.}}"{{if eq . $t}} selected{{end}}>{{tableLabel .}}</option>{{end}}</select>
-          <button class="btn btn-secondary btn-sm">{{tr "Back to the table"}}</button>
-        </form>
-        {{end}}
-        {{if $.Manager}}
-        <form method="post" action="/admin/orders/{{.Table}}/writeoff" class="skip-off" data-confirm="{{trf "Write off %s for table %d as never paid? It shows on the charts. It can't be undone." (euro .ToPay) .Table}}" data-confirm-ok="{{tr "Write off"}}" data-danger><input type="hidden" name="bill" value="{{.ID}}">
-          <input name="why" maxlength="200" required placeholder="{{tr "Why, e.g. left without paying"}}" aria-label="{{tr "Why"}}">
-          <button class="btn btn-danger btn-sm">{{tr "Write off"}}</button>
-        </form>
-        {{end}}
-      </div>
+    <li>
+      <details class="skip-row" id="skip-{{.ID}}">
+        <summary>
+          <strong>{{trf "Table %d" .Table}}</strong>
+          <span class="skip-sum">{{euro .ToPay}}</span>
+          <span class="skip-meta">{{.At}}{{with .WaiterName}} · {{.}}{{end}}</span>
+          <span class="skip-open">{{tr "Handle"}} ›</span>
+        </summary>
+        <p class="muted small">{{trf "Skipped %s by %s" .At .By}} · {{range $i, $l := .Lines}}{{if $i}}, {{end}}{{$l.Qty}}× {{$l.Name}}{{end}}</p>
+        <div class="skip-acts">
+          {{if not .IsSplit}}
+          <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s at the terminal?" .Table (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}"><input type="hidden" name="bill" value="{{.ID}}"><input type="hidden" name="method" value="card"><button class="btn btn-ok btn-sm">{{tr "Card"}}</button></form>
+          <form method="post" action="/admin/orders/{{.Table}}/pay" data-confirm="{{trf "Table %d paid %s in cash?" .Table (euro .Left)}}" data-confirm-ok="{{tr "Yes, paid"}}"><input type="hidden" name="bill" value="{{.ID}}"><input type="hidden" name="method" value="cash"><button class="btn btn-secondary btn-sm">{{tr "Cash"}}</button></form>
+          {{end}}
+          {{if $.FreeTables}}
+          <form method="post" action="/admin/orders/{{.Table}}/back" class="skip-back"><input type="hidden" name="bill" value="{{.ID}}">
+            <select name="to" aria-label="{{tr "Back to table"}}">{{$t := .Table}}{{range $.FreeTables}}<option value="{{.}}"{{if eq . $t}} selected{{end}}>{{tableLabel .}}</option>{{end}}</select>
+            <button class="btn btn-secondary btn-sm">{{tr "Back to the table"}}</button>
+          </form>
+          {{end}}
+          {{if $.Manager}}
+          <form method="post" action="/admin/orders/{{.Table}}/writeoff" class="skip-off" data-confirm="{{trf "Write off %s for table %d as never paid? It shows on the charts. It can't be undone." (euro .ToPay) .Table}}" data-confirm-ok="{{tr "Write off"}}" data-danger><input type="hidden" name="bill" value="{{.ID}}">
+            <input name="why" maxlength="200" required placeholder="{{tr "Why, e.g. left without paying"}}" aria-label="{{tr "Why"}}">
+            <button class="btn btn-danger btn-sm">{{tr "Write off"}}</button>
+          </form>
+          {{end}}
+        </div>
+      </details>
     </li>
     {{end}}
   </ul>
-</section>
+</details>
 {{end}}
 {{if .NoWaiter}}
 <section class="no-waiter" aria-labelledby="nw-h">

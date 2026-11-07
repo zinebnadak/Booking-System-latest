@@ -180,6 +180,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 			noWaiter = append(noWaiter, t)
 		}
 	}
+	skipped := s.skippedViews(lang, now)
 	// Every table, with its waiter's name; a waiter can show only theirs
 	// (and the free ones).
 	me := loginOf(r)
@@ -209,7 +210,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		"Rooms": byRoom(shown, func(t orderTile) string { return t.Room }, func(t orderTile) bool { return t.Bill != nil }),
 		"View":  view, "Waiter": me.Role == roleWaiter, "MineCount": mine, "Others": others,
 		"Me": me.StaffID, "StaffList": staff, "NoWaiter": noWaiter, "Manager": rank(me.Role) >= rank(roleManager),
-		"Asks": askViews(lang, s.Store.Asks()), "Skipped": s.skippedViews(lang, now), "FreeTables": s.freeTables(),
+		"Asks": askViews(lang, s.Store.Asks()), "Skipped": skipped, "SkippedTotal": skippedTotal(skipped), "FreeTables": s.freeTables(),
 		"Drinks": s.drinksToBring(), "Receipts": s.receiptsToPrint(lang), "Calls": s.callsNow(lang, now),
 		"PhoneOrders": s.pendingOrders(lang, now), "CheckPhoneOrders": s.Store.CheckPhoneOrders(),
 		"Stock": s.stockStrip(), "OnlinePaid": s.onlinePaid(lang, now), "ReadyFood": s.readyFood(now),
@@ -311,6 +312,14 @@ func (s *Server) waiters() []db.StaffMember {
 		}
 	}
 	return out
+}
+
+func skippedTotal(v []skippedView) int {
+	n := 0
+	for _, b := range v {
+		n += b.ToPay()
+	}
+	return n
 }
 
 // isManager: the manager (not a waiter) is logged in.
