@@ -48,6 +48,8 @@ func main() {
 		ReportEmail:     env("REPORT_EMAIL", ""),
 		GoogleReviewURL: env("GOOGLE_REVIEW_URL", ""),
 		ManagerPhone:    env("MANAGER_PHONE", ""),
+		TableButtons:    env("TABLE_BUTTONS", "") == "1", // off for now
+		TableQR:         env("TABLE_QR", "") == "1",      // off for now: one QR, for feedback
 		AdminUser:       env("ADMIN_USER", "admin"),
 		AdminPassword:   env("ADMIN_PASSWORD", ""),
 		OwnerUser:       env("OWNER_USER", "owner"),

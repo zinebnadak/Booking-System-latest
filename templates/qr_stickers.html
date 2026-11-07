@@ -1,13 +1,13 @@
 {{define "content"}}
 <div class="day-head no-print">
   <a class="icon-btn" href="/admin/orders" aria-label="{{tr "Orders"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
-  <h1>{{tr "Table QR codes"}}</h1>
+  <h1>{{if .Cfg.TableQR}}{{tr "Table QR codes"}}{{else}}{{tr "Feedback QR code"}}{{end}}</h1>
   <span class="spacer"></span>
   <button type="button" class="btn btn-primary btn-sm" data-print>{{tr "Print"}}</button>
 </div>
-<p class="muted small no-print">{{tr "Print these and stick one on each table. Guests scan it to order and pay from their phone, but only while the table has guests: it opens by itself when they arrive or the first order is taken. If a photo of a sticker gets around, make a new code for that table and print it again."}}</p>
+{{if .Cfg.TableQR}}<p class="muted small no-print">{{tr "Print these and stick one on each table. Guests scan it to order and pay from their phone, but only while the table has guests: it opens by itself when they arrive or the first order is taken. If a photo of a sticker gets around, make a new code for that table and print it again."}}</p>{{else}}<p class="muted small no-print">{{tr "Print this and put it on the tables or by the door. Guests scan it to tell you how it was. Their feedback comes to you by email and under Feedback; it is never published."}}</p>{{end}}
 <div class="stickers">
-  {{range .Stickers}}
+  {{if .Cfg.TableQR}}{{range .Stickers}}
   <article class="sticker">
     <p class="sticker-brand">{{$.Cfg.RestaurantName}}</p>
     <div class="sticker-qr" data-qr="{{.URL}}" aria-label="{{trf "QR code for table %d" .Table}}"></div>
@@ -19,6 +19,7 @@
       <button class="btn-link">{{tr "New code"}}</button>
     </form>
   </article>
+  {{end}}
   {{end}}
   <article class="sticker sticker-review" id="review-sticker">
     <p class="sticker-brand">{{$.Cfg.RestaurantName}}</p>

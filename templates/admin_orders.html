@@ -4,20 +4,21 @@
   <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
   <span class="spacer"></span>
   <button type="button" class="btn btn-secondary btn-sm" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
-  <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{tr "Table QR codes"}}</a>
+  <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{if .Cfg.TableQR}}{{tr "Table QR codes"}}{{else}}{{tr "Feedback QR code"}}{{end}}</a>
   <a class="btn btn-secondary btn-sm" href="/admin/kitchen" target="_blank" rel="noopener">{{tr "Kitchen screen"}}</a>
   <a class="btn btn-secondary btn-sm" href="/admin/offline">{{tr "If the internet goes down"}}</a>
 </div>
 <p class="muted small deal-line">{{tr "Tap a table to take an order. Everything goes on the table's bill until it's paid."}}
-  {{if .DealToday}}{{tr "3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here."}}{{else}}{{trf "3 meals runs on %s. Today the buttons just call a waiter." .DealDays}}{{end}}</p>
-<form method="post" action="/admin/phone-orders/check" class="qr-switch{{if .CheckPhoneOrders}} on{{end}}">
+  {{if .Cfg.TableButtons}}{{if .DealToday}}{{tr "3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here."}}{{else}}{{trf "3 meals runs on %s. Today the buttons just call a waiter." .DealDays}}{{end}}
+  {{else}}{{if .DealToday}}{{tr "3 meals runs today. When guests are ready for the next meal, open the table and send it to the kitchen."}}{{else}}{{trf "3 meals runs on %s." .DealDays}}{{end}}{{end}}</p>
+{{if .Cfg.TableQR}}<form method="post" action="/admin/phone-orders/check" class="qr-switch{{if .CheckPhoneOrders}} on{{end}}">
   <input type="hidden" name="on" value="{{if .CheckPhoneOrders}}0{{else}}1{{end}}">
   <span class="qr-switch-text">
     <strong>{{if .CheckPhoneOrders}}{{tr "Phone orders are checked first"}}{{else}}{{tr "Phone orders go straight to the kitchen"}}{{end}}</strong>
     <span class="muted small">{{if .CheckPhoneOrders}}{{tr "A waiter accepts each one before the chef sees it. If nobody does, it goes through by itself after 5 minutes."}}{{else}}{{tr "Turn on to accept each phone order before the chef sees it."}}{{end}}</span>
   </span>
   <button class="btn btn-sm {{if .CheckPhoneOrders}}btn-secondary{{else}}btn-ok{{end}}">{{if .CheckPhoneOrders}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
-</form>
+</form>{{end}}
 <div data-room-view="orders"><div data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "tiles" .}}</div></div>
 {{end}}
 
@@ -240,13 +241,13 @@
     <dt>{{tr "Tables with 3 meals"}}</dt><dd>{{.Stats.Tables}}</dd>
     <dt>{{tr "Finished all meals"}}</dt><dd>{{.Stats.Finished}}</dd>
     <dt>{{tr "Average time to eat a meal"}}</dt><dd>{{trf "%d min" .EatMin}}</dd>
-    {{if .Stats.Waits}}<dt>{{tr "Average wait after the button"}}</dt><dd>{{trf "%d min" .WaitMin}}</dd>{{end}}
+    {{if and $.Cfg.TableButtons .Stats.Waits}}<dt>{{tr "Average wait after the button"}}</dt><dd>{{trf "%d min" .WaitMin}}</dd>{{end}}
   </dl>
 </section>
 {{end}}
-{{range .Warnings}}
+{{if .Cfg.TableButtons}}{{range .Warnings}}
 <p class="notice">{{if .Low}}{{trf "The button on table %d is low on battery (%d %%). Charge it with a USB-C cable." .Table .Battery}}{{else}}{{trf "The button on table %d hasn't been heard from in %d days. Check that it's charged and in Wi-Fi range." .Table .Silent}}{{end}}</p>
-{{end}}
+{{end}}{{end}}
 
 <section class="panel">
   <h2>{{tr "Paid today"}}</h2>

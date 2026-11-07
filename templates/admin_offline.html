@@ -11,7 +11,7 @@
   <header class="plan-head">
     <p class="eyebrow">{{.Cfg.RestaurantName}}</p>
     <h2>{{tr "When the internet is down"}}</h2>
-    <p>{{tr "The tablets, the kitchen screen, the table buttons and the QR codes need the internet. The restaurant keeps going on paper."}}</p>
+    <p>{{if or .Cfg.TableQR .Cfg.TableButtons}}{{tr "The tablets, the kitchen screen, the table buttons and the QR codes need the internet. The restaurant keeps going on paper."}}{{else}}{{tr "The tablets and the kitchen screen need the internet. The restaurant keeps going on paper."}}{{end}}</p>
   </header>
 
   <section>
@@ -35,13 +35,15 @@
     <p>{{tr "Most card terminals have their own SIM and keep working without the Wi-Fi. Check yours once now, before it happens. Write every payment on its paper ticket: table, amount, terminal or cash."}}</p>
   </section>
 
+{{if or .Cfg.TableQR .Cfg.TableButtons}}
   <section>
     <h3><span class="plan-no">5</span>{{tr "QR codes and table buttons"}}</h3>
     <p>{{tr "A guest whose phone can't open the QR page orders with you instead. The table buttons can't light up the screen: walk round the tables, especially during 3 meals."}}</p>
   </section>
+{{end}}
 
   <section>
-    <h3><span class="plan-no">6</span>{{tr "When it's back"}}</h3>
+    <h3><span class="plan-no">{{if or .Cfg.TableQR .Cfg.TableButtons}}6{{else}}5{{end}}</span>{{tr "When it's back"}}</h3>
     <p>{{tr "Put the paper orders on the tables' bills and mark what was paid: at the terminal or in cash. Then the end-of-day email and the activity list are right. Keep the paper tickets until the day is checked."}}</p>
   </section>
 

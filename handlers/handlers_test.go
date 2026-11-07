@@ -41,6 +41,7 @@ func newEnv(t *testing.T, pay *payments.Client) *env {
 	cfg := Config{
 		BaseURL: "http://example.test", RestaurantName: "E-Meal Kitchen",
 		ManagerEmail: "manager@example.test", AdminUser: "admin", AdminPassword: "pw", CalendarToken: "tok",
+		TableButtons: true, TableQR: true, // the tests cover them; offTest switches them off
 	}
 	if pay == nil {
 		pay = &payments.Client{}

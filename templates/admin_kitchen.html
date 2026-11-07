@@ -96,7 +96,7 @@
         {{range .Left}}<li><span class="kt-qty">{{trf "Meal %d" .No}}</span><span class="kt-name">{{.Name}}</span></li>{{end}}
       </ul>
       {{if .Guests}}<p class="kt-online">{{trf "%d guests" .Guests}}</p>{{end}}
-      <p class="kt-message kt-deal-msg">{{trf "The guests haven't asked for meal %d yet. You'll be told here when they press the button or a waiter sends it." .Next}}</p>
+      <p class="kt-message kt-deal-msg">{{if $.Cfg.TableButtons}}{{trf "The guests haven't asked for meal %d yet. You'll be told here when they press the button or a waiter sends it." .Next}}{{else}}{{trf "The guests haven't asked for meal %d yet. You'll be told here when a waiter sends it." .Next}}{{end}}</p>
     </article>
     {{end}}
   </div>

@@ -240,6 +240,17 @@ internet. If it goes down, the restaurant keeps going on paper:
 
 ---
 
+## Switched off for now
+
+Two features are built but switched off, so the staff screens don't show
+them. Nothing was deleted; set them to `1` in `.env` to turn them back on:
+- `TABLE_BUTTONS=1`: the call button on each table (and its page under the
+  money pages). Off: with 3 meals, the waiter sends the next meal from the
+  table's page.
+- `TABLE_QR=1`: guests order and pay from their phones with the table's QR
+  code. Off: there's one QR code, for feedback (Orders → **Feedback QR
+  code**, print it), and an old table sticker leads to the feedback page.
+
 ## Nothing comes off a bill without the manager
 
 Against "take the cash and delete the order":

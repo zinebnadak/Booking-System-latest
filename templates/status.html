@@ -45,7 +45,7 @@
     {{with .Notes}}<dt>{{$t.lbl_notes}}</dt><dd>{{.}}</dd>{{end}}
   </dl>
 
-  {{if and (eq .Kind "table") (eq $.Status "paid") .TableCode}}
+  {{if and $.Cfg.TableQR (eq .Kind "table") (eq $.Status "paid") .TableCode}}
   <div class="table-code">
     <span class="tc-label">{{$t.st_code}}</span>
     <strong class="tc-digits">{{.TableCode}}</strong>

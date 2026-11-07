@@ -33,14 +33,21 @@ type Config struct {
 	ReportEmail     string // gets the end-of-day summary (empty: ManagerEmail)
 	GoogleReviewURL string // the restaurant's "write a review" link on Google (offered to every guest after feedback)
 	ManagerPhone    string // for SMS notifications (phase 2)
-	AdminUser       string
-	AdminPassword   string
-	OwnerUser       string // a second manager login (was the head manager)
-	OwnerPassword   string
-	CalendarToken   string // secret part of the manager's calendar-feed link
-	SessionSecret   string // signs the staff login cookie (random if empty)
-	RetentionDays   int    // guest details are removed from bookings older than this (0 = keep)
-	TrustProxy      bool   // behind a proxy that sets X-Forwarded-For (for the rate limits)
+
+	// Features that are built but switched off for now (the code stays):
+	// TableButtons: the call button on each table (TABLE_BUTTONS=1).
+	// TableQR: guests order and pay with the table's QR code (TABLE_QR=1).
+	// With TableQR off there's one QR code: feedback.
+	TableButtons  bool
+	TableQR       bool
+	AdminUser     string
+	AdminPassword string
+	OwnerUser     string // a second manager login (was the head manager)
+	OwnerPassword string
+	CalendarToken string // secret part of the manager's calendar-feed link
+	SessionSecret string // signs the staff login cookie (random if empty)
+	RetentionDays int    // guest details are removed from bookings older than this (0 = keep)
+	TrustProxy    bool   // behind a proxy that sets X-Forwarded-For (for the rate limits)
 }
 
 // Server holds everything the pages need.
@@ -150,26 +157,26 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
 	mux.HandleFunc("GET /calendar/{token}", s.calendarFeed)
 	// The buttons on the tables (they send their secret code, no login).
-	mux.HandleFunc("POST /api/press", s.apiButton(true))
-	mux.HandleFunc("POST /api/checkin", s.apiButton(false))
-	mux.HandleFunc("GET /demo/buttons", s.demoButtons)
+	mux.HandleFunc("POST /api/press", s.ifButtons(s.apiButton(true)))
+	mux.HandleFunc("POST /api/checkin", s.ifButtons(s.apiButton(false)))
+	mux.HandleFunc("GET /demo/buttons", s.ifButtons(s.demoButtons))
 	// A guest's receipt, from the QR code (the long random code is the key).
 	mux.HandleFunc("GET /r/{ref}", s.publicReceipt)
-	mux.HandleFunc("POST /demo/buttons/{no}", s.demoPress)
+	mux.HandleFunc("POST /demo/buttons/{no}", s.ifButtons(s.demoPress))
 	// Ordering and paying from the table's QR code (the long random codes are the keys).
-	mux.HandleFunc("GET /t/{code}", s.tablePage)
-	mux.HandleFunc("POST /t/{code}", s.limited("join", limitJoin, s.tableJoin))
-	mux.HandleFunc("POST /t/{code}/unlock", s.tableUnlock)
+	mux.HandleFunc("GET /t/{code}", s.ifTableQR(s.tablePage))
+	mux.HandleFunc("POST /t/{code}", s.ifTableQR(s.limited("join", limitJoin, s.tableJoin)))
+	mux.HandleFunc("POST /t/{code}/unlock", s.ifTableQR(s.tableUnlock))
 	mux.HandleFunc("GET /g/{key}", s.guestPage)
 	mux.HandleFunc("GET /g/{key}/events", s.limited("tab", limitGuestTab, s.guestEvents))
 	mux.HandleFunc("POST /g/{key}/name", s.limited("tab", limitGuestTab, s.guestName))
-	mux.HandleFunc("POST /g/{key}/order", s.limited("tab", limitGuestTab, s.guestOrder))
+	mux.HandleFunc("POST /g/{key}/order", s.ifTableQR(s.limited("tab", limitGuestTab, s.guestOrder)))
 	mux.HandleFunc("GET /g/{key}/tip", s.guestTip)
 	mux.HandleFunc("POST /g/{key}/pay", s.limited("tab", limitGuestTab, s.guestPay))
 	mux.HandleFunc("POST /g/{key}/cancel", s.limited("tab", limitGuestTab, s.tabCancel))
 	mux.HandleFunc("POST /g/{key}/receipt/email", s.limited("mail", limitBooking, s.guestReceiptEmail))
 	mux.HandleFunc("POST /g/{key}/receipt/paper", s.limited("tab", limitGuestTab, s.guestReceiptPaper))
-	mux.HandleFunc("POST /g/{key}/call", s.limited("tab", limitGuestTab, s.guestCall))
+	mux.HandleFunc("POST /g/{key}/call", s.ifTableQR(s.limited("tab", limitGuestTab, s.guestCall)))
 	mux.HandleFunc("GET /g/{key}/back", s.limited("tab", limitGuestTab, s.tabCancel)) // Stripe's "back" link
 	mux.HandleFunc("GET /g/{key}/paid", s.guestPaid)                                  // Stripe's "done" link
 	mux.HandleFunc("GET /dev/tab/{ref}", s.devTabPage)
@@ -217,14 +224,14 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("GET /admin/orders/{table}/receipts", s.receiptsPage)
 	admin.HandleFunc("POST /admin/orders/{table}/add", s.orderAdd)
 	admin.HandleFunc("POST /admin/orders/{table}/lines/{line}/{action}", s.orderLine)
-	admin.HandleFunc("POST /admin/orders/{table}/qr", s.tableQR)
+	admin.HandleFunc("POST /admin/orders/{table}/qr", s.ifTableQR(s.tableQR))
 	admin.HandleFunc("POST /admin/orders/{table}/{action}", s.orderBillAction)
 	admin.HandleFunc("GET /admin/tables/qr", s.qrStickers)
 	admin.HandleFunc("GET /admin/offline", s.offlinePlan)
-	admin.HandleFunc("POST /admin/tables/qr/{no}/new", s.managerOnly(s.qrNewCode))
+	admin.HandleFunc("POST /admin/tables/qr/{no}/new", s.ifTableQR(s.managerOnly(s.qrNewCode)))
 	admin.HandleFunc("POST /admin/receipts/{bill}/{guest}/given", s.receiptGiven)
 	admin.HandleFunc("POST /admin/phone-orders/{id}/{action}", s.phoneOrderAction)
-	admin.HandleFunc("POST /admin/phone-orders/check", s.checkPhoneOrders)
+	admin.HandleFunc("POST /admin/phone-orders/check", s.ifTableQR(s.checkPhoneOrders))
 	admin.HandleFunc("GET /admin/kitchen", s.adminKitchen)
 	admin.HandleFunc("POST /admin/kitchen/{id}/{action}", s.kitchenAction)
 	admin.HandleFunc("POST /admin/tables/{no}/{action}", s.tableAction)
@@ -278,8 +285,8 @@ func (s *Server) Routes() http.Handler {
 	owner.HandleFunc("GET /owner/export.csv", s.ownerReportsCSV)
 	owner.HandleFunc("GET /owner/summary", s.ownerSummary)
 	owner.HandleFunc("GET /owner/feedback", s.ownerFeedback)
-	owner.HandleFunc("GET /owner/buttons", s.ownerButtons)
-	owner.HandleFunc("POST /owner/buttons/{no}/new", s.ownerNewCode)
+	owner.HandleFunc("GET /owner/buttons", s.ifButtons(s.ownerButtons))
+	owner.HandleFunc("POST /owner/buttons/{no}/new", s.ifButtons(s.ownerNewCode))
 	mux.Handle("/owner", s.requireRole(roleManager, owner))
 	mux.Handle("/owner/", s.requireRole(roleManager, owner))
 
@@ -456,4 +463,33 @@ func logPath(p string) string {
 		}
 	}
 	return p
+}
+
+// ifButtons: the table buttons are switched off for now (Cfg.TableButtons):
+// their pages and the API answer "not found". The code stays.
+func (s *Server) ifButtons(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.Cfg.TableButtons {
+			s.notFound(w, r)
+			return
+		}
+		h(w, r)
+	}
+}
+
+// ifTableQR: ordering with the table's QR code is switched off for now
+// (Cfg.TableQR). An old table sticker leads to the feedback page instead;
+// the rest answers "not found". The code stays.
+func (s *Server) ifTableQR(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.Cfg.TableQR {
+			if strings.HasPrefix(r.URL.Path, "/t/") {
+				http.Redirect(w, r, "/review", http.StatusSeeOther)
+				return
+			}
+			s.notFound(w, r)
+			return
+		}
+		h(w, r)
+	}
 }

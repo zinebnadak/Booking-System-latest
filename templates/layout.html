@@ -29,7 +29,7 @@
       {{if eq .Role "manager"}}
       <a href="/owner"{{if eq .Nav "today"}} aria-current="page"{{end}}>{{tr "Money today"}}</a>
       <a href="/owner/charts"{{if eq .Nav "charts"}} aria-current="page"{{end}}>{{tr "Charts"}}</a>
-      <a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>
+      {{if .Cfg.TableButtons}}<a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>{{end}}
       <a href="/owner/feedback"{{if eq .Nav "feedback"}} aria-current="page"{{end}}>{{tr "Feedback"}}</a>
       <span class="nav-sep" aria-hidden="true"></span>
       {{end}}
@@ -62,7 +62,7 @@
   <ol>
     <li>{{tr "Write orders on paper: table, guest, dishes. Give the kitchen a copy."}}</li>
     <li>{{tr "Take payments on the card terminal or in cash. Write each one down."}}</li>
-    <li>{{tr "QR codes and table buttons may not work: walk round the tables."}}</li>
+    {{if or .Cfg.TableQR .Cfg.TableButtons}}<li>{{tr "QR codes and table buttons may not work: walk round the tables."}}</li>{{end}}
     <li>{{tr "When it's back, put the paper orders in and mark them paid."}}</li>
   </ol>
   <p>{{tr "The full plan is on the printed sheet by the till. This message goes away by itself when the internet is back."}}</p>

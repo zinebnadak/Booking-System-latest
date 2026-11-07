@@ -1543,4 +1543,13 @@ var staffSV = map[string]string{
 	"Waiting for the manager": "Väntar på föreståndaren",
 	"waiting for the manager": "väntar på föreståndaren",
 	"Manager (PIN)":           "Föreståndare (PIN)",
+
+	// features off
+	"The guests haven't asked for meal %d yet. You'll be told here when a waiter sends it.":                   "Gästerna har inte bett om rätt %d än. Du får besked här när servitören skickar den.",
+	"The tablets and the kitchen screen need the internet. The restaurant keeps going on paper.":              "Surfplattorna och köksskärmen behöver internet. Restaurangen fortsätter på papper.",
+	"Seats them here and opens the bill.":                                                                     "Placerar dem här och öppnar notan.",
+	"Nothing ordered yet. Add dishes below.":                                                                  "Inget beställt än. Lägg till rätter nedan.",
+	"Feedback QR code":                                                                                        "QR-kod för omdömen",
+	"3 meals runs today. When guests are ready for the next meal, open the table and send it to the kitchen.": "3 rätter gäller i dag. När gästerna är redo för nästa rätt, öppna bordet och skicka den till köket.",
+	"Print this and put it on the tables or by the door. Guests scan it to tell you how it was. Their feedback comes to you by email and under Feedback; it is never published.": "Skriv ut den och ställ den på borden eller vid dörren. Gästerna skannar den för att berätta hur det var. Omdömet kommer till er via e-post och under Omdömen; det publiceras aldrig.",
 }

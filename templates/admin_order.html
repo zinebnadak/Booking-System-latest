@@ -83,14 +83,14 @@
   </div>
 </section>
 {{end}}
-<form method="post" action="/admin/orders/{{.Table}}/qr" class="qr-switch{{if .QROpen}} on{{end}}">
+{{if .Cfg.TableQR}}<form method="post" action="/admin/orders/{{.Table}}/qr" class="qr-switch{{if .QROpen}} on{{end}}">
   <input type="hidden" name="open" value="{{if .QROpen}}0{{else}}1{{end}}">
   <span class="qr-switch-text">
     <strong>{{if .QROpen}}{{tr "QR orders are on"}}{{else}}{{tr "QR orders are off"}}{{end}}</strong>
     <span class="muted small">{{if .QROpen}}{{tr "Guests can scan the table's code, order and pay on their phones."}}{{else}}{{tr "Turn on to let guests order and pay from their phones with the table's QR code."}}{{end}}</span>
   </span>
   <button class="btn btn-sm {{if .QROpen}}btn-secondary{{else}}btn-ok{{end}}">{{if .QROpen}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
-</form>
+</form>{{end}}
 
 <form method="post" action="/admin/orders/{{.Table}}/guests" class="guests-row">
   <span class="guests-label">{{tr "Guests at the table"}}</span>
@@ -99,7 +99,7 @@
     <label class="gmore"><span class="sr-only">{{tr "More guests"}}</span><input type="number" name="guests" min="9" max="{{.MaxGuests}}" inputmode="numeric" placeholder="9+" form="guests-more-{{.Table}}"{{if and .Open (gt .Bill.Guests 8)}} value="{{.Bill.Guests}}"{{end}}></label>
     <button class="btn btn-secondary btn-sm" form="guests-more-{{.Table}}">{{tr "OK"}}</button>
   </span>
-  {{if not .Open}}<span class="muted small">{{tr "Seats them here: the table opens for QR orders too."}}</span>{{end}}
+  {{if not .Open}}<span class="muted small">{{if .Cfg.TableQR}}{{tr "Seats them here: the table opens for QR orders too."}}{{else}}{{tr "Seats them here and opens the bill."}}{{end}}</span>{{end}}
 </form>
 <form method="post" action="/admin/orders/{{.Table}}/guests" id="guests-more-{{.Table}}" hidden></form>
 {{if .Open}}
@@ -192,7 +192,7 @@
     <div class="bill-actions">
       {{if not .Lines}}
       {{if .Bill.DepositCents}}<p class="notice info">{{trf "These guests paid a %s deposit online. It comes off their bill." (euro .Bill.DepositCents)}}</p>{{end}}
-      <p class="muted small">{{tr "Nothing ordered yet. Guests can order with the table's QR code, or add dishes here."}}</p>
+      <p class="muted small">{{if .Cfg.TableQR}}{{tr "Nothing ordered yet. Guests can order with the table's QR code, or add dishes here."}}{{else}}{{tr "Nothing ordered yet. Add dishes below."}}{{end}}</p>
       {{else}}
       <form method="post" action="/admin/orders/{{.Table}}/billed">
         <input type="hidden" name="bill" value="{{.Bill.ID}}">
