@@ -1052,3 +1052,22 @@
     }).then(function () { btn.disabled = false; });
   });
 })();
+
+/* A dialog that opens by itself (the receipt question after paying), and a
+   page that prints by itself (?print=1, after the QR code is drawn). */
+(function () {
+  var d = document.querySelector('dialog[data-autoshow]');
+  if (d && d.showModal) {
+    d.showModal();
+    var p = d.getAttribute('data-drop-param');
+    if (p && window.history && history.replaceState) { // a reload doesn't ask again
+      var u = new URL(location.href);
+      u.searchParams.delete(p);
+      u.searchParams.delete('msg');
+      history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+    }
+  }
+  if (document.querySelector('[data-autoprint]')) {
+    window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 350); });
+  }
+})();

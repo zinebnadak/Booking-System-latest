@@ -22,6 +22,19 @@
   </span>
   <button class="btn btn-sm {{if .CheckPhoneOrders}}btn-secondary{{else}}btn-ok{{end}}">{{if .CheckPhoneOrders}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>{{end}}
+{{with .AskReceipt}}
+<dialog id="dlg-receipt" data-autoshow data-drop-param="rc" aria-labelledby="dlg-receipt-h">
+  <div class="dlg-head">
+    <div><h2 id="dlg-receipt-h">{{trf "Table %d paid %s" .Table (euro .Cents)}}</h2><p>{{tr "Does the guest want a receipt?"}}</p></div>
+    <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="dlg-body"><p class="muted small">{{tr "One receipt for the whole bill: for one guest, or one who paid for everyone."}}</p></div>
+  <div class="dlg-foot">
+    <button type="button" class="btn btn-secondary" data-close>{{tr "No receipt"}}</button>
+    <a class="btn btn-primary" href="/admin/orders/{{.Table}}/bill?bill={{.ID}}&amp;print=1">{{tr "Yes, print the receipt"}}</a>
+  </div>
+</dialog>
+{{end}}
 <dialog id="dlg-wolt" aria-labelledby="dlg-wolt-h">
   <form method="post" action="/admin/wolt" class="dlg-form">
     <div class="dlg-head">

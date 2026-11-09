@@ -1,11 +1,11 @@
 {{define "content"}}
-<div class="guest-bill">
+<div class="guest-bill"{{if .AutoPrint}} data-autoprint{{end}}>
   {{if not .Bill.PaidAt}}<p class="gb-proforma">{{tr "Pro forma · not a receipt"}}</p>{{end}}
   {{template "receipt-card" .R}}
   {{with .QRURL}}<div class="rc-qr"><div class="qr" data-qr="{{.}}" aria-label="{{tr "QR code for this receipt"}}"></div><p>{{tr "Scan for a copy of this bill"}}</p></div>{{end}}
   <div class="gb-actions no-print">
     {{if .Bill.Open}}<a class="btn btn-secondary" href="/admin/orders/{{.Table}}">{{tr "Back to the table"}}</a>
-    {{else}}<a class="btn btn-secondary" href="/admin/orders/{{.Table}}/history">{{tr "This table's history"}}</a>{{end}}
+    {{else}}<a class="btn btn-secondary" href="/admin/orders">{{tr "Back to orders"}}</a><a class="btn btn-secondary" href="/admin/orders/{{.Table}}/history">{{tr "This table's history"}}</a>{{end}}
     <button type="button" class="btn btn-primary" data-print>{{tr "Print"}}</button>
   </div>
 </div>

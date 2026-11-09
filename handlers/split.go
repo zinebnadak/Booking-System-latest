@@ -179,7 +179,8 @@ func (s *Server) receiptsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, r, "order_receipts", http.StatusOK, M{
 		"Admin": true, "Bare": true, "QR": true, "Title": stf(lang, "Receipts, table %d", table),
-		"Table": table, "Bill": bill, "Receipts": list,
+		"Table": table, "Bill": bill, "Receipts": list, "Guest": only,
+		"AutoPrint": r.URL.Query().Get("print") == "1",
 	})
 }
 

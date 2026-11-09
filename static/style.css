@@ -1750,3 +1750,8 @@ h1 .wolt-dot { width: 28px; height: 28px; font-size: .9rem; vertical-align: 3px;
 .nav-shift button:hover { background: rgba(210, 170, 69, .12); }
 .nav-shift.on button { border-color: rgba(255, 255, 255, .25); color: #e8e8e8; font-weight: 500; }
 .shift-dot { width: 8px; height: 8px; border-radius: 50%; background: #5fd08a; box-shadow: 0 0 0 3px rgba(95, 208, 138, .2); }
+
+/* ------------------------------------------------------------ printing a guest's bill on the split page */
+.gp-print { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 8px; font-size: .88rem; font-weight: 600; color: var(--brass); text-decoration: none; }
+.gp-print:hover { text-decoration: underline; }
+.gp-print svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }

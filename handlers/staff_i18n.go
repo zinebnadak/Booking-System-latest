@@ -1691,4 +1691,13 @@ var staffSV = map[string]string{
 
 	// seated on Orders
 	"Seated on Orders": "Placerade via Beställningar",
+
+	// receipts
+	"Table %d paid %s":               "Bord %d betalade %s",
+	"Does the guest want a receipt?": "Vill gästen ha ett kvitto?",
+	"One receipt for the whole bill: for one guest, or one who paid for everyone.": "Ett kvitto för hela notan: för en gäst, eller en som betalade för alla.",
+	"No receipt":             "Inget kvitto",
+	"Yes, print the receipt": "Ja, skriv ut kvittot",
+	"Print receipt":          "Skriv ut kvitto",
+	"Print bill":             "Skriv ut nota",
 }

@@ -94,6 +94,7 @@
       </div>
       <p class="gp-items">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{if $it.SharedBy}}{{trf "%s (shared by %d)" $it.Name $it.SharedBy}}{{else}}{{$it.Qty}}× {{$it.Name}}{{end}}{{else}}<span class="muted">{{tr "Nothing yet"}}</span>{{end}}</p>
       {{if .Deposit}}<p class="gp-dep">{{trf "Online deposit %s taken off" (euro .Deposit)}}</p>{{end}}
+      {{if .Items}}<a class="gp-print" href="/admin/orders/{{$.Table}}/receipts?bill={{$.Bill.ID}}&amp;guest={{.Guest}}&amp;print=1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H4v-7h16v7h-3M7 14h10v7H7z"/></svg>{{if .Paid}}{{tr "Print receipt"}}{{else}}{{tr "Print bill"}}{{end}}</a>{{end}}
       {{if .Paid}}
         <p class="gp-status">✓ {{if eq .PaidBy "cash"}}{{trf "Paid in cash %s" .PaidAt}}{{else if eq .PaidBy "online"}}{{trf "Paid online %s" .PaidAt}}{{else if eq .PaidBy "nothing"}}{{tr "Had nothing"}}{{else if eq .PaidBy "card"}}{{trf "Paid at the terminal %s" .PaidAt}}{{else}}{{method .PaidBy}} · {{.PaidAt}}{{end}}</p>
         {{if and .Payer (ne .Payer .Guest)}}<p class="gp-dep">{{trf "Guest %d paid for them" .Payer}}</p>{{end}}

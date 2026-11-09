@@ -235,3 +235,38 @@ func TestOrdersTableIsTakenOnline(t *testing.T) {
 		t.Fatal("once the bill is closed the table is free")
 	}
 }
+
+// After a table pays, Orders asks whether the guest wants a receipt: one
+// for the whole bill, printed straight away. On the split page each guest's
+// own bill (or receipt) can be printed.
+func TestReceiptAfterPaying(t *testing.T) {
+	e := newEnv(t, nil)
+	burger := e.menuItem("E-Meal-burgare")
+	location(t, e.do("POST", "/admin/orders/3/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {"2"}}, true), "msg=added")
+	b, _ := e.store.OpenBill(3)
+	rec := e.do("POST", "/admin/orders/3/pay", url.Values{"bill": {fmt.Sprint(b.ID)}, "method": {"card"}}, true)
+	location(t, rec, fmt.Sprintf("rc=%d", b.ID))
+	page := e.do("GET", loc(rec), nil, true)
+	e.expect(page, 200, "Does the guest want a receipt?", fmt.Sprintf("/admin/orders/3/bill?bill=%d&amp;print=1", b.ID), "No receipt")
+	e.expect(e.do("GET", fmt.Sprintf("/admin/orders/3/bill?bill=%d&print=1", b.ID), nil, true), 200, "data-autoprint", "Paid by card", "Back to orders")
+	if strings.Contains(e.do("GET", "/admin/orders", nil, true).Body.String(), "Does the guest want a receipt?") {
+		t.Error("without rc there's no question")
+	}
+
+	// Split between two: each guest's bill can be printed on its own.
+	location(t, e.do("POST", "/admin/orders/5/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {"2"}}, true), "msg=added")
+	b5, _ := e.store.OpenBill(5)
+	if err := e.store.SplitBill(b5.ID, 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.store.SplitEvenly(b5.ID); err != nil {
+		t.Fatal(err)
+	}
+	split := e.do("GET", "/admin/orders/5/split", nil, true)
+	e.expect(split, 200, "Print bill", fmt.Sprintf("receipts?bill=%d&amp;guest=1&amp;print=1", b5.ID), fmt.Sprintf("receipts?bill=%d&amp;guest=2&amp;print=1", b5.ID))
+	one := e.do("GET", fmt.Sprintf("/admin/orders/5/receipts?bill=%d&guest=2&print=1", b5.ID), nil, true)
+	e.expect(one, 200, "data-autoprint", "Pro forma · not a receipt")
+	if n := strings.Count(one.Body.String(), `class="guest-bill rc"`); n != 1 {
+		t.Fatalf("one guest's bill only, got %d", n)
+	}
+}

@@ -231,6 +231,12 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		"MealsInDeal": schedule.MealsInDeal, "DealToday": schedule.MealDealToday(schedule.Today(now)), "DealDays": dealDaysText(lang),
 		"Warnings": s.buttonWarnings(now),
 	}
+	// Just paid: does the guest want a receipt? (One for the whole bill.)
+	if id := atoiDefault(r.URL.Query().Get("rc"), 0); id > 0 && r.URL.Query().Get("part") == "" {
+		if b, err := s.Store.BillByID(id); err == nil && b.PaidAt != nil && b.Wolt == "" && now.Sub(*b.PaidAt) < 30*time.Minute {
+			data["AskReceipt"] = askReceipt{Table: b.Table, ID: b.ID, Cents: b.ToPay()}
+		}
+	}
 	stats := s.Store.DealStatsOn(today, now)
 	data["Stats"], data["EatMin"], data["WaitMin"] = stats, roundMinutes(stats.Eat), roundMinutes(stats.Wait)
 	if r.URL.Query().Get("part") == "tiles" {
@@ -239,6 +245,9 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, r, "admin_orders", http.StatusOK, data)
 }
+
+// askReceipt is the question on Orders right after a table paid.
+type askReceipt struct{ Table, ID, Cents int }
 
 // ordersView is "all" (the start) or "mine" for a waiter's Orders screen:
 // from the link they tapped, remembered in a cookie for next time.
@@ -1030,7 +1039,7 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		}
 		s.logActivity(r, table, paidWhat(method), euro(cents)+" ("+st(langEN, "whole table")+")")
 		s.live.publish()
-		redirectMsg(w, r, "/admin/orders", nil, "allpaid")
+		redirectMsg(w, r, "/admin/orders", url.Values{"rc": {strconv.Itoa(billID)}}, "allpaid")
 	case "discount":
 		if !isManager(r) {
 			redirectMsg(w, r, orderPath(table), nil, "askmanager")
@@ -1087,6 +1096,10 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		}
 		s.logActivity(r, table, what, euro(amount)+" ("+st(langEN, "whole bill")+")")
 		s.live.publish()
+		if paid.PaidAt != nil { // fully paid: Orders asks whether the guest wants a receipt
+			redirectMsg(w, r, "/admin/orders", url.Values{"rc": {strconv.Itoa(paid.ID)}}, "billpaid")
+			return
+		}
 		redirectMsg(w, r, "/admin/orders", nil, "billpaid")
 	case "guests": // how many people sit there (seats them at a free table)
 		n := atoiDefault(r.FormValue("guests"), 0)
@@ -1209,6 +1222,7 @@ func (s *Server) orderBillView(w http.ResponseWriter, r *http.Request) {
 		"Table": table, "Bill": bill, "When": shortDateL(lang, schedule.FormatDate(at)) + " " + at.In(schedule.Location).Format("15:04"),
 		"No": billNumbers(s.Store.BillsForTable(table))[bill.ID],
 		"QR": true, "QRURL": s.publicBase(r) + "/r/" + bill.Ref,
+		"AutoPrint": r.URL.Query().Get("print") == "1",
 	})
 }
 
