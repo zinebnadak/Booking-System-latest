@@ -162,6 +162,7 @@ func (s *Store) MoveBooking(ref, date, clock string, size int, now time.Time) (B
 	before := b.clone()
 	b.Date, b.Time, b.PartySize, b.TableNo = date, clock, size, table
 	b.RemindedAt = nil // new time, so a new reminder
+	b.LateMinutes, b.LateAt = 0, nil
 	if err := s.save(); err != nil {
 		*b = before
 		return Booking{}, err

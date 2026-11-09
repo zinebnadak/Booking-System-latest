@@ -36,14 +36,30 @@
     </header>
     {{if .Deal}}<p class="kt-deal-tag">{{trf "3 meals · meal %d of %d" .Meal $.MealsInDeal}}</p>{{end}}
     {{with .Message}}<p class="kt-message">{{.}}</p>{{end}}
+    {{$t := .}}
     <ul class="kt-items">
-      {{range .Items}}
+      {{range $i, $it := .Items}}
+      {{if or .Cancelled $t.New}}
       <li{{if .Cancelled}} class="kt-off"{{end}}>
         <span class="kt-qty">{{.Qty}}×</span>
         <span class="kt-name">{{.Name}}{{if .Cancelled}} <em>{{tr "cancelled"}}</em>{{end}}</span>
         {{if .Guest}}<span class="kt-who">{{trf "Guest %d" .Guest}}{{with .Who}} · {{.}}{{end}}</span>{{end}}
         {{with .Note}}<span class="kt-note">{{.}}</span>{{end}}
       </li>
+      {{else}}
+      <li class="kt-dish{{if .ReadyAt}} kt-dish-ready{{end}}">
+        <form method="post" action="/admin/kitchen/{{$t.ID}}/dish" data-live>
+          <input type="hidden" name="i" value="{{$i}}"><input type="hidden" name="name" value="{{.Name}}">{{if .ReadyAt}}<input type="hidden" name="undo" value="1">{{end}}
+          <button class="kt-tick" aria-pressed="{{if .ReadyAt}}true{{else}}false{{end}}" title="{{if .ReadyAt}}{{tr "Ready · tap to undo"}}{{else}}{{tr "Tap when this dish is ready"}}{{end}}">
+            <span class="kt-box" aria-hidden="true"></span>
+            <span class="kt-qty">{{.Qty}}×</span>
+            <span class="kt-name">{{.Name}}</span>
+            {{if .Guest}}<span class="kt-who">{{trf "Guest %d" .Guest}}{{with .Who}} · {{.}}{{end}}</span>{{end}}
+            {{with .Note}}<span class="kt-note">{{.}}</span>{{end}}
+          </button>
+        </form>
+      </li>
+      {{end}}
       {{end}}
     </ul>
     {{if .IsTakeaway}}

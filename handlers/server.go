@@ -153,6 +153,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /b/{ref}", s.statusPage)
 	mux.HandleFunc("GET /b/{ref}/calendar.ics", s.guestICS)
 	mux.HandleFunc("POST /b/{ref}/cancel", s.limited("guest", limitGuestAct, s.guestCancel))
+	mux.HandleFunc("POST /b/{ref}/late", s.limited("guest", limitGuestAct, s.guestLate))
 	mux.HandleFunc("GET /b/{ref}/change", s.changePage)
 	mux.HandleFunc("GET /b/{ref}/change/times", s.changeTimes)
 	mux.HandleFunc("POST /b/{ref}/change", s.limited("guest", limitGuestAct, s.changeSubmit))

@@ -99,6 +99,10 @@ type Booking struct {
 	CancelledBy   string     `json:"cancelled_by,omitempty"`   // "guest" or "staff"
 	TableCode     string     `json:"table_code,omitempty"`     // table bookings: 4 digits that unlock the table's QR code
 	Anonymized    bool       `json:"anonymized,omitempty"`     // personal details removed (old booking)
+
+	// The guest said "We're running late" on their booking page (see late.go).
+	LateMinutes int        `json:"late_minutes,omitempty"`
+	LateAt      *time.Time `json:"late_at,omitempty"`
 }
 
 // Online reports whether the guest booked on the website (and paid a deposit).
@@ -145,10 +149,11 @@ func (b Booking) Duration() time.Duration {
 // EndClock is when the booking ends, e.g. "20:00".
 func (b Booking) EndClock() string { return schedule.EndTimeFor(b.Time, b.Minutes) }
 
-// isNoShow: a paid table booking nobody checked in for within 20 minutes.
+// isNoShow: a paid table booking nobody checked in for within 20 minutes
+// (longer if the guest said they're running late).
 func (b Booking) isNoShow(now time.Time) bool {
 	return b.Kind == KindTable && b.Status == StatusPaid && b.ArrivedAt == nil &&
-		!now.Before(b.Start().Add(schedule.NoShowAfter))
+		!now.Before(b.NoShowTime())
 }
 
 // HoldsTable reports whether this booking currently blocks a table:

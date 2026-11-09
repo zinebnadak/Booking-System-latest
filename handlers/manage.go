@@ -59,7 +59,7 @@ func canChange(b db.Booking, now time.Time) bool {
 // guestFlash is the short message shown after a guest action.
 func guestFlash(lang, msg string) string {
 	switch msg {
-	case "cancelled", "refunded", "changed", "waitlist_removed":
+	case "cancelled", "refunded", "changed", "waitlist_removed", "late":
 		return tr(lang)["fl_"+msg]
 	}
 	return ""
@@ -147,6 +147,32 @@ func (s *Server) guestCancel(w http.ResponseWriter, r *http.Request) {
 		msg = "refunded"
 	}
 	http.Redirect(w, r, "/b/"+ref+"?msg="+msg, http.StatusSeeOther)
+}
+
+// ---------- Running late ----------
+
+// guestLate: "We're running late" on the booking page, 15 or 30 minutes.
+// The table is kept that much longer and the staff get a message.
+func (s *Server) guestLate(w http.ResponseWriter, r *http.Request) {
+	if !sameOrigin(r) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	ref := r.PathValue("ref")
+	if _, err := s.Store.Get(ref); err != nil {
+		s.notFound(w, r)
+		return
+	}
+	b, changed, err := s.Store.RunningLate(ref, atoiDefault(r.FormValue("min"), 0), s.Now())
+	if err != nil {
+		http.Redirect(w, r, "/b/"+ref, http.StatusSeeOther)
+		return
+	}
+	if changed {
+		s.notifyLate(b)
+		s.live.publish()
+	}
+	http.Redirect(w, r, "/b/"+ref+"?msg=late", http.StatusSeeOther)
 }
 
 // ---------- Changing ----------

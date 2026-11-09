@@ -620,6 +620,10 @@ func (s *Server) statusPage(w http.ResponseWriter, r *http.Request) {
 		"Toast":     guestFlash(lang, r.URL.Query().Get("msg")),
 		"Occasion":  occasionText(lang, b.Occasion),
 	}
+	if b.CanSayLate(now) {
+		data["CanLate"], data["LateChoices"] = true, db.LateChoices
+		data["KeptUntil"] = clockOf(b.NoShowTime())
+	}
 	if b.Kind == db.KindTable && !b.Start().IsZero() {
 		until := b.Start().Add(-schedule.RefundWindow)
 		data["FreeCancelUntil"] = longDateT(lang, until) + " " + t["at"] + " " + until.In(schedule.Location).Format("15:04")

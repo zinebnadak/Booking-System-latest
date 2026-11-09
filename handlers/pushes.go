@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -256,4 +257,17 @@ func (s *Server) serviceWorker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Write(b)
+}
+
+// notifyLate: a guest said on their booking page that they're running late.
+func (s *Server) notifyLate(b db.Booking) {
+	s.notify(pushTo{Roles: []string{string(roleWaiter), string(roleManager)}}, pushMsg{
+		Title: func(lang string) string {
+			return b.Name + " · " + guestsCount(lang, b.PartySize) + ": " + stf(lang, "%d min late", b.LateMinutes)
+		},
+		Body: func(lang string) string {
+			return stf(lang, "Table %d", b.TableNo) + " · " + b.Time + " · " + stf(lang, "table kept until %s", clockOf(b.NoShowTime()))
+		},
+		URL: "/admin/day?date=" + url.QueryEscape(b.Date) + "&hl=" + url.QueryEscape(b.Ref), Tag: "late-" + b.Ref,
+	})
 }

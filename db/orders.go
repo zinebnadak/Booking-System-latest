@@ -450,6 +450,8 @@ type TicketItem struct {
 	Cancelled bool   `json:"cancelled,omitempty"` // taken off the bill after it was sent
 	Guest     int    `json:"guest,omitempty"`     // QR orders: whose it is, so the plate goes to the right person
 	Who       string `json:"who,omitempty"`       // and their name, if they gave one
+	// ReadyAt: the chef ticked this dish as ready (see dishready.go).
+	ReadyAt *time.Time `json:"ready_at,omitempty"`
 }
 
 // Live reports whether anything on the ticket still needs cooking.

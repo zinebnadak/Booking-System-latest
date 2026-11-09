@@ -466,7 +466,11 @@ func (s *Server) bookedLater(lang string, now time.Time) map[int][]string {
 		if b.Kind != db.KindTable || b.TableNo == 0 || b.EffectiveStatus(now) != db.StatusPaid {
 			continue
 		}
-		out[b.TableNo] = append(out[b.TableNo], clockOf(b.Start())+" · "+b.Name+" · "+guestsCount(lang, b.PartySize))
+		line := clockOf(b.Start()) + " · " + b.Name + " · " + guestsCount(lang, b.PartySize)
+		if b.LateMinutes > 0 {
+			line += " · " + stf(lang, "%d min late", b.LateMinutes)
+		}
+		out[b.TableNo] = append(out[b.TableNo], line)
 	}
 	return out
 }

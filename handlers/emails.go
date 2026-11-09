@@ -47,6 +47,7 @@ var emailText = map[string]map[string]string{
 		"remind_subject":  "See you %s at %s · %s",
 		"remind_intro":    "Just a reminder of your table booking:",
 		"remind_cancel":   "Can't come after all? Please cancel here, so another guest can have the table:",
+		"remind_late":     "Running late on the day? Tell us on your booking page, and we'll keep your table longer.",
 		"remind_kept":     "The %s deposit is taken off your bill when you come. It is kept for late cancellations and no-shows.",
 		"remind_today":    "today",
 		"remind_tomorrow": "tomorrow",
@@ -96,6 +97,7 @@ var emailText = map[string]map[string]string{
 		"remind_subject":  "Välkommen %s kl. %s · %s",
 		"remind_intro":    "En påminnelse om din bordsbokning:",
 		"remind_cancel":   "Kan ni inte komma ändå? Avboka här, så att en annan gäst kan få bordet:",
+		"remind_late":     "Kommer ni sent på dagen? Säg till på er bokningssida, så håller vi bordet längre.",
 		"remind_kept":     "Handpenningen på %s dras av från notan när ni kommer. Vid sen avbokning eller om ni inte kommer behålls den.",
 		"remind_today":    "i dag",
 		"remind_tomorrow": "i morgon",
@@ -279,7 +281,7 @@ func reminderEmail(cfg Config, b db.Booking, now time.Time) (string, string) {
 		e["remind_intro"],
 		details(lang, b),
 		kept,
-		e["remind_cancel"]+"\n"+bookingLink(cfg, b, lang),
+		e["remind_late"]+"\n"+e["remind_cancel"]+"\n"+bookingLink(cfg, b, lang),
 		signature(cfg),
 	)
 	return subject, body

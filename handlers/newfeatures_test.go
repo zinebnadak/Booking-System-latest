@@ -392,3 +392,111 @@ func TestStaffSchedule(t *testing.T) {
 		t.Error("a waiter can't plan the schedule")
 	}
 }
+
+// The chef ticks one dish at a time; the waiter sees it on the table page
+// and on Orders, and the last tick makes the ticket done.
+func TestKitchenTicksDishes(t *testing.T) {
+	wrongPasswordDelay = 0
+	e := newEnv(t, nil)
+	burger := e.menuItem("E-Meal-burgare")
+	var other db.MenuItem
+	for _, m := range e.store.Menu(false) {
+		if !m.Drink && m.ID != burger.ID && m.Course == burger.Course && m.PriceCents > 0 {
+			other = m
+			break
+		}
+	}
+	if other.ID == 0 {
+		t.Fatal("no second dish on the menu")
+	}
+	location(t, e.do("POST", "/admin/orders/3/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {"2"}, fmt.Sprintf("qty_%d", other.ID): {"1"}}, true), "msg=added")
+	b, _ := e.store.OpenBill(3)
+	var tk db.Ticket
+	for _, x := range e.store.TicketsForBill(b.ID) {
+		tk = x
+	}
+	if len(tk.Items) != 2 {
+		t.Fatalf("one ticket with both dishes: %+v", tk)
+	}
+	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, `action="/admin/kitchen/`+strconv.Itoa(tk.ID)+`/dish"`, "Tap when this dish is ready")
+
+	tick := func(i int, undo bool) *httptest.ResponseRecorder {
+		v := url.Values{"i": {strconv.Itoa(i)}, "name": {tk.Items[i].Name}}
+		if undo {
+			v.Set("undo", "1")
+		}
+		return e.do("POST", fmt.Sprintf("/admin/kitchen/%d/dish", tk.ID), v, true)
+	}
+	location(t, tick(0, false), "/admin/kitchen")
+	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, "kt-dish-ready", "Ready · tap to undo")
+	e.expect(e.do("GET", "/admin/orders/3", nil, true), 200, "· pick up", "With the chef")
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Some dishes ready")
+	// A dish that isn't there (the screen was old): nothing happens.
+	stale := e.do("POST", fmt.Sprintf("/admin/kitchen/%d/dish", tk.ID), url.Values{"i": {"1"}, "name": {"Something else"}}, true)
+	if got, _ := e.store.TicketByID(tk.ID); got.Items[1].ReadyAt != nil || stale.Code == 500 {
+		t.Fatalf("stale tap: %d", stale.Code)
+	}
+	// Waiters can't tick the chef's dishes.
+	e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
+	cookie, _ := e.loginAs(t, "lisa", "a-long-password-1")
+	if rec := e.as(cookie, "POST", fmt.Sprintf("/admin/kitchen/%d/dish", tk.ID), url.Values{"i": {"1"}, "name": {tk.Items[1].Name}}); rec.Code != 403 {
+		t.Fatalf("waiter ticked a dish: %d", rec.Code)
+	}
+	// The last dish: the ticket is done and waits at the pass.
+	location(t, tick(1, false), "/admin/kitchen")
+	if got, _ := e.store.TicketByID(tk.ID); got.DoneAt == nil {
+		t.Fatal("ticking every dish should make the ticket done")
+	}
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Ready to pick up")
+}
+
+// "We're running late": the guest presses it on their booking page on the
+// day; the table is kept longer and staff see it.
+func TestGuestRunningLate(t *testing.T) {
+	e := newEnv(t, nil)
+	ref := e.bookAndPay(1, "2026-10-27", "19:00", "2")
+	// The day before: no button yet, and pressing anyway changes nothing.
+	page := e.do("GET", "/b/"+ref, nil, false)
+	if strings.Contains(page.Body.String(), "Running late?") {
+		t.Fatal("the late button shows a day early")
+	}
+	location(t, e.do("POST", "/b/"+ref+"/late", url.Values{"min": {"15"}}, false), "/b/"+ref)
+	if b, _ := e.store.Get(ref); b.LateMinutes != 0 {
+		t.Fatal("marked late a day early")
+	}
+
+	// On the day, at 18:30: the button is there.
+	e.at(local(27, 18, 30))
+	e.expect(e.do("GET", "/b/"+ref, nil, false), 200, "Running late?", "until 19:20", `action="/b/`+ref+`/late"`, "15 min late", "30 min late")
+	if rec := e.do("POST", "/b/"+ref+"/late", url.Values{"min": {"45"}}, false); rec.Code != 303 {
+		t.Fatalf("45 minutes: %d", rec.Code)
+	}
+	if b, _ := e.store.Get(ref); b.LateMinutes != 0 {
+		t.Fatal("only 15 or 30 minutes")
+	}
+	location(t, e.do("POST", "/b/"+ref+"/late", url.Values{"min": {"15"}}, false), "msg=late")
+	e.expect(e.do("GET", "/b/"+ref+"?msg=late", nil, false), 200, "Thanks for letting us know", "running 15 minutes late", "until 19:35")
+	e.expect(e.do("GET", "/admin/day?date=2026-10-27", nil, true), 200, "Running 15 min late", "No-show at 19:35")
+	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "15 min late")
+
+	// 19:25: without the note it would be a no-show; now the table is still theirs.
+	e.at(local(27, 19, 25))
+	if b, _ := e.store.Get(ref); b.EffectiveStatus(e.srv.Now()) != db.StatusPaid {
+		t.Fatalf("status at 19:25: %s", b.EffectiveStatus(e.srv.Now()))
+	}
+	// 19:35: now it is.
+	e.at(local(27, 19, 35))
+	if b, _ := e.store.Get(ref); b.EffectiveStatus(e.srv.Now()) != db.StatusNoShow {
+		t.Fatalf("status at 19:35: %s", b.EffectiveStatus(e.srv.Now()))
+	}
+	if strings.Contains(e.do("GET", "/b/"+ref, nil, false).Body.String(), "Running late?") {
+		t.Fatal("button still there after the no-show")
+	}
+
+	// The reminder email tells guests about it.
+	b, _ := e.store.Get(ref)
+	_, body := reminderEmail(e.srv.Cfg, b, local(26, 21, 0))
+	if !strings.Contains(body, "Running late on the day?") || !strings.Contains(body, "/b/"+ref) {
+		t.Fatalf("reminder: %s", body)
+	}
+}

@@ -284,6 +284,7 @@
       <span class="tt-sub">{{trf "%d items · open since %s" .Bill.Count .Opened}}</span>
       <span class="ot-badges">
         {{if .Cooking}}<span class="badge badge-wait">{{tr "With the chef"}}</span>{{end}}
+        {{if .PartReady}}<span class="badge badge-ok">{{tr "Some dishes ready"}}</span>{{end}}
         {{if .Held}}<span class="badge badge-muted">{{tr "Waits for your go"}}</span>{{end}}
         {{if .Bring}}<span class="badge badge-wait">{{tr "Drinks to bring"}}</span>{{end}}
         {{if .Paying}}<span class="badge badge-wait">{{tr "Paying on a phone"}}</span>

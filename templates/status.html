@@ -26,6 +26,22 @@
     <p class="muted">{{if eq $.Status "refunded"}}{{printf $t.st_refunded_text (euro .DepositCents)}}{{else}}{{$t.st_cancelled_text}}{{end}}</p>
   {{end}}
 
+  {{if $.CanLate}}
+  <section class="late-box" aria-labelledby="late-h">
+    {{if .LateMinutes}}
+    <h2 id="late-h">{{printf $t.late_told .LateMinutes}}</h2>
+    <p>{{printf $t.late_kept $.KeptUntil}}</p>
+    {{else}}
+    <h2 id="late-h">{{$t.late_h}}</h2>
+    <p>{{printf $t.late_x $.KeptUntil}}</p>
+    {{end}}
+    <form method="post" action="/b/{{.Ref}}/late" class="late-choices">
+      {{range $.LateChoices}}<button class="btn {{if eq . $.B.LateMinutes}}btn-primary{{else}}btn-secondary{{end}}" name="min" value="{{.}}"{{if eq . $.B.LateMinutes}} aria-pressed="true"{{end}}>{{printf $t.late_btn .}}</button>{{end}}
+    </form>
+    <p class="small muted">{{$t.late_call}}{{with $.Cfg.RestaurantPhone}} <a href="tel:{{.}}">{{.}}</a>{{end}}</p>
+  </section>
+  {{end}}
+
   <dl class="details">
     <dt>{{$t.lbl_booking}}</dt><dd>#{{.ID}}</dd>
     {{if eq .Kind "table"}}

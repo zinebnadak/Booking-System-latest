@@ -51,7 +51,7 @@ func (s *Store) bookingAtTableNow(table int, now time.Time) *Booking {
 			continue
 		}
 		start := b.Start()
-		if now.Before(start.Add(-schedule.TableCodeEarly)) || !now.Before(start.Add(schedule.NoShowAfter)) {
+		if now.Before(start.Add(-schedule.TableCodeEarly)) || !now.Before(b.NoShowTime()) {
 			continue
 		}
 		return b

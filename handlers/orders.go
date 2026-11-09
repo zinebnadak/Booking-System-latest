@@ -39,20 +39,23 @@ type orderTile struct {
 	Bill    *db.Bill
 	Opened  string // "18:40"
 	Cooking int    // tickets the chef hasn't finished
-	Held    int    // courses waiting for the waiter's go ("Vänta varmt")
-	Ready   int    // food done, waiting at the pass to be taken to the table
-	ReadyAt string // since when ("19:02")
-	Bring   int    // drinks guests ordered on their phones, not brought yet
-	Served  bool   // everything is on the table: next comes the bill
-	Billed  bool
-	Who     string
-	Deal    *tableTile // 3 meals or a call from the button/QR code (nil: nothing going on)
-	Booked  []string   // today's bookings still to come here: "19:00 · Andersson · 4 guests"
-	OldOpen bool       // still open from an earlier day: someone forgot to close it
-	Paying  bool       // a guest is paying on their phone right now
-	Waiter  string     // the waiter looking after it ("" = nobody yet)
-	Guests  int        // how many sit there (0 = not said)
-	Mine    bool       // it's the logged-in waiter's table
+	// PartReady: the chef ticked some dishes as ready (the soup), the rest
+	// are still cooking.
+	PartReady bool
+	Held      int    // courses waiting for the waiter's go ("Vänta varmt")
+	Ready     int    // food done, waiting at the pass to be taken to the table
+	ReadyAt   string // since when ("19:02")
+	Bring     int    // drinks guests ordered on their phones, not brought yet
+	Served    bool   // everything is on the table: next comes the bill
+	Billed    bool
+	Who       string
+	Deal      *tableTile // 3 meals or a call from the button/QR code (nil: nothing going on)
+	Booked    []string   // today's bookings still to come here: "19:00 · Andersson · 4 guests"
+	OldOpen   bool       // still open from an earlier day: someone forgot to close it
+	Paying    bool       // a guest is paying on their phone right now
+	Waiter    string     // the waiter looking after it ("" = nobody yet)
+	Guests    int        // how many sit there (0 = not said)
+	Mine      bool       // it's the logged-in waiter's table
 
 	// Split tables where some guests paid and others haven't yet.
 	Alert      bool
@@ -138,6 +141,9 @@ func (s *Server) fillTile(lang string, t *orderTile, b db.Bill, names map[int]st
 			t.Held++
 		case tk.DoneAt == nil:
 			t.Cooking++
+			if tk.PartReady() {
+				t.PartReady = true
+			}
 		case tk.ReadyToServe():
 			t.Ready++
 			if firstReady.IsZero() || tk.DoneAt.Before(firstReady) {
@@ -484,6 +490,8 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 					v.Status, v.Ready = "served", clockOf(*tk.ServedAt)
 				case tk.DoneAt != nil:
 					v.Status, v.Ready = "ready", clockOf(*tk.DoneAt)
+				case tk.ReadyDish(l.ID) != nil: // the chef ticked this dish; others still cooking
+					v.Status, v.Ready = "ready", clockOf(*tk.ReadyDish(l.ID))
 				}
 			}
 			if bill.QRGuests() && len(l.Guests) == 1 && l.Guests[0] <= len(bill.Split) {
@@ -1503,7 +1511,7 @@ func allDay(open []ticketView) []allDayRow {
 			continue
 		}
 		for _, it := range t.Items {
-			if it.Cancelled || it.Qty <= 0 {
+			if it.Cancelled || it.Qty <= 0 || it.ReadyAt != nil { // ticked: cooked already
 				continue
 			}
 			if _, ok := qty[it.Name]; !ok {
@@ -1549,6 +1557,12 @@ func (s *Server) kitchenAction(w http.ResponseWriter, r *http.Request) {
 	case "done", "undo":
 		err = s.Store.TicketDone(id, undo, s.Now())
 		if err == nil && !undo {
+			s.notifyReady(id)
+		}
+	case "dish": // one dish on the ticket is ready (undo=1: it isn't)
+		var done bool
+		done, err = s.Store.DishReady(id, atoiDefault(r.FormValue("i"), -1), r.FormValue("name"), r.FormValue("undo") == "1", s.Now())
+		if err == nil && done { // the last dish: the ticket is done
 			s.notifyReady(id)
 		}
 	case "served": // the food left the kitchen for its table

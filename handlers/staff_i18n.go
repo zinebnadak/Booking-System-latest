@@ -1807,4 +1807,15 @@ var staffSV = map[string]string{
 	"joined the table with another": "slog ihop bordet med ett annat",
 	"planned a shift":               "planerade ett pass",
 	"copied last week's schedule":   "kopierade förra veckans schema",
+
+	// Kitchen: one dish at a time
+	"Some dishes ready":           "Vissa rätter klara",
+	"Ready · tap to undo":         "Klar · tryck för att ångra",
+	"Tap when this dish is ready": "Tryck när rätten är klar",
+
+	// Guests running late
+	"Running %d min late":                     "Kommer %d min sent",
+	"The guest told us on their booking page": "Gästen sa till på sin bokningssida",
+	"%d min late":                             "%d min sent",
+	"table kept until %s":                     "bordet hålls till kl. %s",
 }

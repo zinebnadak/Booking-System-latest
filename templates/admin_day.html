@@ -85,6 +85,7 @@
           <span class="badge badge-{{.Status}}">{{statusText .Status}}</span>
           {{if eq .Source "phone"}}<span class="pill pill-src">{{tr "Phone"}}</span>{{else if eq .Source "walkin"}}<span class="pill pill-src">{{tr "Walk-in"}}</span>{{end}}
           {{with .OccasionText}}<span class="pill pill-occ">{{.}}</span>{{end}}
+          {{if and .LateMinutes (eq .Status "paid")}}<span class="badge badge-wait" title="{{tr "The guest told us on their booking page"}}">{{trf "Running %d min late" .LateMinutes}}</span>{{end}}
           {{with .History.Visits}}<span class="pill pill-regular" title="{{tr "Earlier visits"}}">{{trf "Visited %d× before" .}}</span>{{end}}
           {{with .History.NoShows}}<span class="badge badge-bad" title="{{tr "Earlier bookings they didn't come to"}}">{{if eq . 1}}{{tr "1 no-show before"}}{{else}}{{trf "%d no-shows before" .}}{{end}}</span>{{end}}
         </div>

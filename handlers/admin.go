@@ -291,7 +291,7 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 			start := b.Start()
 			end := start.Add(b.Duration())
 			row.RefundPolicy = schedule.RefundEligible(b.Date, b.Time, now)
-			row.NoShowAt = start.Add(schedule.NoShowAfter).Format("15:04")
+			row.NoShowAt = b.NoShowTime().In(schedule.Location).Format("15:04")
 			row.Current = !now.Before(start) && now.Before(end)
 			row.Past = !now.Before(end)
 			// "Arrived" can be pressed from 2 hours before until the booking
@@ -356,6 +356,9 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 					c.State, c.Detail = "seated", stf(lang, "until %s", row.End)
 				case db.StatusPaid:
 					c.State, c.Detail = "expected", stf(lang, "no-show at %s", row.NoShowAt)
+					if row.LateMinutes > 0 {
+						c.Detail = stf(lang, "%d min late", row.LateMinutes) + " · " + c.Detail
+					}
 				default:
 					c.State, c.Detail = "holding", st(lang, "waiting for payment")
 				}
