@@ -204,3 +204,34 @@ func TestPushNotifications(t *testing.T) {
 	}
 	e.expect(e.do("GET", "/sw.js", nil, false), 200, "showNotification")
 }
+
+// Walk-ins are seated on Orders: an open table is taken for online
+// booking (the normal 2 hours from when it opened, or longer while the bill
+// is still open), and Bookings shows it as seated.
+func TestOrdersTableIsTakenOnline(t *testing.T) {
+	e := newEnv(t, nil)
+	e.at(local(26, 12, 7))
+	date := "2026-10-26"
+	free := func(clock string) int {
+		return e.store.FreeTables(date, []string{clock}, 0, true, e.srv.Now())[clock]
+	}
+	before, later := free("12:30"), free("15:00")
+	location(t, e.do("POST", "/admin/orders/3/guests", url.Values{"guests": {"2"}}, true), "")
+	if free("12:30") != before-1 {
+		t.Fatalf("table 3 should be taken at 12:30: %d → %d", before, free("12:30"))
+	}
+	if free("15:00") != later {
+		t.Fatal("after the normal stay the table is free again for booking")
+	}
+	e.expect(e.do("GET", "/admin/day", nil, true), 200, "Seated on Orders", `href="/admin/orders/3"`)
+	// Still there at 14:30 with the bill open: taken for the next half hour.
+	e.at(local(26, 14, 30))
+	if free("14:30") != before-1 {
+		t.Fatal("an open bill keeps its table")
+	}
+	b, _ := e.store.OpenBill(3)
+	e.store.VoidBill(b.ID)
+	if free("14:30") != before {
+		t.Fatal("once the bill is closed the table is free")
+	}
+}

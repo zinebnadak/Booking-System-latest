@@ -58,11 +58,9 @@ var flashes = map[string]string{
 	"dishon":          "Dish is on the menu.",
 	"dishoff":         "Dish is hidden from the menu.",
 	"phonebooked":     "Phone booking saved.",
-	"seated":          "Walk-in seated.",
 	"pickedup":        "Marked as picked up.",
 	"pickedfinal":     "This order was picked up, so it can't be cancelled.",
 	"duplicate":       "This guest already has a booking at that time.",
-	"nowalkin":        "No table is free right now.",
 	"waitremoved":     "Removed from the waiting list.",
 	"cancelfree":      "Booking cancelled.",
 
@@ -225,6 +223,7 @@ type tableCard struct {
 	Who      string // who is there / expected
 	Detail   string // "until 20:00", "no-show at 18:20", "next 19:30"
 	Ref      string // booking to jump to
+	Orders   bool   // seated on Orders (an open bill, no booking now)
 }
 
 // bookedCards keeps the tables that have bookings that day (the rest are
@@ -232,7 +231,7 @@ type tableCard struct {
 func bookedCards(cards []tableCard) []tableCard {
 	var out []tableCard
 	for _, c := range cards {
-		if len(c.Bookings) > 0 {
+		if len(c.Bookings) > 0 || c.Orders {
 			out = append(out, c)
 		}
 	}
@@ -323,6 +322,14 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 			arrived++
 		}
 	}
+	openAt := map[int]db.Bill{}
+	if date == schedule.FormatDate(schedule.Today(now)) {
+		for _, b := range s.Store.OpenBills() {
+			if b.Wolt == "" {
+				openAt[b.Table] = b
+			}
+		}
+	}
 	for i := range cards {
 		c := &cards[i]
 		c.State = "free"
@@ -340,10 +347,22 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		if c.State == "free" {
+		if b, ok := openAt[c.No]; ok && c.State == "free" { // seated on Orders without a booking
+			c.State, c.Orders = "seated", true
+			c.Who = st(lang, "Seated on Orders")
+			if b.Guests > 0 {
+				c.Who += " · " + strconv.Itoa(b.Guests)
+			}
+			c.Detail = stf(lang, "since %s", clockOf(b.OpenedAt))
+		}
+		if c.State == "free" || c.Orders {
 			for _, row := range c.Bookings {
 				if row.Start().After(now) {
-					c.Detail, c.Ref = stf(lang, "next %s", row.Time)+" · "+row.Name, row.Ref
+					next := stf(lang, "next %s", row.Time) + " · " + row.Name
+					if c.Orders {
+						next = c.Detail + " · " + next
+					}
+					c.Detail, c.Ref = next, row.Ref
 					break
 				}
 			}
@@ -365,14 +384,9 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 	}
 	reason, closed := s.Store.ClosedReason(date)
 	_, openDay := schedule.HoursFor(d)
-	isToday := date == schedule.FormatDate(schedule.Today(now))
 	var slots []staffSlot
 	if !closed && !d.Before(schedule.Today(now)) {
 		slots = s.staffSlots(date, now)
-	}
-	var walkIn []db.TableWindow
-	if isToday {
-		walkIn = s.walkInTables(now)
 	}
 
 	s.render(w, r, "admin_day", 200, M{
@@ -405,8 +419,6 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 		"HasCalendar": s.Cfg.CalendarToken != "",
 		"StaffSlots":  slots,
 		"StaffFree":   anyFree(slots),
-		"WalkIn":      walkIn,
-		"OpenNow":     isToday && s.openNow(now),
 		"TableNos":    tableOptions(),
 		"Occasions":   occasions,
 		"Waitlist":    s.Store.Waitlist(date),

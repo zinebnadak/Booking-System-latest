@@ -85,7 +85,7 @@ func (e *env) bookAndPay(i int, date, clock, size string) string {
 	return ref
 }
 
-func TestStaffPhoneBookingsAndWalkIns(t *testing.T) {
+func TestStaffPhoneBookings(t *testing.T) {
 	e := newEnv(t, nil)
 	out := withOutbox(e)
 
@@ -110,51 +110,16 @@ func TestStaffPhoneBookingsAndWalkIns(t *testing.T) {
 		t.Fatalf("phone booking without a name: %s", rec.Header().Get("Location"))
 	}
 
-	// Before opening there's no walk-in button; at 12:07 there is.
-	if strings.Contains(e.do("GET", "/admin/day", nil, true).Body.String(), `data-open="dlg-walkin"`) {
-		t.Fatal("walk-in offered before opening")
-	}
-	// Table 1 is booked at 13:00 by phone.
-	rec = e.do("POST", "/admin/bookings/new", url.Values{
-		"date": {"2026-10-26"}, "time": {"13:00"}, "size": {"2"}, "name": {"Lunch Guest"}, "table": {"1"},
-	}, true)
-	if !strings.Contains(rec.Header().Get("Location"), "msg=phonebooked") {
-		t.Fatalf("13:00 phone booking: %s", rec.Header().Get("Location"))
-	}
+	// There's no walk-in button any more: walk-ins are seated on Orders.
 	e.at(local(26, 12, 7))
-	e.expect(e.do("GET", "/admin/day", nil, true), 200, `data-open="dlg-walkin"`, "Phone booking", "until 13:00", "2 hours")
-	// A walk-in can sit at table 1 until the 13:00 booking.
-	rec = e.do("POST", "/admin/bookings/walkin", url.Values{"size": {"2"}, "table": {"1"}}, true)
-	if !strings.Contains(rec.Header().Get("Location"), "msg=seated") {
-		t.Fatalf("short walk-in: %s", rec.Header().Get("Location"))
+	if strings.Contains(e.do("GET", "/admin/day", nil, true).Body.String(), "dlg-walkin") {
+		t.Fatal("the walk-in button should be gone")
 	}
-	for _, b := range e.store.BookingsOn("2026-10-26", e.srv.Now()) {
-		if b.Source == db.SourceWalkIn && (b.TableNo != 1 || b.Minutes != 55 || b.EndClock() != "13:00") {
-			t.Fatalf("short walk-in saved as %+v", b)
-		}
-	}
-	// ...and table 1 is taken until then.
-	if rec := e.do("POST", "/admin/bookings/walkin", url.Values{"size": {"2"}, "table": {"1"}}, true); !strings.Contains(rec.Header().Get("Location"), "msg=nowalkin") {
-		t.Fatalf("table 1 twice: %s", rec.Header().Get("Location"))
-	}
-	rec = e.do("POST", "/admin/bookings/walkin", url.Values{"size": {"2"}, "table": {"3"}}, true)
-	if !strings.Contains(rec.Header().Get("Location"), "msg=seated") {
-		t.Fatalf("walk-in: %s", rec.Header().Get("Location"))
-	}
-	var walk db.Booking
-	for _, b := range e.store.BookingsOn("2026-10-26", e.srv.Now()) {
-		if b.Source == db.SourceWalkIn && b.TableNo == 3 {
-			walk = b
-		}
-	}
-	if walk.Time != "12:05" || walk.Minutes != 0 || walk.EndClock() != "14:05" || walk.EffectiveStatus(e.srv.Now()) != db.StatusArrived || walk.Name != "Walk-in" {
-		t.Fatalf("walk-in saved as %+v", walk)
-	}
-	e.expect(e.do("GET", "/admin/day", nil, true), 200, ">Phone<", ">Walk-in<", "Birthday", "no deposit")
+	e.expect(e.do("GET", "/admin/day", nil, true), 200, ">Phone<", "Birthday", "no deposit")
 
-	// Reports: counted as bookings, but not as deposits paid.
+	// Reports: counted as a booking, but not as a deposit paid.
 	st := computeStats(e.store.BookingsBetween("2026-10-26", "2026-10-26"), e.srv.Now())
-	if st.TableBookings != 4 || st.ByPhone != 2 || st.WalkIns != 2 || st.DepositsPaid != 0 || st.Revenue != 0 {
+	if st.TableBookings != 1 || st.ByPhone != 1 || st.DepositsPaid != 0 || st.Revenue != 0 {
 		t.Fatalf("stats = %+v", st)
 	}
 

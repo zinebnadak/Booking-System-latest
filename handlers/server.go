@@ -260,7 +260,6 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("POST /admin/bookings/{ref}/table", s.adminMoveTable)
 	admin.HandleFunc("POST /admin/bookings/{ref}/pickedup", s.adminPickedUp)
 	admin.HandleFunc("POST /admin/bookings/new", s.adminNewBooking)
-	admin.HandleFunc("POST /admin/bookings/walkin", s.adminWalkIn)
 	admin.HandleFunc("POST /admin/waitlist/{ref}/remove", s.adminWaitRemove)
 	admin.HandleFunc("GET /admin/menu", s.managerOnly(s.adminMenu))
 	admin.HandleFunc("POST /admin/menu", s.managerOnly(s.adminMenuSave))

@@ -8,9 +8,8 @@
   <form method="get" action="/admin/day" data-autosubmit><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
 </div>
 
-{{if or .StaffSlots .OpenNow}}
+{{if .StaffSlots}}
 <div class="quick-actions">
-  {{if .OpenNow}}<button type="button" class="btn btn-ok" data-open="dlg-walkin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{tr "Walk-in"}}</button>{{end}}
   {{if .StaffSlots}}<button type="button" class="btn btn-secondary" data-open="dlg-phone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5h2.6l1.5 4.2-2 1.4a12 12 0 0 0 6.2 6.2l1.4-2 4.2 1.5v2.6a2 2 0 0 1-2.2 2A17.5 17.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg>{{tr "Phone booking"}}</button>{{end}}
 </div>
 {{end}}
@@ -34,7 +33,7 @@
   <div class="tables-now">
     {{if not .Cards}}<p class="muted">{{tr "No table bookings this day."}}</p>{{end}}
     {{range .Cards}}
-    {{if .Ref}}<a class="tile {{if $.IsToday}}{{.State}}{{end}}" href="#b-{{.Ref}}">{{else}}<div class="tile">{{end}}
+    {{if .Orders}}<a class="tile {{.State}}" href="/admin/orders/{{.No}}">{{else if .Ref}}<a class="tile {{if $.IsToday}}{{.State}}{{end}}" href="#b-{{.Ref}}">{{else}}<div class="tile">{{end}}
       <div class="tile-top">
         <span class="tile-no">{{trf "Table %d" .No}} <small class="tile-room">{{.Room}}</small></span>
         {{if $.IsToday}}
@@ -52,7 +51,7 @@
       {{else}}
         {{range .Bookings}}<span class="tile-detail">{{.Time}} · {{.Name}}</span>{{end}}
       {{end}}
-    {{if .Ref}}</a>{{else}}</div>{{end}}
+    {{if or .Orders .Ref}}</a>{{else}}</div>{{end}}
     {{end}}
   </div>
   {{if and .Cards .QuietTables}}<p class="muted small">{{trf "The other %d tables have no bookings this day." .QuietTables}}</p>{{end}}
@@ -290,40 +289,4 @@
 </dialog>
 {{end}}
 
-{{if .OpenNow}}
-<dialog id="dlg-walkin" aria-labelledby="dlg-walkin-h">
-  <form method="post" action="/admin/bookings/walkin" class="dlg-form">
-    <div class="dlg-head">
-      <div><h2 id="dlg-walkin-h">{{tr "Walk-in"}}</h2><p>{{tr "Seated now and checked in straight away"}}</p></div>
-      <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-    <div class="dlg-body">
-      <fieldset class="field">
-        <legend class="field-label">{{tr "Guests"}}</legend>
-        <div class="occ-row">{{range .Sizes}}<label class="occ num"><input type="radio" name="size" value="{{.}}"{{if eq . 2}} checked{{end}}><span>{{.}}</span></label>{{end}}</div>
-      </fieldset>
-      <fieldset class="field">
-        <legend class="field-label">{{tr "Table"}} <span class="hint">{{tr "free right now"}}</span></legend>
-        {{if .WalkIn}}
-        <select name="table" class="walkin-table">
-          <option value="0">{{tr "Smallest free table that fits"}}</option>
-          {{range .WalkIn}}<option value="{{.No}}">{{trf "Table %d" .No}} · {{.Room}} · {{trf "%d seats" .Seats}} · {{if lt .Minutes 120}}{{trf "until %s" .Until}}{{else}}{{tr "2 hours"}}{{end}}</option>{{end}}
-        </select>
-        {{else}}
-        <p class="notice" style="margin:0">{{tr "No table is free right now. Check the tables above for one that frees up soon."}}</p>
-        {{end}}
-      </fieldset>
-      <div class="dlg-grid">
-        <label class="field"><span class="field-label">{{tr "Name"}} <span class="hint">{{tr "optional"}}</span></span><input name="name" autocomplete="off" maxlength="80"></label>
-        <label class="field"><span class="field-label">{{tr "Phone"}} <span class="hint">{{tr "optional"}}</span></span><input name="phone" type="tel" inputmode="tel" autocomplete="off"></label>
-        <label class="field wide"><span class="field-label">{{tr "Notes"}} <span class="hint">{{tr "optional"}}</span></span><textarea name="notes" rows="2" maxlength="500"></textarea></label>
-      </div>
-    </div>
-    <div class="dlg-foot">
-      <button type="button" class="btn btn-secondary" data-close>{{tr "Close"}}</button>
-      {{if .WalkIn}}<button class="btn btn-ok" data-loading="{{tr "Seating…"}}">{{tr "Seat them"}}</button>{{end}}
-    </div>
-  </form>
-</dialog>
-{{end}}
 {{end}}

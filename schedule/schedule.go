@@ -336,6 +336,9 @@ func OverlapsFor(a string, aMin int, b string, bMin int) bool {
 	return am < bm+minutesOr(bMin) && bm < am+minutesOr(aMin)
 }
 
+// StayMinutes is how long a stay of m minutes lasts (0: the normal 2 hours).
+func StayMinutes(m int) int { return minutesOr(m) }
+
 func minutesOr(m int) int {
 	if m <= 0 {
 		return int(BookingDuration / time.Minute)

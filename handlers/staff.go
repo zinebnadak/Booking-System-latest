@@ -60,49 +60,6 @@ func anyFree(slots []staffSlot) bool {
 	return false
 }
 
-// walkInClock is "now" rounded down to 5 minutes, e.g. 18:07 -> "18:05".
-func walkInClock(now time.Time) string {
-	t := now.In(schedule.Location)
-	return schedule.Clock(t.Hour()*60 + t.Minute()/5*5)
-}
-
-// openNow: the restaurant is open at this moment (for walk-ins).
-func (s *Server) openNow(now time.Time) bool {
-	d := schedule.Today(now)
-	h, open := schedule.HoursFor(d)
-	if _, closed := s.Store.ClosedReason(schedule.FormatDate(d)); !open || closed {
-		return false
-	}
-	m, _ := schedule.ParseClock(walkInClock(now))
-	return m >= h.Open && m < h.Close
-}
-
-// minWalkIn: a table must be free for at least this long to seat a walk-in.
-const minWalkIn = 30
-
-// walkInTables are the tables free right now, and until when: a full
-// 2 hours, or less if the table is booked later or the restaurant closes.
-func (s *Server) walkInTables(now time.Time) []db.TableWindow {
-	if !s.openNow(now) {
-		return nil
-	}
-	d := schedule.Today(now)
-	h, _ := schedule.HoursFor(d)
-	clock := walkInClock(now)
-	start, _ := schedule.ParseClock(clock)
-	var out []db.TableWindow
-	for _, w := range s.Store.FreeNow(schedule.FormatDate(d), clock, minWalkIn, now) {
-		if start+w.Minutes > h.Close {
-			w.Minutes = h.Close - start
-			w.Until = schedule.Clock(h.Close)
-		}
-		if w.Minutes >= minWalkIn {
-			out = append(out, w)
-		}
-	}
-	return out
-}
-
 // staffContact checks the few details staff type in. Only a name is needed
 // for a phone booking; a walk-in needs nothing.
 func staffContact(r *http.Request, needName bool) (name, phone, email, notes string, ok bool) {
@@ -161,71 +118,6 @@ func (s *Server) adminNewBooking(w http.ResponseWriter, r *http.Request) {
 	}
 	back.Set("hl", b.Ref)
 	redirectMsg(w, r, "/admin/day", back, "phonebooked")
-}
-
-// adminWalkIn seats guests who came in without a booking.
-func (s *Server) adminWalkIn(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-	now := s.Now()
-	today := schedule.FormatDate(schedule.Today(now))
-	back := url.Values{"date": {today}}
-	name, phone, _, notes, ok := staffContact(r, false)
-	size := atoiDefault(r.FormValue("size"), 0)
-	table := atoiDefault(r.FormValue("table"), 0)
-	if !ok || size < 1 || size > schedule.MaxPartySize {
-		redirectMsg(w, r, "/admin/day", back, "invalid")
-		return
-	}
-	// Use the table asked for, or else the smallest one with enough seats
-	// (the one free the longest among those).
-	var pick *db.TableWindow
-	windows := s.walkInTables(now)
-	better := func(w, than *db.TableWindow) bool {
-		if than == nil {
-			return true
-		}
-		if (w.Seats >= size) != (than.Seats >= size) {
-			return w.Seats >= size
-		}
-		if w.Seats >= size && w.Seats != than.Seats {
-			return w.Seats < than.Seats
-		}
-		if w.Seats < size && w.Seats != than.Seats {
-			return w.Seats > than.Seats
-		}
-		return w.Minutes > than.Minutes
-	}
-	for i := range windows {
-		if windows[i].No == table || (table == 0 && better(&windows[i], pick)) {
-			pick = &windows[i]
-		}
-	}
-	if pick == nil {
-		redirectMsg(w, r, "/admin/day", back, "nowalkin")
-		return
-	}
-	if name == "" {
-		name = st(langOf(r), "Walk-in")
-	}
-	minutes := pick.Minutes
-	if minutes >= int(schedule.BookingDuration/time.Minute) {
-		minutes = 0 // the normal 2 hours
-	}
-	b, err := s.Store.CreateStaffBooking(db.Booking{
-		Source: db.SourceWalkIn, Name: name, Phone: phone, Notes: notes,
-		Date: today, Time: walkInClock(now), PartySize: size, Minutes: minutes,
-	}, pick.No, now)
-	if msg := staffBookingError(err); msg != "" {
-		redirectMsg(w, r, "/admin/day", back, msg)
-		return
-	}
-	s.openOnArrival(pick.No, now) // they can order and pay with the table's QR code
-	back.Set("hl", b.Ref)
-	redirectMsg(w, r, "/admin/day", back, "seated")
 }
 
 func staffBookingError(err error) string {

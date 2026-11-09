@@ -235,6 +235,28 @@ func (s *Store) freeTablesFor(date, clock string, minutes int, need tableNeed, n
 			unnumbered++
 		}
 	}
+	// Guests seated on Orders (an open bill) hold their table too, booked or
+	// not: from when it opened for the normal stay, and while the bill is
+	// still open at least the next half hour.
+	if date == schedule.FormatDate(now) {
+		if start, err := schedule.ParseClock(clock); err == nil {
+			end := start + schedule.StayMinutes(minutes)
+			nowM := minuteOfDay(now)
+			for _, b := range s.d.Bills {
+				if !b.Open() || b.SkippedAt != nil || b.Wolt != "" || !schedule.ValidTable(b.Table) {
+					continue
+				}
+				opened := 0 // opened on an earlier day and still open
+				if schedule.FormatDate(b.OpenedAt) == date {
+					opened = minuteOfDay(b.OpenedAt)
+				}
+				until := max(opened+schedule.StayMinutes(0), nowM+30)
+				if start < until && opened < end {
+					used[b.Table] = true
+				}
+			}
+		}
+	}
 	offline := map[string]bool{}
 	if need.online {
 		for _, r := range s.d.Settings.RoomsOffline {
@@ -256,6 +278,12 @@ func (s *Store) freeTablesFor(date, clock string, minutes int, need tableNeed, n
 		out = append(out, t.No)
 	}
 	return out
+}
+
+// minuteOfDay is the time of t in minutes after midnight, restaurant time.
+func minuteOfDay(t time.Time) int {
+	t = t.In(schedule.Location)
+	return t.Hour()*60 + t.Minute()
 }
 
 // FreeTables returns, for each start time, how many tables are still free

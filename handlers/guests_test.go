@@ -629,8 +629,8 @@ func TestQROpensWhenGuestsArrive(t *testing.T) {
 	e.expect(a.do("GET", "/g/"+a.key+"?part=live", nil), 200, "19,80 €")
 	e.expect(e.do("GET", fmt.Sprintf("/admin/orders/%d", bk.TableNo), nil, true), 200, "QR orders are on")
 
-	// Walk-ins seated at a table: open too.
-	e.do("POST", "/admin/bookings/walkin", url.Values{"size": {"2"}, "table": {"3"}, "name": {"Walk-in"}}, true)
+	// Walk-ins seated at a table on Orders: open too.
+	e.do("POST", "/admin/orders/3/guests", url.Values{"guests": {"2"}}, true)
 	if b, open := e.store.OpenBill(3); !open || !b.QROpen {
 		t.Fatalf("walk-in table 3: open=%v %+v", open, b)
 	}

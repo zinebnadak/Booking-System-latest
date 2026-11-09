@@ -1688,4 +1688,7 @@ var staffSV = map[string]string{
 
 	// hours note
 	"Staff clock in and out at the till with their number and PIN (Klockkort), or with Start shift at the top of their own phone. A shift still open long after closing was probably not clocked out: fix the times here.": "Personalen stämplar in och ut i kassan med sitt nummer och sin PIN (Klockkort), eller med Börja pass högst upp i sin egen telefon. Ett pass som fortfarande är öppet långt efter stängning stämplades nog inte ut: rätta tiderna här.",
+
+	// seated on Orders
+	"Seated on Orders": "Placerade via Beställningar",
 }
