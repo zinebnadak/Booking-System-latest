@@ -50,6 +50,96 @@ type stats struct {
 	Refunds            int // paid, then cancelled and refunded
 	TakeawayCancelled  int // paid takeaway, then cancelled (deposit kept)
 	NeverPaid          int // started a booking but never paid
+
+	// Wolt orders picked up (see wolt.go): what the guests paid, Wolt's cut
+	// and what the restaurant keeps.
+	WoltOrders int
+	WoltSales  int
+	WoltFee    int
+	WoltNet    int
+	WoltPct    int
+	WoltPctSet bool
+
+	// At the tables: bills paid (card, cash, lunch cards, phones) and gift
+	// cards sold (see sales.go).
+	Till         int // money in at the tables and for gift cards
+	TillBills    int
+	TillCash     int // of which cash
+	Tips         int
+	Prepaid      int // paid with gift cards and lunch coupons sold earlier (not counted again)
+	Vouchers     int
+	VoucherCents int
+
+	// Online is the website's money alone (deposits and takeaway). Revenue
+	// is everything: the website, the tables and Wolt (what we keep), with
+	// or without Wolt as the manager picked (woltMode).
+	Online int
+}
+
+// Wolt in the money pages: "with" (everything together, the start),
+// "without" (the restaurant's own sales) or "only" (just Wolt).
+const (
+	woltWith    = "with"
+	woltWithout = "without"
+	woltOnly    = "only"
+)
+
+// woltMode is the Wolt filter from the page's address.
+func woltMode(r *http.Request) string {
+	switch m := r.URL.Query().Get("wolt"); m {
+	case woltWithout, woltOnly:
+		return m
+	}
+	return woltWith
+}
+
+// addMoney puts the table bills, gift cards sold and Wolt orders from one
+// date to another (both included) into m, and Revenue as the filter says.
+// m has the website's bookings already (computeStats). It returns the
+// tables' money by way of paying.
+func (s *Server) addMoney(m *stats, from, to time.Time, mode string) map[string]int {
+	f, t := schedule.FormatDate(from), schedule.FormatDate(to)
+	methods := map[string]int{}
+	for _, d := range s.Store.TillByDate(f, t) {
+		m.Till += d.Total()
+		m.TillBills += d.Bills
+		m.TillCash += d.Cash
+		m.Tips += d.Tips
+		m.Prepaid += d.Prepaid
+		m.Vouchers += d.Vouchers
+		m.VoucherCents += d.VoucherCents
+		for k, c := range d.Methods {
+			methods[k] += c
+		}
+	}
+	for _, w := range s.Store.WoltByDate(f, t) {
+		m.WoltOrders += w.Orders
+		m.WoltSales += w.Cents
+	}
+	m.WoltPct, m.WoltPctSet = s.Store.WoltPct()
+	m.WoltFee = woltFee(m.WoltSales, m.WoltPct)
+	m.WoltNet = m.WoltSales - m.WoltFee
+	m.Online = m.Revenue
+	switch mode {
+	case woltWith:
+		m.Revenue = m.Online + m.Till + m.WoltNet
+	case woltWithout:
+		m.Revenue = m.Online + m.Till
+	case woltOnly:
+		m.Revenue = m.WoltNet
+	}
+	return methods
+}
+
+// woltFee is Wolt's cut of some orders, rounded to the cent.
+func woltFee(cents, pct int) int { return (cents*pct + 50) / 100 }
+
+// AvgBill is what a table bill came to, on average.
+func (m stats) AvgBill() int {
+	if m.TillBills == 0 {
+		return 0
+	}
+	return (m.Till - m.VoucherCents + m.Prepaid + m.TillBills/2) / m.TillBills
 }
 
 // Lost is everything that was paid for but didn't happen.
@@ -130,9 +220,12 @@ func computeStats(bs []db.Booking, now time.Time) stats {
 	return m
 }
 
-// statsBetween adds up every booking from one day to another (inclusive).
-func (s *Server) statsBetween(from, to time.Time, now time.Time) stats {
-	return computeStats(s.Store.BookingsBetween(schedule.FormatDate(from), schedule.FormatDate(to)), now)
+// statsBetween adds up every booking and Wolt order from one day to
+// another (inclusive).
+func (s *Server) statsBetween(from, to time.Time, now time.Time, mode string) stats {
+	m := computeStats(s.Store.BookingsBetween(schedule.FormatDate(from), schedule.FormatDate(to)), now)
+	s.addMoney(&m, from, to, mode)
+	return m
 }
 
 // ---------- Comparisons ----------
@@ -179,19 +272,21 @@ func (s *Server) ownerToday(w http.ResponseWriter, r *http.Request) {
 	}
 	date := schedule.FormatDate(day)
 
+	mode := woltMode(r)
 	bs := s.Store.BookingsBetween(date, date)
 	stt := computeStats(bs, now)
-	weekAgo := s.statsBetween(day.AddDate(0, 0, -7), day.AddDate(0, 0, -7), now)
+	methods := s.addMoney(&stt, day, day, mode)
+	weekAgo := s.statsBetween(day.AddDate(0, 0, -7), day.AddDate(0, 0, -7), now, mode)
 
 	// This month so far vs the same days of last month.
 	monthStart := time.Date(day.Year(), day.Month(), 1, 0, 0, 0, 0, schedule.Location)
-	mtd := s.statsBetween(monthStart, day, now)
+	mtd := s.statsBetween(monthStart, day, now, mode)
 	prevStart := monthStart.AddDate(0, -1, 0)
 	prevEnd := prevStart.AddDate(0, 0, day.Day()-1)
 	if lastOfPrev := monthStart.AddDate(0, 0, -1); prevEnd.After(lastOfPrev) {
 		prevEnd = lastOfPrev
 	}
-	prevMtd := s.statsBetween(prevStart, prevEnd, now)
+	prevMtd := s.statsBetween(prevStart, prevEnd, now, mode)
 
 	var rows []todayRow
 	for _, b := range bs {
@@ -242,6 +337,10 @@ func (s *Server) ownerToday(w http.ResponseWriter, r *http.Request) {
 		"PrevName":  monthName(lang, prevStart.Month()),
 		"Rows":      rows,
 		"Month":     day.Format("2006-01"),
+		"WoltMode":  mode,
+		"TillRows":  takingRows(lang, methods),
+		"Cash":      s.cashPanel(lang, date),
+		"Toast":     flashText(r),
 	})
 }
 
@@ -281,6 +380,8 @@ type metric struct {
 type dayVals struct {
 	Money, Takeaway, Deposits    int
 	Tables, Guests, Orders, Lost int
+	Wolt, WoltOrders             int // Wolt orders picked up, and what we keep of them
+	Till                         int // money in at the tables and for gift cards
 }
 
 func (d *dayVals) add(b db.Booking, now time.Time) {
@@ -320,6 +421,7 @@ var metrics = []metric{
 	{"guests", "Guests", "count", func(d dayVals) float64 { return float64(d.Guests) }},
 	{"orders", "Takeaway orders", "count", func(d dayVals) float64 { return float64(d.Orders) }},
 	{"lost", "No-shows & cancellations", "count", func(d dayVals) float64 { return float64(d.Lost) }},
+	{"wolt", "Wolt orders", "count", func(d dayVals) float64 { return float64(d.WoltOrders) }},
 }
 
 // byDate groups bookings into per-day numbers.
@@ -336,10 +438,50 @@ func byDate(bs []db.Booking, now time.Time) map[string]*dayVals {
 	return out
 }
 
+// byDateWolt is byDate for the bookings from one date to another, with the
+// Wolt orders added: Money has them in or not, as the filter says.
+func (s *Server) byDateWolt(from, to time.Time, now time.Time, mode string) map[string]*dayVals {
+	f, t := schedule.FormatDate(from), schedule.FormatDate(to)
+	out := byDate(s.Store.BookingsBetween(f, t), now)
+	get := func(d string) *dayVals {
+		v := out[d]
+		if v == nil {
+			v = &dayVals{}
+			out[d] = v
+		}
+		return v
+	}
+	for d, till := range s.Store.TillByDate(f, t) {
+		v := get(d)
+		v.Till = till.Total()
+		v.Money += v.Till
+	}
+	if mode == woltOnly {
+		for _, v := range out {
+			v.Money = 0
+		}
+	}
+	pct, _ := s.Store.WoltPct()
+	for d, w := range s.Store.WoltByDate(f, t) {
+		v := get(d)
+		v.Wolt, v.WoltOrders = w.Cents-woltFee(w.Cents, pct), w.Orders
+		if mode != woltWithout {
+			v.Money += v.Wolt
+		}
+	}
+	return out
+}
+
 func fptr(f float64) *float64 { return &f }
 
-func moneyExtra(lang string, d dayVals) []string {
-	return []string{st(lang, "Takeaway") + " " + euro(d.Takeaway), st(lang, "Table deposits") + " " + euro(d.Deposits)}
+func moneyExtra(lang string, d dayVals, mode string) []string {
+	switch mode {
+	case woltOnly:
+		return []string{stf(lang, "%d Wolt orders", d.WoltOrders)}
+	case woltWithout:
+		return []string{st(lang, "At the tables") + " " + euro(d.Till), st(lang, "Takeaway") + " " + euro(d.Takeaway), st(lang, "Table deposits") + " " + euro(d.Deposits)}
+	}
+	return []string{st(lang, "At the tables") + " " + euro(d.Till), st(lang, "Takeaway") + " " + euro(d.Takeaway), st(lang, "Table deposits") + " " + euro(d.Deposits), "Wolt " + euro(d.Wolt)}
 }
 
 type countBar struct {
@@ -368,6 +510,7 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 	now := s.Now()
 	today := schedule.Today(now)
 	q := r.URL.Query()
+	mode := woltMode(r)
 	view := q.Get("view")
 	if view != "months" {
 		view = "days"
@@ -396,8 +539,8 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 		periodFrom, periodTo = first, last
 		prevFirst := first.AddDate(0, -1, 0)
 		prevLast := first.AddDate(0, 0, -1)
-		cur := byDate(s.Store.BookingsBetween(schedule.FormatDate(first), schedule.FormatDate(last)), now)
-		prev := byDate(s.Store.BookingsBetween(schedule.FormatDate(prevFirst), schedule.FormatDate(prevLast)), now)
+		cur := s.byDateWolt(first, last, now, mode)
+		prev := s.byDateWolt(prevFirst, prevLast, now, mode)
 		thisName, lastName = capitalize(monthName(lang, first.Month())), capitalize(monthName(lang, prevFirst.Month()))
 		this := chartSeries{Name: thisName, Kind: "bar", Color: colorThis}
 		before := chartSeries{Name: lastName, Kind: "line", Color: colorLast, Dashed: true}
@@ -419,7 +562,7 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 				this.Values = append(this.Values, fptr(x))
 			}
 			if met.Key == "money" {
-				this.Extra = append(this.Extra, moneyExtra(lang, v))
+				this.Extra = append(this.Extra, moneyExtra(lang, v, mode))
 			}
 			pd := prevFirst.AddDate(0, 0, d.Day()-1)
 			if pd.After(prevLast) {
@@ -438,8 +581,8 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Twelve months ending with the chosen month, against the year before.
 		periodFrom, periodTo = first.AddDate(0, -11, 0), last
-		cur := byDate(s.Store.BookingsBetween(schedule.FormatDate(first.AddDate(0, -11, 0)), schedule.FormatDate(last)), now)
-		prev := byDate(s.Store.BookingsBetween(schedule.FormatDate(first.AddDate(0, -23, 0)), schedule.FormatDate(first.AddDate(0, -11, -1))), now)
+		cur := s.byDateWolt(first.AddDate(0, -11, 0), last, now, mode)
+		prev := s.byDateWolt(first.AddDate(0, -23, 0), first.AddDate(0, -11, -1), now, mode)
 		thisName, lastName = st(lang, "Last 12 months"), st(lang, "Year before")
 		this := chartSeries{Name: st(lang, "This year"), Kind: "bar", Color: colorThis}
 		before := chartSeries{Name: st(lang, "Year before"), Kind: "line", Color: colorLast, Dashed: true}
@@ -455,6 +598,9 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 					t.Guests += p.Guests
 					t.Orders += p.Orders
 					t.Lost += p.Lost
+					t.Wolt += p.Wolt
+					t.WoltOrders += p.WoltOrders
+					t.Till += p.Till
 				}
 			}
 			return t
@@ -475,7 +621,7 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 				this.Values = append(this.Values, fptr(x))
 			}
 			if met.Key == "money" {
-				this.Extra = append(this.Extra, moneyExtra(lang, v))
+				this.Extra = append(this.Extra, moneyExtra(lang, v, mode))
 			}
 			pv := sum(prev, m.AddDate(-1, 0, 0))
 			px := met.pick(pv)
@@ -494,6 +640,7 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 	// The rest of the page covers the same period as the chart.
 	periodBookings := s.Store.BookingsBetween(schedule.FormatDate(periodFrom), schedule.FormatDate(periodTo))
 	stt := computeStats(periodBookings, now)
+	s.addMoney(&stt, periodFrom, periodTo, mode)
 	weekdays, hours := rushCharts(lang, periodBookings, now)
 	dishes, drinks := bestSellers(s.Store.PaidBillsBetween(schedule.FormatDate(periodFrom), schedule.FormatDate(periodTo)),
 		periodBookings, s.Store.Menu(false), now)
@@ -560,6 +707,8 @@ func (s *Server) ownerCharts(w http.ResponseWriter, r *http.Request) {
 		"Drinks":      drinks,
 		"Removed":     s.removedReport(lang, schedule.FormatDate(periodFrom), schedule.FormatDate(periodTo)),
 		"Outcomes":    outcomes,
+		"WoltMode":    mode,
+		"WoltQuery":   "view=" + view + "&month=" + month.Format("2006-01") + "&metric=" + met.Key,
 	})
 }
 

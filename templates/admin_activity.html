@@ -15,7 +15,7 @@
 {{if .Rows}}
 <ul class="act-list panel">
   {{range .Rows}}
-  <li><span class="act-time">{{.Time}}</span><strong>{{.Actor}}</strong> <span>{{tr .What}}{{if .Table}} · {{trf "Table %d" .Table}}{{end}}{{with .Detail}} · {{.}}{{end}}</span></li>
+  <li><span class="act-time">{{.Time}}</span><strong>{{.Actor}}</strong> <span>{{tr .What}}{{if .Table}} · {{place .Table}}{{end}}{{with .Detail}} · {{.}}{{end}}</span></li>
   {{end}}
 </ul>
 {{else}}

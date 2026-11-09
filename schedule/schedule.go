@@ -125,6 +125,16 @@ func TableNos() []int {
 	return out
 }
 
+// Wolt orders get a number of their own, out of the tables' way, so they
+// work like a table's bill (kitchen, ready to pick up, paid) without a table.
+const (
+	WoltFirst = 901
+	WoltLast  = 999
+)
+
+// IsWolt reports whether n is a Wolt order's number.
+func IsWolt(n int) bool { return n >= WoltFirst && n <= WoltLast }
+
 // ValidTable reports whether n is one of the restaurant's tables.
 func ValidTable(n int) bool { _, ok := tableIndex[n]; return ok }
 

@@ -564,6 +564,7 @@ func (s *Server) confirmPaid(ref, paymentIntentID string) error {
 			log.Printf("takeaway %s to the kitchen: %v", b.Ref, err)
 		} else if added {
 			s.live.publish()
+			s.notifyNewest(func(t db.Ticket) bool { return t.Takeaway == b.Ref })
 		}
 	}
 	subject, body := confirmationEmail(s.Cfg, b)

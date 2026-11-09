@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="day-head">
   <a class="btn btn-secondary btn-sm back-home" href="/admin/orders" aria-label="{{tr "Back to orders"}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/></svg>{{tr "Home"}}</a>
-  <h1>{{trf "Table %d" .Table}}</h1>
+  <h1>{{if .Wolt}}<span class="wolt-dot" aria-hidden="true">W</span>{{end}}{{place .Table}}</h1>
   {{with .Who}}<span class="muted">{{.}}</span>{{end}}
   <span class="spacer"></span>
   <a class="btn btn-secondary btn-sm" href="/admin/orders/{{.Table}}/history">{{tr "History"}}</a>
@@ -14,6 +14,7 @@
 </div>
 {{end}}
 {{with .Booked}}<p class="notice info booked-note">{{range $i, $b := .}}{{if $i}}<br>{{end}}{{trf "Booked %s" $b}}{{end}}</p>{{end}}
+{{if .Wolt}}<p class="notice info wolt-note">{{tr "A Wolt order. Add the dishes below: the chef gets them all at once. When the courier takes the bag, tap Picked up by Wolt."}}</p>{{end}}
 {{with .Deal}}
 <section class="panel deal-panel deal-{{.State}}" aria-labelledby="deal-h">
   <div class="deal-head">
@@ -83,7 +84,7 @@
   </div>
 </section>
 {{end}}
-{{if .Cfg.TableQR}}<form method="post" action="/admin/orders/{{.Table}}/qr" class="qr-switch{{if .QROpen}} on{{end}}">
+{{if and .Cfg.TableQR (not .Wolt)}}<form method="post" action="/admin/orders/{{.Table}}/qr" class="qr-switch{{if .QROpen}} on{{end}}">
   <input type="hidden" name="open" value="{{if .QROpen}}0{{else}}1{{end}}">
   <span class="qr-switch-text">
     <strong>{{if .QROpen}}{{tr "QR orders are on"}}{{else}}{{tr "QR orders are off"}}{{end}}</strong>
@@ -92,7 +93,7 @@
   <button class="btn btn-sm {{if .QROpen}}btn-secondary{{else}}btn-ok{{end}}">{{if .QROpen}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>{{end}}
 
-<div class="panel table-meta">
+{{if not .Wolt}}<div class="panel table-meta">
 <form method="post" action="/admin/orders/{{.Table}}/guests" class="guests-row">
   <span class="guests-label">{{tr "Guests at the table"}}</span>
   <span class="guests-pick" role="group" aria-label="{{tr "Guests at the table"}}">
@@ -123,7 +124,7 @@
 </form>
 <form method="post" action="/admin/orders/{{.Table}}/waiter" id="waiter-pick-{{.Table}}" hidden><input type="hidden" name="bill" value="{{.Bill.ID}}"></form>
 {{end}}
-</div>
+</div>{{end}}
 <div class="order-layout">
   <section class="panel bill-panel" aria-labelledby="bill-h">
     <div class="panel-head">
@@ -195,12 +196,19 @@
       {{if not .Lines}}
       {{if .Bill.DepositCents}}<p class="notice info">{{trf "These guests paid a %s deposit online. It comes off their bill." (euro .Bill.DepositCents)}}</p>{{end}}
       <p class="muted small">{{if .Cfg.TableQR}}{{tr "Nothing ordered yet. Guests can order with the table's QR code, or add dishes here."}}{{else}}{{tr "Nothing ordered yet. Add dishes below."}}{{end}}</p>
+      {{if .Wolt}}<form method="post" action="/admin/orders/{{.Table}}/woltcancel" data-confirm="{{tr "Cancel this Wolt order? Nothing is on it yet."}}" data-confirm-ok="{{tr "Cancel the order"}}" data-danger><input type="hidden" name="bill" value="{{.Bill.ID}}"><button class="btn btn-secondary btn-sm">{{tr "Started by mistake? Cancel it"}}</button></form>{{end}}
       {{else}}
       <form method="post" action="/admin/orders/{{.Table}}/billed">
         <input type="hidden" name="bill" value="{{.Bill.ID}}">
         <button class="btn btn-secondary btn-block">{{tr "Show the bill"}}</button>
       </form>
-      {{if .Bill.IsSplit}}
+      {{if $.Wolt}}
+      <form method="post" action="/admin/orders/{{.Table}}/woltpickup" data-confirm="{{trf "Did the Wolt courier take %s's order (%s)?" .Wolt (euro .Bill.Total)}}" data-confirm-ok="{{tr "Yes, picked up"}}">
+        <input type="hidden" name="bill" value="{{.Bill.ID}}">
+        <button class="btn btn-wolt btn-block">{{tr "Picked up by Wolt"}}</button>
+      </form>
+      <p class="muted small">{{tr "Wolt pays for it, so nothing is paid here. It counts as Wolt on the money pages."}}</p>
+      {{else if .Bill.IsSplit}}
       {{with .Bill.TableLeft}}
       <p class="small table-left">{{trf "Still to pay at this table: %s" (euro .)}}</p>
       <div class="pay-row">
@@ -263,7 +271,7 @@
       {{end}}
       {{end}}
       <details class="bill-more">
-        <summary>{{if .Manager}}{{tr "Discount, move or void"}}{{else}}{{tr "Move, or skip for now"}}{{end}}</summary>
+        <summary>{{if .Wolt}}{{if .Manager}}{{tr "Discount or void"}}{{else}}{{tr "More"}}{{end}}{{else if .Manager}}{{tr "Discount, move or void"}}{{else}}{{tr "Move, or skip for now"}}{{end}}</summary>
         {{if .Manager}}
         <form method="post" action="/admin/orders/{{.Table}}/discount" class="row">
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
@@ -282,11 +290,12 @@
           <button class="btn btn-secondary btn-sm">{{tr "Move"}}</button>
         </form>
         {{end}}
+        {{if .Wolt}}{{if not .Manager}}<p class="small muted">{{tr "Wrong order? Ask the manager to void it."}}</p>{{end}}{{else}}
         <form method="post" action="/admin/orders/{{.Table}}/skip" class="skip-form" data-confirm="{{trf "Skip the bill for table %d for now? It stays unpaid and waits for the manager, and the table is free for new guests." .Table}}" data-confirm-ok="{{tr "Skip for now"}}">
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
           <p class="small muted">{{tr "Guests left without paying, or new guests need the table? Skip it for now: the bill keeps everything on it and waits for the manager. It isn't paid or removed."}}</p>
           <button class="btn btn-secondary btn-sm">{{tr "Skip for now"}}</button>
-        </form>
+        </form>{{end}}
         {{if .Manager}}
         <form method="post" action="/admin/orders/{{.Table}}/void" class="row" data-confirm="{{trf "Void the bill for table %d? Use this only if it was opened by mistake. Everything on it shows on the charts as taken off. It can't be undone." .Table}}" data-confirm-ok="{{tr "Void bill"}}" data-danger>
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
@@ -494,7 +503,7 @@
         </div>
       </details>
 
-      <label class="hold-box"><input type="checkbox" name="hold" value="1" checked> <span><strong>{{tr "Vänta varmt"}}</strong> · {{tr "with starters, the mains wait until you tap “Mains now”; desserts ordered now wait for “Dessert now”"}}</span></label>
+      {{if not .Wolt}}<label class="hold-box"><input type="checkbox" name="hold" value="1" checked> <span><strong>{{tr "Vänta varmt"}}</strong> · {{tr "with starters, the mains wait until you tap “Mains now”; desserts ordered now wait for “Dessert now”"}}</span></label>{{end}}
       <div class="order-bar">
         <span class="order-sum" data-order-sum>{{tr "Pick dishes and drinks"}}</span>
         <button class="btn btn-primary">{{tr "Add to bill"}}</button>

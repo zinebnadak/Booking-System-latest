@@ -14,11 +14,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"emeal-booking/db"
 	"emeal-booking/mailer"
 	"emeal-booking/payments"
+	"emeal-booking/push"
 )
 
 // Config holds the settings that come from the .env file.
@@ -68,6 +70,13 @@ type Server struct {
 	csp      string // Content-Security-Policy header, see securityHeaders
 	rl       *limiter
 	live     *hub // tells open Tables screens about button presses
+
+	// Push notifications to staff phones (see pushes.go).
+	pushOnce   sync.Once
+	pushSender *push.Sender
+	pushErr    error
+	pushWG     sync.WaitGroup // messages still being sent (tests wait for them)
+	pushOff    bool           // tests that don't want any sent
 }
 
 // M is the data passed to a page template.
@@ -100,7 +109,7 @@ func New(cfg Config, store *db.Store, pay *payments.Client, mail *mailer.Mailer,
 	for _, lang := range []string{langSV, langEN} {
 		s.pages[lang] = map[string]*template.Template{}
 		for _, name := range pageNames {
-			t, err := template.New("").Funcs(funcsFor(lang)).ParseFS(files, "templates/layout.html", "templates/partials.html", "templates/"+name+".html")
+			t, err := template.New("").Funcs(funcsFor(lang, store.WoltName)).ParseFS(files, "templates/layout.html", "templates/partials.html", "templates/"+name+".html")
 			if err != nil {
 				return nil, err
 			}
@@ -154,6 +163,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /terms", s.legalPage("terms"))
 	mux.HandleFunc("GET /privacy", s.legalPage("privacy"))
 	mux.HandleFunc("GET /manifest.webmanifest", s.manifest(false))
+	mux.HandleFunc("GET /sw.js", s.serviceWorker)
 	mux.HandleFunc("GET /staff.webmanifest", s.manifest(true))
 	mux.HandleFunc("GET /dev/pay/{ref}", s.devPayPage)
 	mux.HandleFunc("POST /dev/pay/{ref}", s.limited("guest", limitGuestAct, s.devPaySubmit))
@@ -225,6 +235,11 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("GET /admin/orders/{table}/split", s.splitPage)
 	admin.HandleFunc("POST /admin/orders/{table}/split/{action}", s.splitAction)
 	admin.HandleFunc("GET /admin/orders/{table}/receipts", s.receiptsPage)
+	admin.HandleFunc("POST /admin/wolt", s.newWolt)
+	admin.HandleFunc("POST /admin/shift", s.staffShift)
+	admin.HandleFunc("GET /admin/push/key", s.pushKey)
+	admin.HandleFunc("POST /admin/push/subscribe", s.pushSubscribe)
+	admin.HandleFunc("POST /admin/push/unsubscribe", s.pushUnsubscribe)
 	admin.HandleFunc("POST /admin/orders/{table}/add", s.orderAdd)
 	admin.HandleFunc("POST /admin/orders/{table}/lines/{line}/{action}", s.orderLine)
 	admin.HandleFunc("POST /admin/orders/{table}/qr", s.ifTableQR(s.tableQR))
@@ -282,6 +297,8 @@ func (s *Server) Routes() http.Handler {
 	owner := http.NewServeMux()
 	owner.HandleFunc("GET /owner", s.ownerToday)
 	owner.HandleFunc("GET /owner/charts", s.ownerCharts)
+	owner.HandleFunc("POST /owner/cash", s.ownerCash)
+	owner.HandleFunc("POST /owner/woltpct", s.ownerWoltPct)
 	owner.HandleFunc("GET /owner/reports", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/owner/charts", http.StatusSeeOther)
 	})
@@ -326,6 +343,12 @@ func (s *Server) renderBlock(w http.ResponseWriter, r *http.Request, page, block
 	}
 	if l := loginOf(r); l.Role == roleWaiter || l.Role == roleChef {
 		data["StaffName"] = l.Name
+		if l.StaffID != 0 && !s.isTill(r) { // the till has its own clock card
+			data["ShiftAsk"] = true
+			if sh, on := s.Store.ClockedIn(l.StaffID); on {
+				data["ShiftSince"] = clockOf(sh.In)
+			}
+		}
 	}
 	for _, k := range []string{"Errors", "Form"} {
 		if _, ok := data[k]; !ok {
@@ -395,6 +418,7 @@ func buildCSP(layout []byte, baseURL string) string {
 		"img-src 'self' data:",
 		"connect-src 'self'",
 		"manifest-src 'self'",
+		"worker-src 'self'",
 		"form-action " + forms,
 		"frame-ancestors 'none'",
 		"base-uri 'none'",

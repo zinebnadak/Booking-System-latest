@@ -127,3 +127,11 @@
   </ul>
 </section>
 {{end}}
+
+{{define "wolt-filter"}}
+<nav class="tabs wolt-filter" aria-label="{{tr "Wolt in the totals"}}">
+  <a href="?{{with .Date}}date={{.}}&amp;{{end}}{{with .WoltQuery}}{{.}}&amp;{{end}}wolt=with"{{if eq .WoltMode "with"}} aria-current="page"{{end}}>{{tr "With Wolt"}}</a>
+  <a href="?{{with .Date}}date={{.}}&amp;{{end}}{{with .WoltQuery}}{{.}}&amp;{{end}}wolt=without"{{if eq .WoltMode "without"}} aria-current="page"{{end}}>{{tr "Without Wolt"}}</a>
+  <a href="?{{with .Date}}date={{.}}&amp;{{end}}{{with .WoltQuery}}{{.}}&amp;{{end}}wolt=only"{{if eq .WoltMode "only"}} aria-current="page"{{end}}>{{tr "Only Wolt"}}</a>
+</nav>
+{{end}}

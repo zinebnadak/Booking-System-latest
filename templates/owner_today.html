@@ -2,18 +2,19 @@
 
 {{define "content"}}
 <div class="day-head">
-  <a class="icon-btn" href="/owner?date={{.Prev}}" aria-label="{{tr "Previous day"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <a class="icon-btn" href="/owner?date={{.Prev}}&amp;wolt={{.WoltMode}}" aria-label="{{tr "Previous day"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
   <h1>{{if .IsToday}}{{tr "Today"}}, {{end}}{{prettyDate .Date}}</h1>
-  <a class="icon-btn" href="/owner?date={{.Next}}" aria-label="{{tr "Next day"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <a class="icon-btn" href="/owner?date={{.Next}}&amp;wolt={{.WoltMode}}" aria-label="{{tr "Next day"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
   <span class="spacer"></span>
-  {{if not .IsToday}}<a class="btn btn-secondary btn-sm" href="/owner">{{tr "Go to today"}}</a>{{end}}
+  {{if not .IsToday}}<a class="btn btn-secondary btn-sm" href="/owner?wolt={{.WoltMode}}">{{tr "Go to today"}}</a>{{end}}
   <a class="btn btn-secondary btn-sm" href="/owner/summary?date={{.Date}}" target="_blank" rel="noopener">{{tr "End-of-day email"}}</a>
-  <form method="get" action="/owner" data-autosubmit><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
+  <form method="get" action="/owner" data-autosubmit><input type="hidden" name="wolt" value="{{.WoltMode}}"><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
 </div>
+{{template "wolt-filter" .}}
 
 <section class="panel hero-kpi">
   <div>
-    <div class="kpi-label">{{if .IsToday}}{{tr "Made today"}}{{else}}{{tr "Made on this day"}}{{end}}</div>
+    <div class="kpi-label">{{if .IsToday}}{{tr "Made today"}}{{else}}{{tr "Made on this day"}}{{end}}{{if eq .WoltMode "only"}} · {{tr "Wolt only"}}{{else if eq .WoltMode "without"}} · {{tr "without Wolt"}}{{end}}</div>
     <div class="kpi-big">{{euro .S.Revenue}}</div>
     <div class="kpi-sub">
       <span>{{template "chg" .VsWeek}} {{trf "vs last %s (%s)" .WeekDay (euro .WeekAgo.Revenue)}}</span>
@@ -24,11 +25,56 @@
     </div>
   </div>
   <div class="kpi-split">
+    <div><strong>{{euro .S.Till}}</strong><span>{{tr "At the tables"}}</span></div>
     <div><strong>{{euro .S.TakeawaySales}}</strong><span>{{tr "Takeaway food"}}</span></div>
     <div><strong>{{euro .S.DepositsNet}}</strong><span>{{tr "Table deposits"}}</span></div>
-    <div><strong>{{euro .S.KeptTotal}}</strong><span>{{tr "Deposits kept"}}</span></div>
-    <div><strong>{{euro .S.Refunded}}</strong><span>{{tr "Refunded"}}</span></div>
+    <div class="kpi-wolt"><strong>{{euro .S.WoltNet}}</strong><span>{{if eq .S.WoltOrders 1}}{{tr "Wolt · 1 order"}}{{else}}{{trf "Wolt · %d orders" .S.WoltOrders}}{{end}}{{if .S.WoltFee}} · {{tr "after Wolt's cut"}}{{end}}</span></div>
   </div>
+</section>
+
+<section class="panel stat-group till-group">
+  <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v9M18 10v9M3 7l9-3 9 3"/></svg>{{tr "At the tables"}}</h2>
+  <div class="stat-grid stat-grid-4">
+    <div class="stat ok"><strong>{{.S.TillBills}}</strong><span class="lbl">{{tr "Bills paid"}}</span><span class="amt">{{euro .S.Till}}{{if .S.VoucherCents}} · {{tr "with gift cards sold"}}{{end}}</span></div>
+    <div class="stat"><strong>{{if .S.TillBills}}{{euro .S.AvgBill}}{{else}}–{{end}}</strong><span class="lbl">{{tr "Average bill"}}</span><span class="amt">{{tr "per table"}}</span></div>
+    <div class="stat"><strong>{{euro .S.TillCash}}</strong><span class="lbl">{{tr "Cash"}}</span><span class="amt">{{tr "should be in the drawer"}}</span></div>
+    <div class="stat"><strong>{{euro .S.Tips}}</strong><span class="lbl">{{tr "Tips"}}</span><span class="amt">{{tr "added on phones"}}</span></div>
+  </div>
+  {{if .TillRows}}
+  <dl class="sum-rows till-rows">
+    {{range .TillRows}}<dt>{{.Name}}{{if .Prepaid}} <span class="muted small">{{tr "(sold earlier, not counted again)"}}</span>{{end}}</dt><dd>{{euro .Cents}}</dd>{{end}}
+    {{if .S.Vouchers}}<dt>{{trf "Gift cards and lunch booklets sold (%d)" .S.Vouchers}}</dt><dd>{{euro .S.VoucherCents}}</dd>{{end}}
+  </dl>
+  {{else if .S.Vouchers}}
+  <dl class="sum-rows till-rows"><dt>{{trf "Gift cards and lunch booklets sold (%d)" .S.Vouchers}}</dt><dd>{{euro .S.VoucherCents}}</dd></dl>
+  {{end}}
+</section>
+
+<section class="panel cash-panel" id="cash" aria-labelledby="cash-h">
+  <h2 id="cash-h">{{tr "Cash check at closing"}}</h2>
+  <p class="muted small">{{tr "Count the cash drawer when you close. The app compares it with the change you started with and the cash taken today (bills and gift cards). Takeaway paid at pickup isn't in it."}}</p>
+  <div class="cash-sum">
+    <div><span>{{tr "Cash taken"}}</span><strong>{{euro .Cash.Taken}}</strong></div>
+    {{with .Cash.Count}}
+    <div><span>{{tr "Expected in the drawer"}}</span><strong>{{euro .Expected}}</strong></div>
+    <div><span>{{tr "Counted"}}</span><strong>{{euro .Counted}}</strong></div>
+    <div class="cash-diff {{if lt .Diff 0}}short{{else if gt .Diff 0}}over{{else}}even{{end}}"><span>{{if lt .Diff 0}}{{tr "Missing"}}{{else if gt .Diff 0}}{{tr "Too much"}}{{else}}{{tr "Difference"}}{{end}}</span><strong>{{signedEuro .Diff}}</strong></div>
+    {{end}}
+  </div>
+  {{with .Cash.Count}}<p class="small muted">{{trf "Counted by %s at %s" .By (clock .At)}}{{if .Previous}} · {{trf "recounted %d times" .Previous}}{{end}}{{with .Note}} · {{.}}{{end}}</p>{{end}}
+  <form method="post" action="/owner/cash" class="cash-form">
+    <input type="hidden" name="date" value="{{.Date}}"><input type="hidden" name="wolt" value="{{.WoltMode}}">
+    <label class="field">{{tr "Change at the start €"}}<input name="float" inputmode="decimal" value="{{if .Cash.Float}}{{euroPlain .Cash.Float}}{{end}}" placeholder="0"></label>
+    <label class="field">{{tr "Counted now €"}}<input name="counted" inputmode="decimal" required placeholder="0,00"></label>
+    <label class="field grow"><span class="field-label">{{tr "Note"}} <span class="hint">{{tr "optional"}}</span></span><input name="note" maxlength="200" placeholder="{{tr "e.g. 20 € taken out for milk"}}"></label>
+    <button class="btn btn-primary">{{if .Cash.Count}}{{tr "Count again"}}{{else}}{{tr "Save the count"}}{{end}}</button>
+  </form>
+  {{if .Cash.History}}
+  <details class="cash-history">
+    <summary>{{tr "Last counts"}}</summary>
+    <ul>{{range .Cash.History}}<li><span>{{.Day}}</span><span class="muted small">{{trf "expected %s · counted %s" (euro .Expected) (euro .Counted)}}{{with .By}} · {{.}}{{end}}</span><strong class="{{if lt .Diff 0}}short{{else if gt .Diff 0}}over{{end}}">{{signedEuro .Diff}}</strong></li>{{end}}</ul>
+  </details>
+  {{end}}
 </section>
 
 <div class="stat-groups">
@@ -53,6 +99,23 @@
   </section>
 </div>
 
+<section class="panel stat-group wolt-group" id="wolt">
+  <h2><span class="wolt-dot" aria-hidden="true">W</span>Wolt</h2>
+  <div class="stat-grid stat-grid-4">
+    <div class="stat ok"><strong>{{.S.WoltOrders}}</strong><span class="lbl">{{tr "Orders"}}</span><span class="amt">{{trf "%s paid by guests" (euro .S.WoltSales)}}</span></div>
+    <div class="stat bad"><strong>{{euro .S.WoltFee}}</strong><span class="lbl">{{tr "Wolt keeps"}}</span><span class="amt">{{if .S.WoltPctSet}}{{trf "%d %% of each order" .S.WoltPct}}{{else}}{{tr "set Wolt's cut below"}}{{end}}</span></div>
+    <div class="stat ok"><strong>{{euro .S.WoltNet}}</strong><span class="lbl">{{tr "We keep"}}</span><span class="amt">{{if .S.WoltOrders}}{{trf "%s per order" (euro (divr .S.WoltNet .S.WoltOrders))}}{{else}}–{{end}}</span></div>
+    <div class="stat"><strong>{{.MTD.WoltOrders}}</strong><span class="lbl">{{trf "%s so far" .MonthName}}</span><span class="amt">{{trf "we keep %s" (euro .MTD.WoltNet)}}</span></div>
+  </div>
+  <form method="post" action="/owner/woltpct" class="wolt-pct">
+    <input type="hidden" name="date" value="{{.Date}}"><input type="hidden" name="wolt" value="{{.WoltMode}}">
+    <label for="wolt-pct">{{tr "Wolt's cut"}}</label>
+    <span class="pct-in"><input id="wolt-pct" name="pct" type="number" min="0" max="60" step="1" inputmode="numeric" value="{{.S.WoltPct}}"> %</span>
+    <button class="btn btn-secondary btn-sm">{{tr "Save"}}</button>
+    <span class="muted small">{{tr "From your Wolt contract, usually 25–30 %. Used for every Wolt order, old ones too."}}</span>
+  </form>
+</section>
+
 <section class="panel">
   <div class="panel-head"><h2>{{tr "Everything on this day"}}</h2><a class="btn btn-secondary btn-sm" href="/owner/charts?month={{.Month}}">{{tr "See charts"}}</a></div>
   {{if not .Rows}}
@@ -74,5 +137,5 @@
   {{end}}
 </section>
 
-<p class="scope-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "These numbers count money paid through the website: table deposits and takeaway orders. Food and drinks paid at the table go through the restaurant's till. Bookings count on the day of the visit or pickup."}}</span></p>
+<p class="scope-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Made today is everything: bills paid at the tables (card, cash, lunch cards, phones), gift cards sold, money paid on the website (table deposits and takeaway), and what we keep of Wolt orders. Bills count on the day they're paid, bookings on the day of the visit or pickup, Wolt orders on the day the courier took them."}}</span></p>
 {{end}}

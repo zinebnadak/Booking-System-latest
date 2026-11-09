@@ -405,6 +405,9 @@ func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) {
 		err, msg = s.Store.ServeNext(no, atoiDefault(r.FormValue("meal"), 0), now), "mealserved"
 	case "send":
 		err, msg = s.Store.SendNextMeal(no, now), "mealsent"
+		if err == nil {
+			s.notifyNewest(func(t db.Ticket) bool { return t.Table == no })
+		}
 	case "end":
 		err, msg = s.Store.EndDeal(no, now), "tablecleared"
 	case "notyet":

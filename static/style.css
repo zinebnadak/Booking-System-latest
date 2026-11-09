@@ -1680,3 +1680,73 @@ a.ot.tt-free:hover { background: var(--card); border-style: solid; border-color:
 body.admin:has(.kitchen) { scrollbar-color: #4a5555 transparent; }
 .kitchen ::selection { background: rgba(210, 170, 69, .45); color: #fff; }
 .kt { border-width: 1.5px; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
+
+/* ------------------------------------------------------------ Wolt orders: a row of their own next to the tables */
+:root { --wolt: #009de0; --wolt-ink: #006c9c; --wolt-soft: #e8f6fd; --wolt-line: #a9d9ef; }
+.btn-wolt { background: var(--wolt-ink); border-color: var(--wolt-ink); color: #fff; }
+.btn-wolt:hover { background: #005a82; border-color: #005a82; }
+.wolt-row { margin: var(--s4) 0 var(--s5); }
+.wolt-count { background: var(--wolt-ink); }
+.wolt-bar { display: flex; align-items: stretch; gap: var(--s3); overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+.wolt-new { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 116px; min-height: 124px; padding: 12px 8px; border: 1px dashed var(--wolt-line); border-radius: var(--r-lg); background: var(--wolt-soft); color: var(--wolt-ink); font: inherit; font-size: .85rem; font-weight: 600; line-height: 1.25; text-align: center; cursor: pointer; scroll-snap-align: start; -webkit-tap-highlight-color: transparent; }
+.wolt-circle { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--wolt); box-shadow: 0 6px 16px rgba(0, 157, 224, .32); transition: transform var(--t); }
+.wolt-circle svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; }
+.wolt-new:hover .wolt-circle { transform: scale(1.06); }
+.wolt-new:active .wolt-circle { transform: scale(.95); }
+.wolt-new:focus-visible { outline: 2px solid var(--wolt-ink); outline-offset: 2px; }
+.wolt-cell { flex: 0 0 min(264px, 76vw); scroll-snap-align: start; }
+.wolt-cell > .tt { flex: 1; }
+.ot.ot-wolt:not(.ot-ready) { background: var(--card); border-color: var(--wolt-line); }
+.ot.ot-wolt .tt-no { display: inline-flex; align-items: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ot.ot-wolt .ot-waiter { color: var(--wolt-ink); font-weight: 600; }
+.ot.ot-wolt.ot-ready .ot-waiter { color: inherit; }
+.wolt-dot { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; margin-right: 8px; border-radius: 50%; background: var(--wolt); color: #fff; font: 700 .72rem/1 Roboto, system-ui, sans-serif; letter-spacing: 0; }
+h1 .wolt-dot { width: 28px; height: 28px; font-size: .9rem; vertical-align: 3px; }
+.notice.wolt-note { border-color: var(--wolt-line); background: var(--wolt-soft); color: #004c6e; }
+.wolt-filter { margin: 0 0 var(--s4); }
+.chart-controls .wolt-filter { margin: 0; }
+.kpi-split .kpi-wolt { background: var(--wolt-soft); }
+.kpi-split .kpi-wolt span { color: var(--wolt-ink); }
+.wolt-group { margin-bottom: var(--s4); }
+.wolt-group h2 { display: flex; align-items: center; }
+.stat-grid-4 { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 720px) { .stat-grid-4 { grid-template-columns: repeat(4, 1fr); } }
+
+/* ------------------------------------------------------------ money today: tables, cash drawer, Wolt's cut */
+.till-group, .cash-panel { margin-bottom: var(--s4); }
+.till-group h2 svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.till-rows { margin-top: var(--s3); }
+.cash-sum { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s2); margin: var(--s3) 0; }
+@media (min-width: 720px) { .cash-sum { grid-template-columns: repeat(4, 1fr); } }
+.cash-sum > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r); background: var(--paper); }
+.cash-sum span { color: var(--muted); font-size: .85rem; }
+.cash-sum strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.cash-diff.short { background: var(--bad-soft); }
+.cash-diff.short strong, .cash-history .short { color: var(--bad); }
+.cash-diff.over { background: var(--warn-soft); }
+.cash-diff.over strong, .cash-history .over { color: var(--warn); }
+.cash-diff.even { background: var(--ok-soft, #e3f1e8); }
+.cash-diff.even strong { color: var(--ok); }
+.cash-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s2) var(--s3); margin-top: var(--s3); }
+.cash-form .field { margin: 0; min-width: 140px; }
+.cash-form .grow { flex: 1 1 220px; }
+.cash-history { margin-top: var(--s3); }
+.cash-history summary { cursor: pointer; font-weight: 600; }
+.cash-history ul { list-style: none; margin: var(--s2) 0 0; padding: 0; }
+.cash-history li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--s3); padding: 8px 0; border-top: 1px solid var(--line); }
+.cash-history li strong { margin-left: auto; font-variant-numeric: tabular-nums; }
+.wolt-pct { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line); }
+.wolt-pct label { font-weight: 600; }
+.wolt-pct .pct-in { display: inline-flex; align-items: center; gap: 6px; }
+.wolt-pct input { width: 5.5em; }
+
+/* ------------------------------------------------------------ start / end shift in the staff bar */
+.nav-shift { order: 1; flex: none; display: flex; align-items: center; margin: 0 0 0 auto; }
+.nav-shift + .lang-dark { margin-left: var(--s2); }
+.shift-short { display: none; }
+@media (max-width: 899px) { .shift-long { display: none; } .shift-short { display: inline; } }
+@media (min-width: 900px) { .nav-shift { order: 3; margin-left: var(--s3); } }
+.nav-shift button { display: inline-flex; align-items: center; gap: 8px; margin: 4px 0; padding: 7px 14px; border: 1px solid rgba(210, 170, 69, .7); border-radius: 999px; background: none; color: var(--gold); font: 600 .88rem var(--ui); white-space: nowrap; cursor: pointer; }
+.nav-shift button:hover { background: rgba(210, 170, 69, .12); }
+.nav-shift.on button { border-color: rgba(255, 255, 255, .25); color: #e8e8e8; font-weight: 500; }
+.shift-dot { width: 8px; height: 8px; border-radius: 50%; background: #5fd08a; box-shadow: 0 0 0 3px rgba(95, 208, 138, .2); }

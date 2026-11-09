@@ -29,6 +29,8 @@ func methodName(lang, m string) string {
 		return "Edenred"
 	case db.PaidGiftCard:
 		return st(lang, "Gift card")
+	case db.PaidWolt:
+		return "Wolt"
 	case db.PaidLunchCoupon:
 		return st(lang, "Lunch coupons")
 	case db.PaidMixed:

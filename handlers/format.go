@@ -64,12 +64,16 @@ var funcs = template.FuncMap{
 		return (a + b/2) / b
 	},
 	"statusText": statusText,
-	"occasion":   func(o string) string { return occasionText(langEN, o) },
+	"signedEuro": signedEuro,
+	"clock":      clockOf,
+	// euroPlain: 15000 -> "150,00", for a form field.
+	"euroPlain": func(c int) string { return fmt.Sprintf("%d,%02d", c/100, c%100) },
+	"occasion":  func(o string) string { return occasionText(langEN, o) },
 }
 
 // funcsFor is funcs for one language: dates, statuses and the staff words
 // ({{tr "..."}}, {{trf "%d guests" .N}}) come out in that language.
-func funcsFor(lang string) template.FuncMap {
+func funcsFor(lang string, woltName func(int) string) template.FuncMap {
 	f := template.FuncMap{}
 	for k, v := range funcs {
 		f[k] = v
@@ -85,6 +89,24 @@ func funcsFor(lang string) template.FuncMap {
 	f["allergenChoices"] = func(have []string) []allergenChoice { return allergenChoices(lang, have) }
 	f["roomOf"] = roomIDOfTable
 	f["method"] = func(m string) string { return methodName(lang, m) }
+	// place: 5 -> "Table 5"; a Wolt order -> "Wolt · Lisa" (the name on it).
+	// name: the Wolt name when the caller has it (a ticket, a paid bill).
+	f["place"] = func(n int, name ...string) string {
+		if !schedule.IsWolt(n) {
+			return stf(lang, "Table %d", n)
+		}
+		w := ""
+		if len(name) > 0 {
+			w = name[0]
+		}
+		if w == "" && woltName != nil {
+			w = woltName(n)
+		}
+		if w == "" {
+			return "Wolt"
+		}
+		return "Wolt · " + w
+	}
 	// tableLabel: 5 -> "Table 5 · Utrymme 1 · 4 seats", for the table pickers.
 	f["tableLabel"] = func(n int) string {
 		t, ok := schedule.TableInfo(n)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -67,7 +68,7 @@ type unpaidGuest struct {
 	Paying bool // paying on their phone right now
 }
 
-func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
+func (s *Server) orderTiles(lang string, now time.Time) (tiles, wolt []orderTile) {
 	bills := map[int]db.Bill{}
 	for _, b := range s.Store.OpenBills() {
 		bills[b.Table] = b
@@ -83,7 +84,7 @@ func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
 	for _, m := range s.Store.StaffList() {
 		names[m.ID] = m.Name
 	}
-	tiles := make([]orderTile, schedule.TableCount())
+	tiles = make([]orderTile, schedule.TableCount())
 	for i, tb := range schedule.TablePlan {
 		t := &tiles[i]
 		t.No, t.Room = tb.No, tb.Room
@@ -92,49 +93,62 @@ func (s *Server) orderTiles(lang string, now time.Time) []orderTile {
 		if d, ok := deal[t.No]; ok && d.State != "free" {
 			t.Deal = &d
 		}
-		b, ok := bills[t.No]
-		if !ok {
-			continue
+		if b, ok := bills[t.No]; ok {
+			s.fillTile(lang, t, b, names, today, now)
 		}
-		t.Bill = &b
-		t.Guests = b.Guests
-		if b.Waiter != 0 {
-			t.Waiter = names[b.Waiter]
-			if t.Waiter == "" {
-				t.Waiter = b.WaiterName // no longer on the staff list
-			}
-		}
-		t.Opened = b.OpenedAt.In(schedule.Location).Format("15:04")
-		t.Billed = b.BilledAt != nil
-		t.OldOpen = schedule.FormatDate(b.OpenedAt) < today
-		holds := s.Store.Holds(b.ID, now)
-		t.Paying = len(holds) > 0
-		s.unpaidAlert(lang, t, b, holds, now)
-		var firstReady time.Time
-		for _, tk := range s.Store.TicketsForBill(b.ID) {
-			switch {
-			case tk.Message != "" || !tk.Live(): // a message to the kitchen, or all cancelled
-			case tk.Bar:
-				if tk.DoneAt == nil {
-					t.Bring++
-				}
-			case tk.DoneAt == nil && tk.Held:
-				t.Held++
-			case tk.DoneAt == nil:
-				t.Cooking++
-			case tk.ReadyToServe():
-				t.Ready++
-				if firstReady.IsZero() || tk.DoneAt.Before(firstReady) {
-					firstReady = *tk.DoneAt
-				}
-			}
-		}
-		if t.Ready > 0 {
-			t.ReadyAt = clockOf(firstReady)
-		}
-		t.Served = b.Count() > 0 && t.Cooking+t.Held+t.Ready+t.Bring == 0
 	}
-	return tiles
+	// Wolt orders: a tile each, next to the tables.
+	for _, b := range bills {
+		if schedule.IsWolt(b.Table) {
+			t := orderTile{No: b.Table}
+			s.fillTile(lang, &t, b, names, today, now)
+			wolt = append(wolt, t)
+		}
+	}
+	sort.Slice(wolt, func(i, j int) bool { return wolt[i].Bill.OpenedAt.Before(wolt[j].Bill.OpenedAt) })
+	return tiles, wolt
+}
+
+// fillTile puts a table's open bill on its tile: what's cooking, ready,
+// served, paid.
+func (s *Server) fillTile(lang string, t *orderTile, b db.Bill, names map[int]string, today string, now time.Time) {
+	t.Bill = &b
+	t.Guests = b.Guests
+	if b.Waiter != 0 {
+		t.Waiter = names[b.Waiter]
+		if t.Waiter == "" {
+			t.Waiter = b.WaiterName // no longer on the staff list
+		}
+	}
+	t.Opened = b.OpenedAt.In(schedule.Location).Format("15:04")
+	t.Billed = b.BilledAt != nil
+	t.OldOpen = schedule.FormatDate(b.OpenedAt) < today
+	holds := s.Store.Holds(b.ID, now)
+	t.Paying = len(holds) > 0
+	s.unpaidAlert(lang, t, b, holds, now)
+	var firstReady time.Time
+	for _, tk := range s.Store.TicketsForBill(b.ID) {
+		switch {
+		case tk.Message != "" || !tk.Live(): // a message to the kitchen, or all cancelled
+		case tk.Bar:
+			if tk.DoneAt == nil {
+				t.Bring++
+			}
+		case tk.DoneAt == nil && tk.Held:
+			t.Held++
+		case tk.DoneAt == nil:
+			t.Cooking++
+		case tk.ReadyToServe():
+			t.Ready++
+			if firstReady.IsZero() || tk.DoneAt.Before(firstReady) {
+				firstReady = *tk.DoneAt
+			}
+		}
+	}
+	if t.Ready > 0 {
+		t.ReadyAt = clockOf(firstReady)
+	}
+	t.Served = b.Count() > 0 && t.Cooking+t.Held+t.Ready+t.Bring == 0
 }
 
 type dayTakings struct {
@@ -164,7 +178,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		day.Vouchers++
 		day.VouchersSold += v.SoldCents
 	}
-	tiles := s.orderTiles(lang, now)
+	tiles, wolt := s.orderTiles(lang, now)
 	var alerts []orderTile
 	for _, t := range tiles {
 		if t.Alert {
@@ -206,7 +220,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	data := M{
 		"Admin": true, "Nav": "orders", "Title": st(lang, "Orders"),
-		"Tiles": tiles, "Alerts": alerts, "Day": day, "Toast": flashText(r),
+		"Tiles": tiles, "Wolt": wolt, "Alerts": alerts, "Day": day, "Toast": flashText(r),
 		"Rooms": byRoom(shown, func(t orderTile) string { return t.Room }, func(t orderTile) bool { return t.Bill != nil }),
 		"View":  view, "Waiter": me.Role == roleWaiter, "MineCount": mine, "Others": others,
 		"Me": me.StaffID, "StaffList": staff, "NoWaiter": noWaiter, "Manager": rank(me.Role) >= rank(roleManager),
@@ -348,10 +362,32 @@ type lineView struct {
 
 func tableFromPath(r *http.Request) int {
 	n := atoiDefault(r.PathValue("table"), 0)
-	if !schedule.ValidTable(n) {
+	if !schedule.ValidTable(n) && !schedule.IsWolt(n) {
 		return 0
 	}
 	return n
+}
+
+// woltMay are the bill actions a Wolt order has too (besides woltpickup).
+var woltMay = map[string]bool{"discount": true, "message": true, "void": true, "woltcancel": true}
+
+// newWolt starts a Wolt order with the name on it and opens its page.
+func (s *Server) newWolt(w http.ResponseWriter, r *http.Request) {
+	if !s.parseStaffForm(w, r) {
+		return
+	}
+	b, err := s.Store.OpenWolt(r.FormValue("name"), s.Now())
+	switch {
+	case errors.Is(err, db.ErrWoltName):
+		redirectMsg(w, r, "/admin/orders", nil, "woltname")
+		return
+	case err != nil:
+		redirectMsg(w, r, "/admin/orders", nil, "woltfull")
+		return
+	}
+	s.logActivity(r, b.Table, "started a Wolt order", b.Wolt)
+	s.live.publish()
+	http.Redirect(w, r, orderPath(b.Table), http.StatusSeeOther)
 }
 
 // bookingAtTable is the online booking whose guests sit at the table now:
@@ -388,6 +424,10 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	lang := langOf(r)
 	now := s.Now()
 	bill, open := s.Store.OpenBill(table)
+	if schedule.IsWolt(table) && !open { // picked up (or voided): it's gone from Orders
+		http.Redirect(w, r, "/admin/orders", http.StatusSeeOther)
+		return
+	}
 	var lines []lineView
 	if open {
 		tickets := s.Store.TicketsForBill(bill.ID)
@@ -501,6 +541,19 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	data["QROpen"] = open && bill.QROpen
 	if open {
 		data["Held"] = s.Store.HeldCourses(bill.ID)
+	}
+	if bill.Wolt != "" { // no table: no 3 meals, guests, waiter or moving
+		data["Wolt"] = bill.Wolt
+		data["Title"] = "Wolt · " + bill.Wolt
+		var menu []db.MenuItem // no 3 meals on a Wolt order
+		for _, m := range s.Store.StaffMenu() {
+			if m.Category != db.DealCategory {
+				menu = append(menu, m)
+			}
+		}
+		data["Menu"] = groupMenu(menu)
+		delete(data, "Deal")
+		delete(data, "FreeTables")
 	}
 	s.render(w, r, "admin_order", http.StatusOK, data)
 }
@@ -732,6 +785,7 @@ func (s *Server) orderAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	s.claimTable(r, bill.ID)
 	s.live.publish()
+	s.notifyNewTicket(ticket)
 	msg := "addeddrinks"
 	if ticket != nil {
 		msg = "addedfood"
@@ -940,7 +994,29 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.Now()
 	billID := atoiDefault(r.FormValue("bill"), 0)
-	switch r.PathValue("action") {
+	action := r.PathValue("action")
+	if wolt := schedule.IsWolt(table); (wolt && action != "woltpickup" && !woltMay[action]) || (!wolt && action == "woltpickup") {
+		redirectMsg(w, r, orderPath(table), nil, "invalid") // a Wolt order has no table things (guests, waiter, split…)
+		return
+	}
+	switch action {
+	case "woltpickup": // the Wolt courier took the order: Wolt pays for it
+		b, err := s.Store.WoltPickedUp(billID, now)
+		if err != nil {
+			redirectMsg(w, r, orderPath(table), nil, orderError(err))
+			return
+		}
+		s.logActivity(r, table, "Wolt order picked up", b.Wolt+" · "+euro(b.Total()))
+		s.live.publish()
+		redirectMsg(w, r, "/admin/orders", nil, "woltdone")
+	case "woltcancel": // started by mistake, nothing on it yet
+		if err := s.Store.CancelEmptyWolt(billID); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, "askmanager")
+			return
+		}
+		s.logActivity(r, table, "cancelled an empty Wolt order", "")
+		s.live.publish()
+		redirectMsg(w, r, "/admin/orders", nil, "woltcancelled")
 	case "paytable": // a split table: everything still to pay, in one go
 		method := r.FormValue("method")
 		cents, err := s.Store.PayTable(billID, method, now)
@@ -979,6 +1055,7 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.live.publish()
+		s.notifyNewest(func(t db.Ticket) bool { return t.BillID == billID })
 		msg := "firedmains"
 		if course == db.CourseDessert {
 			msg = "fireddessert"
@@ -1342,6 +1419,9 @@ func (s *Server) kitchenAction(w http.ResponseWriter, r *http.Request) {
 	switch r.PathValue("action") {
 	case "done", "undo":
 		err = s.Store.TicketDone(id, undo, s.Now())
+		if err == nil && !undo {
+			s.notifyReady(id)
+		}
 	case "served": // the food left the kitchen for its table
 		err = s.Store.TicketServed(id, false, s.Now())
 	case "seen": // a new takeaway order: the chef saw it

@@ -264,6 +264,50 @@ them. Nothing was deleted; set them to `1` in `.env` to turn them back on:
   booking a table is free and confirmed straight away (takeaway still
   pays 25 % up front).
 
+## Money today, the cash drawer and Wolt's cut
+
+**Money today** counts everything the restaurant made: bills paid at the
+tables (card, cash, lunch cards, phones), gift cards sold, money paid on
+the website (deposits and takeaway), and what we keep of Wolt orders. The
+panel **At the tables** shows the bills, the average bill, cash and tips.
+
+**Cash check at closing**: the manager types the change the drawer started
+with and what's in it now. The app shows what should be there (the change +
+the cash taken that day) and the difference, red when money is missing.
+Every count is kept (**Last counts**), and the start change is remembered
+for the next day.
+
+**Wolt's cut**: set the percentage from your Wolt contract under Wolt on
+Money today. The pages then show what Wolt keeps and what we keep, and
+the day's total counts what we keep.
+
+## Shifts and notifications
+
+Waiters and the chef tap **Start shift** at the top of their own phone, and
+**End** when they go home. The hours show under Staff → Hours (clock card),
+next to shifts clocked at the till.
+
+**Turn on notifications** (on Orders and the kitchen screen) makes the
+phone buzz even when it's locked: the chef gets new orders, a waiter gets
+"Table 5: food ready" for their own tables (everyone, if the table has no
+waiter), and everyone gets Wolt orders ready for the courier. It needs the
+site on https (your real address, or the phone-test link). On iPhone, first
+add E-Meal to the home screen (Share → Add to Home Screen) and open it from
+there. It's free: the phone's own push service delivers the messages.
+
+## Wolt orders
+
+Orders that come in on Wolt go on Orders too. Tap the blue **+ New Wolt
+order** circle above the tables, write the name on the order, and add the
+dishes like at a table. The chef sees "Wolt · name" and gets everything at
+once. The order has its own tile in the Wolt row; when the food is ready it
+turns green ("Ready for the courier"). When the courier takes the bag, tap
+**Picked up by Wolt**: it's paid by Wolt, nothing is taken at the till.
+
+The money pages (Money today, Charts) count Wolt orders, with a filter on
+top: **With Wolt** (everything together), **Without Wolt**, or **Only
+Wolt**. Charts also has a **Wolt orders** tab.
+
 ## Backups
 
 All data lives in one file, `data/emeal.json`. Every night at 03:00 (and

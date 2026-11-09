@@ -344,7 +344,8 @@ func chefMayOpen(r *http.Request) bool {
 	p := r.URL.Path
 	switch {
 	case p == "/admin/kitchen", strings.HasPrefix(p, "/admin/kitchen/"), p == "/admin/events", p == "/admin/offline",
-		p == "/admin/stock", strings.HasPrefix(p, "/admin/stock/"):
+		p == "/admin/stock", strings.HasPrefix(p, "/admin/stock/"),
+		p == "/admin/shift", strings.HasPrefix(p, "/admin/push/"): // the chef's shift and notifications
 		return true
 	case strings.HasPrefix(p, "/admin/menu/") && strings.HasSuffix(p, "/soldout"):
 		return true

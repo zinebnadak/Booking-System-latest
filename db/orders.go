@@ -138,6 +138,10 @@ type Bill struct {
 	// but off the table, until the manager decides (see removals.go).
 	SkippedAt *time.Time `json:"skipped_at,omitempty"`
 	SkippedBy string     `json:"skipped_by,omitempty"`
+
+	// Wolt: an order that came in on Wolt, with the name on it. Its Table is
+	// a Wolt number (schedule.IsWolt), not a real table (see wolt.go).
+	Wolt string `json:"wolt,omitempty"`
 }
 
 // PaidSplit: every guest paid their own part (see Bill.Split).
@@ -419,6 +423,9 @@ type Ticket struct {
 	// ask for it (see dealkitchen.go).
 	Deal int `json:"deal,omitempty"`
 	Meal int `json:"meal,omitempty"`
+
+	// Wolt: the name on a Wolt order, so the chef sees whose it is.
+	Wolt string `json:"wolt,omitempty"`
 }
 
 // Since is when the ticket became the chef's to do: when it was ordered, or
@@ -515,6 +522,8 @@ type ordersSnapshot struct {
 	nextIngr   int
 	removals   []*Removal
 	nextRemove int
+	cash       []*CashCount // entries are never changed, only replaced (new slices)
+	push       []*PushSub   // same
 }
 
 // changeOrders runs fn under the lock and saves if it reports a change. If
@@ -587,6 +596,7 @@ func (s *Store) snapshotOrders() (restore func()) {
 	snap.nextStaff = s.d.NextStaffID
 	snap.activity = append([]*Activity(nil), s.d.Activity...)                                    // entries are never changed, only added
 	snap.removals, snap.nextRemove = append([]*Removal(nil), s.d.Removals...), s.d.NextRemovalID // same
+	snap.cash, snap.push = s.d.CashCounts, s.d.PushSubs                                          // same
 	for _, v := range s.d.Vouchers {
 		snap.vouchers = append(snap.vouchers, v.clone())
 	}
@@ -617,6 +627,7 @@ func (s *Store) snapshotOrders() (restore func()) {
 		s.d.Settings, s.d.NextPhoneOrderID = snap.settings, snap.nextPhone
 		s.d.Staff, s.d.NextStaffID, s.d.Activity = nil, snap.nextStaff, snap.activity
 		s.d.Removals, s.d.NextRemovalID = snap.removals, snap.nextRemove
+		s.d.CashCounts, s.d.PushSubs = snap.cash, snap.push
 		for i := range snap.staff {
 			m := snap.staff[i]
 			s.d.Staff = append(s.d.Staff, &m)
@@ -819,8 +830,8 @@ func (s *Store) AddToBill(table, expectBill int, lines []NewLine, bookingRef str
 	var out Bill
 	var ticket *Ticket
 	err := s.changeOrders(func() (bool, error) {
-		if !validTable(table) {
-			return false, ErrNoTable
+		if !validTable(table) && !(schedule.IsWolt(table) && s.openBillAt(table) != nil) {
+			return false, ErrNoTable // a Wolt number is only used once it's opened (OpenWolt)
 		}
 		if len(lines) == 0 {
 			return false, ErrNothingToAdd
@@ -876,6 +887,8 @@ func (s *Store) addLines(b *Bill, lines []NewLine, guest *Share, phone bool, now
 		case l.Drink && phone:
 			drinks = append(drinks, it)
 		case l.Drink, nl.NoKitchen:
+		case b.Wolt != "": // a Wolt order is cooked all at once
+			food = append(food, it)
 		case nl.Hold && l.Course == CourseMain && starters:
 			heldMains = append(heldMains, it)
 		case nl.Hold && l.Course == CourseDessert && otherFood:
@@ -897,7 +910,7 @@ func (s *Store) addLines(b *Bill, lines []NewLine, guest *Share, phone bool, now
 		}
 		s.d.NextTicketID++
 		t := &Ticket{ID: s.d.NextTicketID, Table: b.Table, BillID: b.ID, At: now, Items: group.items, Bar: group.bar,
-			Course: group.course, Held: group.held}
+			Course: group.course, Held: group.held, Wolt: b.Wolt}
 		s.d.Tickets = append(s.d.Tickets, t)
 		for i := range b.Lines {
 			for _, it := range group.items {
@@ -1702,7 +1715,7 @@ func (s *Store) ReadyToServe(now time.Time) []Ticket {
 		if !t.ReadyToServe() || now.Sub(*t.DoneAt) > 12*time.Hour {
 			continue
 		}
-		if b := s.billByID(t.BillID); b == nil || !b.Open() {
+		if b := s.billByID(t.BillID); b == nil || !b.Open() || b.Wolt != "" { // Wolt: its own tile says it
 			continue
 		}
 		out = append(out, t.clone())

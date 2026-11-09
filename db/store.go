@@ -93,6 +93,11 @@ type data struct {
 	// Gift cards and lunch booklets (see vouchers.go).
 	Vouchers []*Voucher `json:"vouchers,omitempty"`
 
+	// The cash drawer counted at closing (see sales.go), and the phones
+	// that get push notifications (see push.go).
+	CashCounts []*CashCount `json:"cash_counts,omitempty"`
+	PushSubs   []*PushSub   `json:"push_subs,omitempty"`
+
 	// The clock card (see shifts.go).
 	Shifts      []*Shift `json:"shifts,omitempty"`
 	NextShiftID int      `json:"next_shift_id,omitempty"`
@@ -115,6 +120,13 @@ type Settings struct {
 	// ManagerPIN lets the manager approve on a waiter's device: a slow
 	// fingerprint of the PIN, never the PIN (see removals.go).
 	ManagerPIN string `json:"manager_pin,omitempty"`
+	// WoltPct is how many percent of each Wolt order Wolt keeps (see sales.go).
+	WoltPct    int  `json:"wolt_pct,omitempty"`
+	WoltPctSet bool `json:"wolt_pct_set,omitempty"`
+	// CashFloat is the change the cash drawer starts the day with.
+	CashFloat int `json:"cash_float,omitempty"`
+	// VAPID is this server's key for push notifications (see push.go).
+	VAPID string `json:"vapid,omitempty"`
 }
 
 // Store is the database. Create it with Open.

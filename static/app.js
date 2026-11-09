@@ -995,3 +995,60 @@
     applyRooms();
   }
 })();
+
+/* Notifications on this phone (push): the bell button on Orders and the
+   kitchen screen. Works when the page is closed and the phone is locked. */
+(function () {
+  var btn = document.querySelector('[data-push]');
+  if (!btn) return;
+  var ok = window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  if (!ok) {
+    var hint = document.querySelector('[data-push-hint]');
+    if (hint && /iPhone|iPad|iPod/.test(navigator.userAgent)) hint.hidden = false;
+    return;
+  }
+  btn.hidden = false;
+  var reg = null;
+  function key(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var raw = atob(s), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  function show(on) {
+    btn.textContent = on ? btn.getAttribute('data-text-on') : btn.getAttribute('data-text-off');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  function post(url, sub) {
+    return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+  }
+  navigator.serviceWorker.register('/sw.js', { scope: '/admin/' }).then(function (r) {
+    reg = r;
+    return r.pushManager.getSubscription();
+  }).then(function (sub) {
+    var on = !!sub && Notification.permission === 'granted';
+    show(on);
+    if (on) post('/admin/push/subscribe', sub); // keep the server's copy (and whose phone it is) fresh
+  }).catch(function () { btn.hidden = true; });
+  btn.addEventListener('click', function () {
+    if (!reg) return;
+    btn.disabled = true;
+    reg.pushManager.getSubscription().then(function (sub) {
+      if (sub) {
+        return post('/admin/push/unsubscribe', sub).then(function () { return sub.unsubscribe(); }).then(function () { show(false); });
+      }
+      return Notification.requestPermission().then(function (p) {
+        if (p !== 'granted') { btn.textContent = btn.getAttribute('data-text-denied'); return; }
+        return fetch('/admin/push/key', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (k) {
+          return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(k.key) });
+        }).then(function (s) {
+          return post('/admin/push/subscribe', s).then(function (r) { if (!r.ok) throw new Error('save'); show(true); });
+        });
+      });
+    }).catch(function () {
+      btn.textContent = btn.getAttribute('data-text-fail');
+    }).then(function () { btn.disabled = false; });
+  });
+})();

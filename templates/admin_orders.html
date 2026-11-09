@@ -4,6 +4,8 @@
   <h1>{{tr "Orders"}}</h1>
   <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
   <span class="spacer"></span>
+<button type="button" class="btn btn-secondary btn-sm push-btn" data-push hidden aria-pressed="false" data-text-off="{{tr "Turn on notifications"}}" data-text-on="{{tr "Notifications on"}}" data-text-denied="{{tr "Notifications are blocked: allow them in the phone's settings"}}" data-text-fail="{{tr "Notifications didn't work on this phone"}}">{{tr "Turn on notifications"}}</button>
+  <span class="muted small push-hint" data-push-hint hidden>{{tr "For notifications on iPhone: Share → Add to Home Screen, then open E-Meal from the home screen."}}</span>
   <button type="button" class="btn btn-secondary btn-sm" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
   <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{if .Cfg.TableQR}}{{tr "Table QR codes"}}{{else}}{{tr "Feedback QR code"}}{{end}}</a>
   {{if .Manager}}<a class="btn btn-secondary btn-sm" href="/admin/kitchen" target="_blank" rel="noopener">{{tr "Kitchen screen"}}</a>{{end}}
@@ -20,6 +22,20 @@
   </span>
   <button class="btn btn-sm {{if .CheckPhoneOrders}}btn-secondary{{else}}btn-ok{{end}}">{{if .CheckPhoneOrders}}{{tr "Turn off"}}{{else}}{{tr "Turn on"}}{{end}}</button>
 </form>{{end}}
+<dialog id="dlg-wolt" aria-labelledby="dlg-wolt-h">
+  <form method="post" action="/admin/wolt" class="dlg-form">
+    <div class="dlg-head">
+      <div><h2 id="dlg-wolt-h">{{tr "New Wolt order"}}</h2><p>{{tr "You add the dishes on the next page."}}</p></div>
+      <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <label class="field"><span class="field-label">{{tr "Name on the order"}}</span>
+        <input name="name" required maxlength="60" autocomplete="off" placeholder="{{tr "e.g. Lisa or the Wolt order number"}}">
+      </label>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn btn-secondary" data-close>{{tr "Cancel"}}</button><button class="btn btn-wolt">{{tr "Start the order"}}</button></div>
+  </form>
+</dialog>
 <div data-room-view="orders"><div data-live-box data-offline="{{tr "No connection. Check the Wi-Fi and try again."}}">{{template "tiles" .}}</div></div>
 </div>
 {{end}}
@@ -198,6 +214,38 @@
   {{if and (eq .View "mine") .Others}}<a class="muted small" href="/admin/orders?view=all">{{if eq .Others 1}}{{tr "1 table is with another waiter"}}{{else}}{{trf "%d tables are with other waiters" .Others}}{{end}} ›</a>{{end}}
 </div>
 {{end}}
+<section class="wolt-row" aria-labelledby="wolt-h">
+  <h2 class="room-h" id="wolt-h">Wolt{{with .Wolt}} <span class="nw-count wolt-count">{{len .}}</span>{{end}}</h2>
+  <div class="wolt-bar">
+    <button type="button" class="wolt-new" data-open="dlg-wolt" aria-label="{{tr "New Wolt order"}}">
+      <span class="wolt-circle" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span class="wolt-new-text">{{tr "New Wolt order"}}</span>
+    </button>
+    {{range .Wolt}}
+    <div class="ot-cell wolt-cell">
+      <a class="tt ot ot-open ot-wolt{{if .Ready}} ot-ready{{end}}" href="/admin/orders/{{.No}}"{{if .Ready}} data-alert-key="wolt-ready-{{.Bill.ID}}"{{end}}>
+        <div class="tt-top">
+          <span class="tt-no"><span class="wolt-dot" aria-hidden="true">W</span>{{.Bill.Wolt}}</span>
+          <span class="ot-total">{{euro .Bill.Total}}</span>
+        </div>
+        {{if .Ready}}<span class="ot-pickup" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16M5 18a7 7 0 0 1 14 0M12 8V6M10 6h4"/></svg><span><strong>{{tr "Ready for the courier"}}</strong><small>{{trf "ready %s" .ReadyAt}}</small></span></span>{{end}}
+        <span class="tt-sub">{{if .Bill.Count}}{{trf "%d items · open since %s" .Bill.Count .Opened}}{{else}}{{tr "No dishes yet"}} · {{.Opened}}{{end}}</span>
+        <span class="ot-badges">
+          {{if .Cooking}}<span class="badge badge-wait">{{tr "With the chef"}}</span>{{end}}
+          {{if and .Served (not .Ready)}}<span class="badge badge-pay">{{tr "Waiting for the courier"}}</span>{{end}}
+        </span>
+        <span class="ot-foot"><span class="ot-waiter">Wolt</span><span class="ot-go">{{if .Bill.Count}}{{tr "Open the order"}}{{else}}{{tr "Add the dishes"}}{{end}} ›</span></span>
+      </a>
+      {{if and .Bill.Count (not .Cooking)}}
+      <form method="post" action="/admin/orders/{{.No}}/woltpickup" class="ot-pay-one" data-confirm="{{trf "Did the Wolt courier take %s's order (%s)?" .Bill.Wolt (euro .Bill.Total)}}" data-confirm-ok="{{tr "Yes, picked up"}}">
+        <input type="hidden" name="bill" value="{{.Bill.ID}}">
+        <button class="btn btn-wolt btn-block btn-sm">{{tr "Picked up by Wolt"}}</button>
+      </form>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+</section>
 {{template "room-tabs" .Rooms}}
 {{range .Rooms}}
 <section class="room" data-room="{{.ID}}" aria-label="{{.Name}}">
