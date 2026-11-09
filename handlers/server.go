@@ -220,7 +220,11 @@ func (s *Server) Routes() http.Handler {
 	// Manager (password protected)
 	admin := http.NewServeMux()
 	admin.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/admin/orders", http.StatusSeeOther) // Orders is the staff's home page
+		home := "/admin/orders" // Orders is the staff's home page
+		if roleOf(r) == roleManager {
+			home = "/owner" // and the money page the manager's
+		}
+		http.Redirect(w, r, home, http.StatusSeeOther)
 	})
 	admin.HandleFunc("GET /admin/day", s.adminDay)
 	admin.HandleFunc("GET /admin/tables", s.adminTables)

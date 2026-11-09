@@ -20,6 +20,22 @@
     }
   }
 
+  // ---------------------------------------------------------------- the manager's "More" menu
+  var moreBtn = $('.nav-more-btn'), morePanel = $('#nav-more');
+  if (moreBtn && morePanel) {
+    var setMore = function (open) {
+      morePanel.hidden = !open;
+      moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    moreBtn.addEventListener('click', function () { setMore(morePanel.hidden); });
+    document.addEventListener('click', function (e) {
+      if (!morePanel.hidden && !morePanel.contains(e.target) && !moreBtn.contains(e.target)) setMore(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !morePanel.hidden) { setMore(false); moreBtn.focus(); }
+    });
+  }
+
   // ---------------------------------------------------------------- dialogs
   document.addEventListener('click', function (e) {
     var open = e.target.closest('[data-open]');

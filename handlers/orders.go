@@ -1482,7 +1482,7 @@ func (s *Server) adminKitchen(w http.ResponseWriter, r *http.Request) {
 		done = append(done, ticketView{Ticket: t, Time: clockOf(at)})
 	}
 	data := M{
-		"Admin": true, "Bare": true, "Title": st(lang, "Kitchen"),
+		"Admin": true, "Bare": true, "Title": st(lang, "Kitchen"), "Nav": "kitchen",
 		"Tickets": open, "Done": done, "Later": later, "Dishes": s.kitchenDishes(now), "Waiting": waiting,
 		"Ready": s.readyFood(now), "Deals": s.dealsWaiting(now), "MealsInDeal": schedule.MealsInDeal,
 		"AllDay": allDay(open),

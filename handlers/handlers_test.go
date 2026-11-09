@@ -658,10 +658,10 @@ func TestStaffLogin(t *testing.T) {
 	e.expect(get("/login", nil), 200, "Staff login")
 	e.expect(post("admin", "wrong", ""), 401, "username or password")
 
-	// The old head-manager login is just a second manager login: Orders,
-	// with the money pages too.
+	// The old head-manager login is just a second manager login: the
+	// money page first, the rest behind More.
 	rec := post("owner", "boss", "")
-	if rec.Code != 303 || rec.Header().Get("Location") != "/admin/orders" {
+	if rec.Code != 303 || rec.Header().Get("Location") != "/owner" {
 		t.Fatalf("owner login: %d %s", rec.Code, rec.Header().Get("Location"))
 	}
 	oc := cookie(rec)
@@ -669,7 +669,7 @@ func TestStaffLogin(t *testing.T) {
 	e.expect(get("/admin/day", oc), 200, "Money today", "Table bookings", ">Manager<")
 	e.expect(get("/admin/menu", oc), 200, "Drink with alcohol (25,5 % VAT): tables only")
 
-	// Manager: lands on Orders, or the money page they wanted.
+	// Manager: lands on the money page, or the page they wanted.
 	rec = post("admin", "pw", "/owner/charts")
 	if rec.Header().Get("Location") != "/owner/charts" {
 		t.Fatalf("manager to the money pages: %s", rec.Header().Get("Location"))
@@ -682,7 +682,7 @@ func TestStaffLogin(t *testing.T) {
 	if loc := post("admin", "pw", "/admin/menu").Header().Get("Location"); loc != "/admin/menu" {
 		t.Fatalf("next: %s", loc)
 	}
-	if loc := post("admin", "pw", "//evil.example").Header().Get("Location"); loc != "/admin/orders" {
+	if loc := post("admin", "pw", "//evil.example").Header().Get("Location"); loc != "/owner" {
 		t.Fatalf("open redirect: %s", loc)
 	}
 	// A forged cookie doesn't work.

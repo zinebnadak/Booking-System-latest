@@ -500,3 +500,35 @@ func TestGuestRunningLate(t *testing.T) {
 		t.Fatalf("reminder: %s", body)
 	}
 }
+
+// The manager is also the boss: his menu shows his own pages, and the floor
+// and the settings sit behind More.
+func TestManagerSimpleMenu(t *testing.T) {
+	e := newEnv(t, nil)
+	page := e.do("GET", "/owner", nil, true).Body.String()
+	start := strings.Index(page, `<nav class="admin-nav admin-nav-boss"`)
+	if start < 0 {
+		t.Fatal("no manager menu")
+	}
+	nav := page[start : start+strings.Index(page[start:], "</nav>")]
+	for _, want := range []string{`href="/owner"`, `href="/owner/charts"`, `href="/owner/feedback"`, `href="/admin/staff"`, `aria-controls="nav-more"`} {
+		if !strings.Contains(nav, want) {
+			t.Errorf("menu lacks %s", want)
+		}
+	}
+	for _, not := range []string{`href="/admin/orders"`, `href="/admin/kitchen"`, `href="/admin/menu"`, `href="/admin/stock"`} {
+		if strings.Contains(nav, not) {
+			t.Errorf("menu still shows %s", not)
+		}
+	}
+	more := page[strings.Index(page, `id="nav-more"`):]
+	for _, want := range []string{`href="/admin/orders"`, `href="/admin/kitchen"`, `href="/admin/day"`, `href="/admin/menu"`, `href="/admin/closed"`, `href="/admin/activity"`} {
+		if !strings.Contains(more, want) {
+			t.Errorf("More lacks %s", want)
+		}
+	}
+	// On a page under More, the More button is marked.
+	if !strings.Contains(e.do("GET", "/admin/menu", nil, true).Body.String(), `aria-controls="nav-more" data-current`) {
+		t.Error("More isn't marked on the Menu page")
+	}
+}

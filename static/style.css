@@ -1848,3 +1848,29 @@ dialog .line-move { margin: 0; padding-top: var(--s3); border-top: 1px solid var
 .late-box p.small { margin: var(--s3) 0 0; }
 .late-choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s2); }
 .late-choices .btn { min-height: 48px; }
+
+/* ------------------------------------------------------------ the manager's menu: his pages, the rest behind More */
+.admin-nav-boss { -webkit-mask-image: none; mask-image: none; padding-right: 0; flex-wrap: wrap; }
+.nav-more-btn { flex: none; display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; border-bottom: 2px solid transparent; color: #cfcfcf; font: 500 .94rem var(--ui); padding: 10px 14px 12px; cursor: pointer; transition: color var(--t), border-color var(--t); }
+.nav-more-btn:hover, .nav-more-btn[aria-expanded="true"] { color: #fff; }
+.nav-more-btn[data-current] { color: #fff; border-bottom-color: var(--gold); }
+.nav-more-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform .2s ease; }
+.nav-more-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.nav-more-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+@media (min-width: 760px) { .nav-more-btn { padding: 16px 14px 14px; } }
+.nav-more { border-top: 1px solid rgba(255, 255, 255, .12); background: var(--ink); }
+.nav-more[hidden] { display: none; }
+.nav-more-inner { max-width: 1240px; margin: 0 auto; padding: var(--s3) var(--s4) var(--s3); display: flex; flex-wrap: wrap; gap: var(--s3) var(--s6); }
+.nav-more h2 { margin: 0 0 4px; font: 600 .74rem var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+.nav-more section { flex: 0 1 auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px 6px; }
+.nav-more h2 { flex-basis: 100%; }
+.nav-more a { color: #e6e6e6; text-decoration: none; padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16); font-size: .94rem; font-weight: 500; transition: background-color var(--t), border-color var(--t); }
+.nav-more a:hover { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .3); color: #fff; }
+.nav-more a[aria-current] { border-color: var(--gold); color: #fff; }
+.nav-more .nav-badge { vertical-align: 1px; }
+.nav-more-btn .nav-badge { margin: 0 2px 0 4px; }
+.nav-more-foot { flex-basis: 100%; display: flex; justify-content: flex-end; padding-top: var(--s2); border-top: 1px solid rgba(255, 255, 255, .1); }
+.nav-more-foot form { margin: 0; }
+.nav-more-foot button { background: none; border: 0; color: #cfcfcf; font: 500 .94rem var(--ui); padding: 8px 4px; cursor: pointer; }
+.nav-more-foot button:hover { color: #fff; text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) { .nav-more-btn svg { transition: none; } }

@@ -1818,4 +1818,12 @@ var staffSV = map[string]string{
 	"The guest told us on their booking page": "Gästen sa till på sin bokningssida",
 	"%d min late":                             "%d min sent",
 	"table kept until %s":                     "bordet hålls till kl. %s",
+
+	// The manager's simpler menu
+	"Waiters' questions and skipped bills, on Orders": "Servitörernas frågor och överhoppade notor, under Beställningar",
+	"The restaurant now":                              "Restaurangen nu",
+	"Settings":                                        "Inställningar",
+
+	// The manager's simpler menu
+	"waiting for you": "väntar på dig",
 }

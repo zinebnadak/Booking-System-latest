@@ -23,37 +23,32 @@
 {{if .Admin}}
 <header class="admin-bar">
   <div class="admin-bar-inner">
-    <a class="admin-brand" href="{{if eq .Role "chef"}}/admin/kitchen{{else}}/admin/orders{{end}}"><svg class="emblem" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="21"/><text x="23" y="31" text-anchor="middle">E</text></svg><b>{{.Cfg.RestaurantName}}</b><span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
+    <a class="admin-brand" href="{{if eq .Role "chef"}}/admin/kitchen{{else if eq .Role "manager"}}/owner{{else}}/admin/orders{{end}}"><svg class="emblem" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="21"/><text x="23" y="31" text-anchor="middle">E</text></svg><b>{{.Cfg.RestaurantName}}</b><span>{{if eq .Role "manager"}}{{tr "Manager"}}{{else if .StaffName}}{{.StaffName}}{{else}}{{tr "Staff"}}{{end}}</span></a>
     {{if and .Role (not .Bare)}}
-    <nav class="admin-nav" aria-label="{{tr "Staff"}}">
+    <nav class="admin-nav{{if eq .Role "manager"}} admin-nav-boss{{end}}" aria-label="{{tr "Staff"}}">
       {{if eq .Role "manager"}}
+      {{/* The manager is also the boss: his own pages up front, the floor and the settings behind More. */}}
       <a href="/owner"{{if eq .Nav "today"}} aria-current="page"{{end}}>{{tr "Money today"}}</a>
       <a href="/owner/charts"{{if eq .Nav "charts"}} aria-current="page"{{end}}>{{tr "Charts"}}</a>
-      {{if .Cfg.TableButtons}}<a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>{{end}}
       <a href="/owner/feedback"{{if eq .Nav "feedback"}} aria-current="page"{{end}}>{{tr "Feedback"}}</a>
-      <span class="nav-sep" aria-hidden="true"></span>
-      {{end}}
-      {{if eq .Role "chef"}}
-      <a href="/admin/kitchen"{{if ne .Nav "stock"}} aria-current="page"{{end}}>{{tr "Kitchen"}}</a>
+      <a href="/admin/staff"{{if eq .Nav "staff"}} aria-current="page"{{end}}>{{tr "Staff"}}</a>
+      <button type="button" class="nav-more-btn" aria-expanded="false" aria-controls="nav-more"{{if or (eq .Nav "orders") (eq .Nav "kitchen") (eq .Nav "day") (eq .Nav "calendar") (eq .Nav "stock") (eq .Nav "tables") (eq .Nav "menu") (eq .Nav "closed") (eq .Nav "buttons") (eq .Nav "activity")}} data-current{{end}}>{{tr "More"}}{{with .MgrWaiting}} <span class="nav-badge" title="{{tr "Waiters' questions and skipped bills, on Orders"}}">{{.}}<span class="sr-only"> {{tr "waiting for you"}}</span></span>{{end}}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      {{else if eq .Role "chef"}}
+      <a href="/admin/kitchen"{{if eq .Nav "kitchen"}} aria-current="page"{{end}}>{{tr "Kitchen"}}</a>
       <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
       <a href="/admin/myschedule"{{if eq .Nav "myschedule"}} aria-current="page"{{end}}>{{tr "My schedule"}}</a>
       {{else}}
-      <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}{{with .MgrWaiting}} <span class="nav-badge" title="{{tr "Waiting for the manager"}}">{{.}}<span class="sr-only"> {{tr "waiting for the manager"}}</span></span>{{end}}</a>
-      {{if eq .Role "manager"}}<a href="/admin/kitchen">{{tr "Kitchen"}}</a>{{end}}
+      <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}</a>
       <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
       <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>
       <a href="/admin/calendar"{{if eq .Nav "calendar"}} aria-current="page"{{end}}>{{tr "Calendar"}}</a>
-      {{if eq .Role "waiter"}}<a href="/admin/myschedule"{{if eq .Nav "myschedule"}} aria-current="page"{{end}}>{{tr "My schedule"}}</a>{{end}}
-      {{if ne .Role "waiter"}}
-      <a href="/admin/menu"{{if eq .Nav "menu"}} aria-current="page"{{end}}>{{tr "Menu"}}</a>
-      <a href="/admin/closed"{{if eq .Nav "closed"}} aria-current="page"{{end}}>{{tr "Closed days"}}</a>
-      <a href="/admin/staff"{{if eq .Nav "staff"}} aria-current="page"{{end}}>{{tr "Staff"}}</a>
-      <a href="/admin/activity"{{if eq .Nav "activity"}} aria-current="page"{{end}}>{{tr "Activity"}}</a>
-      {{end}}
+      <a href="/admin/myschedule"{{if eq .Nav "myschedule"}} aria-current="page"{{end}}>{{tr "My schedule"}}</a>
       <a href="/" target="_blank" rel="noopener">{{tr "Guest site"}}</a>
       {{end}}
+      {{if ne .Role "manager"}}
       {{if .TillDevice}}<form method="post" action="/till/lock" class="nav-logout nav-lock"><button type="submit">{{tr "Lock"}}</button></form>
       {{else}}<form method="post" action="/logout" class="nav-logout"><button type="submit">{{tr "Log out"}}</button></form>{{end}}
+      {{end}}
     </nav>
     {{end}}
     {{if .ShiftAsk}}<form method="post" action="/admin/shift" class="nav-shift{{if .ShiftSince}} on{{end}}"><input type="hidden" name="back" value="{{.Path}}">
@@ -65,6 +60,32 @@
       <a href="{{.SwitchEN}}" lang="en"{{if eq .Lang "en"}} aria-current="true"{{end}}>EN</a>
     </nav>
   </div>
+  {{if and (eq .Role "manager") (not .Bare)}}
+  <div class="nav-more" id="nav-more" hidden>
+    <div class="nav-more-inner">
+      <section aria-labelledby="nm-floor">
+        <h2 id="nm-floor">{{tr "The restaurant now"}}</h2>
+        <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}{{with .MgrWaiting}} <span class="nav-badge">{{.}}</span>{{end}}</a>
+        <a href="/admin/kitchen">{{tr "Kitchen"}}</a>
+        <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>
+        <a href="/admin/calendar"{{if eq .Nav "calendar"}} aria-current="page"{{end}}>{{tr "Calendar"}}</a>
+        <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
+      </section>
+      <section aria-labelledby="nm-set">
+        <h2 id="nm-set">{{tr "Settings"}}</h2>
+        <a href="/admin/menu"{{if eq .Nav "menu"}} aria-current="page"{{end}}>{{tr "Menu"}}</a>
+        <a href="/admin/closed"{{if eq .Nav "closed"}} aria-current="page"{{end}}>{{tr "Closed days"}}</a>
+        {{if .Cfg.TableButtons}}<a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>{{end}}
+        <a href="/admin/activity"{{if eq .Nav "activity"}} aria-current="page"{{end}}>{{tr "Activity"}}</a>
+        <a href="/" target="_blank" rel="noopener">{{tr "Guest site"}}</a>
+      </section>
+      <div class="nav-more-foot">
+        {{if .TillDevice}}<form method="post" action="/till/lock"><button type="submit">{{tr "Lock"}}</button></form>
+        {{else}}<form method="post" action="/logout"><button type="submit">{{tr "Log out"}}</button></form>{{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
 </header>
 {{if .DemoMode}}<div class="demo-banner">{{tr "Demo mode: payments are simulated until Stripe keys are added."}}</div>{{end}}
 {{if .Role}}

@@ -268,8 +268,11 @@ func safeNext(next string, who role) string {
 			}
 		}
 	}
-	if who == roleChef {
+	switch {
+	case who == roleChef:
 		return "/admin/kitchen" // the chef's only page
+	case rank(who) >= rank(roleManager):
+		return "/owner" // the manager is the boss: his money page first
 	}
 	return "/admin/orders" // the staff's home page
 }
