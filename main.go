@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -127,6 +128,10 @@ func main() {
 	defer stop()
 	// Reminders, the waiting list and privacy clean-up run in the background.
 	go srv.RunJobs(ctx)
+	// A copy of everything every night at 03:00 (and now, if today's is
+	// missing). Point BACKUP_DIR at a Google Drive or iCloud folder so the
+	// copies are safe even if this computer breaks.
+	go runBackups(ctx, store, homeDir(env("BACKUP_DIR", "data/backups")), envInt("BACKUP_KEEP", 30))
 	go func() {
 		log.Printf("Running on %s  (staff login: %s/login)", cfg.BaseURL, cfg.BaseURL)
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -187,4 +192,42 @@ func loadDotEnv(path string) {
 			os.Setenv(key, val)
 		}
 	}
+}
+
+// runBackups backs up the data once at start (if today's copy is missing)
+// and then every night at 03:00 restaurant time.
+func runBackups(ctx context.Context, store *db.Store, dir string, keep int) {
+	backup := func() {
+		if name, err := store.Backup(dir, keep, time.Now()); err != nil {
+			log.Printf("backup failed: %v", err)
+		} else {
+			log.Printf("backup saved: %s", name)
+		}
+	}
+	if !db.HasBackup(dir, time.Now()) {
+		backup()
+	}
+	for {
+		now := time.Now().In(schedule.Location)
+		next := time.Date(now.Year(), now.Month(), now.Day(), 3, 0, 0, 0, schedule.Location)
+		if !next.After(now) {
+			next = next.AddDate(0, 0, 1)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Until(next)):
+			backup()
+		}
+	}
+}
+
+// homeDir turns "~/Google Drive/x" into a full path.
+func homeDir(path string) string {
+	if rest, ok := strings.CutPrefix(path, "~/"); ok {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, rest)
+		}
+	}
+	return path
 }

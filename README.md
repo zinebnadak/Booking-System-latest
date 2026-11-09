@@ -264,6 +264,17 @@ them. Nothing was deleted; set them to `1` in `.env` to turn them back on:
   booking a table is free and confirmed straight away (takeaway still
   pays 25 % up front).
 
+## Backups
+
+All data lives in one file, `data/emeal.json`. Every night at 03:00 (and
+when the app starts, if today's copy is missing) it saves a copy to
+`BACKUP_DIR` as `emeal-<date>.json` and keeps the last `BACKUP_KEEP` (30)
+days. Set `BACKUP_DIR` to a Google Drive or iCloud folder so the copies are
+also in the cloud.
+
+To restore: stop the app, copy the newest backup to `data/emeal.json`, and
+start the app again.
+
 ## Nothing comes off a bill without the manager
 
 Against "take the cash and delete the order":

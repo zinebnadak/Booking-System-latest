@@ -686,7 +686,7 @@ func (s *Server) ownerReportsCSV(w http.ResponseWriter, r *http.Request) {
 	first := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, schedule.Location)
 	last := first.AddDate(0, 1, -1)
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="ozmo-%s.csv"`, month.Format("2006-01")))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="emeal-%s.csv"`, month.Format("2006-01")))
 	w.Write([]byte("\xEF\xBB\xBF")) // so Excel reads å, ä, ö correctly
 	cw := csv.NewWriter(w)
 	cw.Comma = ';' // Excel in Finland/Sweden expects semicolons
