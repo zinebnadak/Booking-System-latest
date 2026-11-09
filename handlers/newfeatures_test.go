@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -325,4 +326,69 @@ func TestWaiterChangesSeats(t *testing.T) {
 		t.Fatalf("table 3 has %d seats", tb.Seats)
 	}
 	location(t, e.as(lisa, "POST", "/admin/orders/3/seats", url.Values{"seats": {"99"}}), "msg=seatsbad")
+}
+
+// Waiters: type a table number to open it; join two tables; move a dish.
+func TestJumpJoinAndMove(t *testing.T) {
+	e := newEnv(t, nil)
+	location(t, e.do("GET", "/admin/orders/go?no=4", nil, true), "/admin/orders/4")
+	location(t, e.do("GET", "/admin/orders/go?no=999", nil, true), "msg=notable")
+	burger := e.menuItem("E-Meal-burgare")
+	add := func(table, qty int) db.Bill {
+		location(t, e.do("POST", fmt.Sprintf("/admin/orders/%d/add", table), url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {strconv.Itoa(qty)}}, true), "msg=added")
+		b, _ := e.store.OpenBill(table)
+		return b
+	}
+	add(1, 2)
+	b2 := add(2, 1)
+	page := e.do("GET", "/admin/orders/2", nil, true)
+	e.expect(page, 200, "Join with table", `action="/admin/orders/2/join"`, "Move to another table")
+	location(t, e.do("POST", "/admin/orders/2/join", url.Values{"bill": {fmt.Sprint(b2.ID)}, "into": {"1"}}, true), "/admin/orders/1?")
+	b1, _ := e.store.OpenBill(1)
+	if b1.Count() != 3 {
+		t.Fatalf("table 1 has %d items", b1.Count())
+	}
+	e.expect(e.do("GET", "/admin/orders/2/history", nil, true), 200, "joined with table 1")
+	line := b1.Lines[0]
+	location(t, e.do("POST", fmt.Sprintf("/admin/orders/1/lines/%d/move", line.ID), url.Values{"bill": {fmt.Sprint(b1.ID)}, "to": {"5"}, "qty": {"1"}}, true), "msg=linemoved")
+	b5, open := e.store.OpenBill(5)
+	if !open || b5.Count() != 1 {
+		t.Fatalf("table 5: %+v", b5)
+	}
+	// The kitchen sees table 5 for the moved dish, and the "all day" total.
+	e.expect(e.do("GET", "/admin/kitchen", nil, true), 200, "All day", "3×", "Table 5")
+}
+
+// The manager plans the week; staff see their own shifts.
+func TestStaffSchedule(t *testing.T) {
+	wrongPasswordDelay = 0
+	e := newEnv(t, nil)
+	lisa, _ := e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
+	monday := weekStart(httptest.NewRequest("GET", "/", nil), e.srv.Now())
+	week := schedule.FormatDate(monday)
+	friday := schedule.FormatDate(monday.AddDate(0, 0, 4))
+	e.expect(e.do("GET", "/admin/schedule", nil, true), 200, "Add a shift", "Lisa")
+	location(t, e.do("POST", "/admin/schedule", url.Values{"week": {week}, "staff": {fmt.Sprint(lisa.ID)}, "date": {friday}, "from": {"16:00"}, "to": {"23:30"}, "note": {"bar"}}, true), "msg=rotaadded")
+	location(t, e.do("POST", "/admin/schedule", url.Values{"week": {week}, "staff": {fmt.Sprint(lisa.ID)}, "date": {friday}, "from": {"16:00"}, "to": {"23:30"}}, true), "msg=rotaadded")
+	if n := len(e.store.RotaBetween(friday, friday)); n != 1 {
+		t.Fatalf("tapped twice: %d shifts", n)
+	}
+	location(t, e.do("POST", "/admin/schedule", url.Values{"week": {week}, "staff": {"999"}, "date": {friday}, "from": {"16:00"}, "to": {"23:30"}}, true), "msg=rotabad")
+	e.expect(e.do("GET", "/admin/schedule?week="+week, nil, true), 200, "16:00–23:30", "7 h 30 min")
+	// Next week: copy this one.
+	next := schedule.FormatDate(monday.AddDate(0, 0, 7))
+	location(t, e.do("POST", "/admin/schedule/copy", url.Values{"week": {next}}, true), "msg=rotacopied")
+	if got := e.store.RotaBetween(next, schedule.FormatDate(monday.AddDate(0, 0, 13))); len(got) != 1 || got[0].From != "16:00" {
+		t.Fatalf("copied: %+v", got)
+	}
+	cookie, _ := e.loginAs(t, "lisa", "a-long-password-1")
+	mine := e.as(cookie, "GET", "/admin/myschedule", nil)
+	if friday >= schedule.FormatDate(e.srv.Now()) {
+		e.expect(mine, 200, "16:00–23:30", "bar")
+	} else {
+		e.expect(mine, 200, "My schedule")
+	}
+	if e.as(cookie, "GET", "/admin/schedule", nil).Code == 200 {
+		t.Error("a waiter can't plan the schedule")
+	}
 }

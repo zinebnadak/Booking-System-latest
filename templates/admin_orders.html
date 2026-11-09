@@ -3,8 +3,13 @@
 <div class="day-head" data-live-screen="/admin/orders?part=tiles{{if .Waiter}}&amp;view={{.View}}{{end}}">
   <h1>{{tr "Orders"}}</h1>
   <span class="live-pill off" data-live-pill hidden data-text-live="{{tr "Live"}}" data-text-wait="{{tr "Reconnecting…"}}">{{tr "Reconnecting…"}}</span>
+  <form method="get" action="/admin/orders/go" class="table-jump" role="search">
+    <label for="jump-no" class="sr-only">{{tr "Table number"}}</label>
+    <input id="jump-no" name="no" type="number" min="1" inputmode="numeric" enterkeyhint="go" placeholder="{{tr "Table no."}}" autocomplete="off">
+    <button class="btn btn-secondary btn-sm">{{tr "Open"}}</button>
+  </form>
   <span class="spacer"></span>
-<button type="button" class="btn btn-secondary btn-sm push-btn" data-push hidden aria-pressed="false" data-text-off="{{tr "Turn on notifications"}}" data-text-on="{{tr "Notifications on"}}" data-text-denied="{{tr "Notifications are blocked: allow them in the phone's settings"}}" data-text-fail="{{tr "Notifications didn't work on this phone"}}">{{tr "Turn on notifications"}}</button>
+  <button type="button" class="btn btn-secondary btn-sm push-btn" data-push hidden aria-pressed="false" data-text-off="{{tr "Turn on notifications"}}" data-text-on="{{tr "Notifications on"}}" data-text-denied="{{tr "Notifications are blocked: allow them in the phone's settings"}}" data-text-fail="{{tr "Notifications didn't work on this phone"}}">{{tr "Turn on notifications"}}</button>
   <span class="muted small push-hint" data-push-hint hidden>{{tr "For notifications on iPhone: Share → Add to Home Screen, then open E-Meal from the home screen."}}</span>
   <button type="button" class="btn btn-secondary btn-sm" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
   <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{if .Cfg.TableQR}}{{tr "Table QR codes"}}{{else}}{{tr "Feedback QR code"}}{{end}}</a>

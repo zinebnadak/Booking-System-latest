@@ -20,7 +20,7 @@
     <summary>
       <span class="hb-title">{{if .No}}{{trf "Bill %d" .No}}{{else}}{{tr "Voided bill"}}{{end}}</span>
       <span class="hb-when">{{.From}}{{with .To}}–{{.}}{{end}}</span>
-      <span class="hb-how">{{if eq .State "open"}}<span class="badge badge-wait">{{tr "Open now"}}</span>{{else if eq .State "voided"}}<span class="badge badge-bad">{{tr "voided, not paid"}}</span>{{else if .IsSplit}}{{trf "Split: %d guests paid separately" (len .Split)}}{{else if eq .PaidBy "cash"}}{{tr "Paid in cash"}}{{else if eq .PaidBy "card"}}{{tr "Paid at the terminal"}}{{else}}{{method .PaidBy}}{{end}}</span>
+      <span class="hb-how">{{if eq .State "open"}}<span class="badge badge-wait">{{tr "Open now"}}</span>{{else if eq .State "joined"}}<span class="badge badge-muted">{{trf "joined with table %d" .JoinedTo}}</span>{{else if eq .State "voided"}}<span class="badge badge-bad">{{tr "voided, not paid"}}</span>{{else if .IsSplit}}{{trf "Split: %d guests paid separately" (len .Split)}}{{else if eq .PaidBy "cash"}}{{tr "Paid in cash"}}{{else if eq .PaidBy "card"}}{{tr "Paid at the terminal"}}{{else}}{{method .PaidBy}}{{end}}</span>
       <span class="hb-total">{{euro .ToPay}}</span>
     </summary>
     <ul class="hb-lines">

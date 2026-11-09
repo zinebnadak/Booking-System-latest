@@ -1,0 +1,55 @@
+{{define "content"}}
+<div class="day-head">
+  <a class="icon-btn" href="/admin/schedule?week={{.Prev}}" aria-label="{{tr "Previous week"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <h1>{{tr "Schedule"}} · {{.Week}}</h1>
+  <a class="icon-btn" href="/admin/schedule?week={{.Next}}" aria-label="{{tr "Next week"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/hours?week={{.WeekKey}}">{{tr "Hours worked"}}</a>
+  <a class="btn btn-secondary btn-sm" href="/admin/staff">{{tr "Staff"}}</a>
+</div>
+<p class="muted small">{{tr "Plan who works when. Waiters and the kitchen see their own shifts on their phone, under My schedule."}}</p>
+
+<section class="panel rota-add">
+  <h2>{{tr "Add a shift"}}</h2>
+  {{if .Staff}}
+  <form method="post" action="/admin/schedule" class="rota-form">
+    <input type="hidden" name="week" value="{{.WeekKey}}">
+    <label class="field">{{tr "Who"}}<select name="staff">{{range .Staff}}{{if .Active}}<option value="{{.ID}}">{{.Name}}</option>{{end}}{{end}}</select></label>
+    <label class="field">{{tr "Day"}}<select name="date">{{range .Days}}<option value="{{.Date}}"{{if .Today}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+    <label class="field">{{tr "From"}}<input type="time" name="from" value="16:00" step="900" required></label>
+    <label class="field">{{tr "To"}}<input type="time" name="to" value="23:00" step="900" required></label>
+    <label class="field grow"><span class="field-label">{{tr "Note"}} <span class="hint">{{tr "optional"}}</span></span><input name="note" maxlength="120" placeholder="{{tr "e.g. bar, or closing"}}"></label>
+    <button class="btn btn-primary">{{tr "Add"}}</button>
+  </form>
+  {{else}}
+  <p class="muted">{{tr "Add waiters and the kitchen under Staff first."}}</p>
+  {{end}}
+  <form method="post" action="/admin/schedule/copy" class="rota-copy" data-confirm="{{trf "Copy the shifts from the week of %s into this week?" .PrevLabel}}" data-confirm-ok="{{tr "Copy"}}">
+    <input type="hidden" name="week" value="{{.WeekKey}}">
+    <button class="btn-link">{{trf "Copy the week of %s into this week" .PrevLabel}}</button>
+  </form>
+</section>
+
+<div class="rota-week">
+  {{range .Days}}
+  <section class="panel rota-day{{if .Today}} today{{end}}" aria-label="{{.Label}}">
+    <h2>{{.Label}}{{if .Today}} <span class="badge badge-ok">{{tr "Today"}}</span>{{end}}</h2>
+    {{range .Shifts}}
+    <div class="rota-shift">
+      <span class="rota-who"><strong>{{.Name}}</strong><span class="rota-time">{{.From}}–{{.To}}</span>{{with .Note}}<span class="muted small">{{.}}</span>{{end}}</span>
+      <form method="post" action="/admin/schedule/{{.ID}}/remove"><input type="hidden" name="week" value="{{$.WeekKey}}"><button class="icon-btn rota-x" aria-label="{{trf "Remove %s's shift" .Name}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
+    </div>
+    {{else}}
+    <p class="muted small">{{tr "Nobody planned"}}</p>
+    {{end}}
+  </section>
+  {{end}}
+</div>
+
+{{if .People}}
+<section class="panel">
+  <h2>{{tr "Planned this week"}}</h2>
+  <dl class="sum-rows">{{range .People}}<dt>{{.Name}}</dt><dd>{{if .Count}}{{.Hours}} · {{if eq .Count 1}}{{tr "1 shift"}}{{else}}{{trf "%d shifts" .Count}}{{end}}{{else}}–{{end}}</dd>{{end}}</dl>
+</section>
+{{end}}
+{{end}}

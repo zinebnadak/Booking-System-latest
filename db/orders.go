@@ -139,6 +139,10 @@ type Bill struct {
 	SkippedAt *time.Time `json:"skipped_at,omitempty"`
 	SkippedBy string     `json:"skipped_by,omitempty"`
 
+	// MergedInto: this table was joined to another one (see join.go), and
+	// everything on it went onto that bill (ID). Voided is set too.
+	MergedInto int `json:"merged_into,omitempty"`
+
 	// Wolt: an order that came in on Wolt, with the name on it. Its Table is
 	// a Wolt number (schedule.IsWolt), not a real table (see wolt.go).
 	Wolt string `json:"wolt,omitempty"`
@@ -524,6 +528,8 @@ type ordersSnapshot struct {
 	nextRemove int
 	cash       []*CashCount // entries are never changed, only replaced (new slices)
 	push       []*PushSub   // same
+	rota       []*RotaShift // same
+	nextRota   int
 }
 
 // changeOrders runs fn under the lock and saves if it reports a change. If
@@ -594,9 +600,9 @@ func (s *Store) snapshotOrders() (restore func()) {
 		snap.staff = append(snap.staff, *m)
 	}
 	snap.nextStaff = s.d.NextStaffID
-	snap.activity = append([]*Activity(nil), s.d.Activity...)                                    // entries are never changed, only added
-	snap.removals, snap.nextRemove = append([]*Removal(nil), s.d.Removals...), s.d.NextRemovalID // same
-	snap.cash, snap.push = s.d.CashCounts, s.d.PushSubs                                          // same
+	snap.activity = append([]*Activity(nil), s.d.Activity...)                                               // entries are never changed, only added
+	snap.removals, snap.nextRemove = append([]*Removal(nil), s.d.Removals...), s.d.NextRemovalID            // same
+	snap.cash, snap.push, snap.rota, snap.nextRota = s.d.CashCounts, s.d.PushSubs, s.d.Rota, s.d.NextRotaID // same
 	for _, v := range s.d.Vouchers {
 		snap.vouchers = append(snap.vouchers, v.clone())
 	}
@@ -627,7 +633,7 @@ func (s *Store) snapshotOrders() (restore func()) {
 		s.d.Settings, s.d.NextPhoneOrderID = snap.settings, snap.nextPhone
 		s.d.Staff, s.d.NextStaffID, s.d.Activity = nil, snap.nextStaff, snap.activity
 		s.d.Removals, s.d.NextRemovalID = snap.removals, snap.nextRemove
-		s.d.CashCounts, s.d.PushSubs = snap.cash, snap.push
+		s.d.CashCounts, s.d.PushSubs, s.d.Rota, s.d.NextRotaID = snap.cash, snap.push, snap.rota, snap.nextRota
 		for i := range snap.staff {
 			m := snap.staff[i]
 			s.d.Staff = append(s.d.Staff, &m)

@@ -36,12 +36,14 @@
       {{if eq .Role "chef"}}
       <a href="/admin/kitchen"{{if ne .Nav "stock"}} aria-current="page"{{end}}>{{tr "Kitchen"}}</a>
       <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
+      <a href="/admin/myschedule"{{if eq .Nav "myschedule"}} aria-current="page"{{end}}>{{tr "My schedule"}}</a>
       {{else}}
       <a href="/admin/orders"{{if eq .Nav "orders"}} aria-current="page"{{end}}>{{tr "Orders"}}{{with .MgrWaiting}} <span class="nav-badge" title="{{tr "Waiting for the manager"}}">{{.}}<span class="sr-only"> {{tr "waiting for the manager"}}</span></span>{{end}}</a>
       {{if eq .Role "manager"}}<a href="/admin/kitchen">{{tr "Kitchen"}}</a>{{end}}
       <a href="/admin/stock"{{if eq .Nav "stock"}} aria-current="page"{{end}}>{{tr "Stock"}}</a>
       <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>
       <a href="/admin/calendar"{{if eq .Nav "calendar"}} aria-current="page"{{end}}>{{tr "Calendar"}}</a>
+      {{if eq .Role "waiter"}}<a href="/admin/myschedule"{{if eq .Nav "myschedule"}} aria-current="page"{{end}}>{{tr "My schedule"}}</a>{{end}}
       {{if ne .Role "waiter"}}
       <a href="/admin/menu"{{if eq .Nav "menu"}} aria-current="page"{{end}}>{{tr "Menu"}}</a>
       <a href="/admin/closed"{{if eq .Nav "closed"}} aria-current="page"{{end}}>{{tr "Closed days"}}</a>

@@ -91,7 +91,7 @@ var pageNames = []string{
 	"admin_orders", "admin_order", "order_bill", "admin_kitchen", "order_history",
 	"admin_split", "order_receipts", "receipt",
 	"table_join", "guest_tab", "guest_tip", "dev_tab", "admin_offline", "qr_stickers", "review", "owner_feedback",
-	"admin_staff", "admin_activity", "admin_giftcards", "giftcard_print", "till", "admin_hours", "admin_stock", "admin_tableplan",
+	"admin_staff", "admin_activity", "admin_giftcards", "giftcard_print", "till", "admin_hours", "admin_stock", "admin_tableplan", "admin_schedule", "my_schedule",
 }
 
 // New builds the server. files must contain templates/ and static/.
@@ -236,6 +236,7 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("POST /admin/orders/{table}/split/{action}", s.splitAction)
 	admin.HandleFunc("GET /admin/orders/{table}/receipts", s.receiptsPage)
 	admin.HandleFunc("POST /admin/wolt", s.newWolt)
+	admin.HandleFunc("GET /admin/orders/go", s.orderJump)
 	admin.HandleFunc("POST /admin/shift", s.staffShift)
 	admin.HandleFunc("GET /admin/push/key", s.pushKey)
 	admin.HandleFunc("POST /admin/push/subscribe", s.pushSubscribe)
@@ -279,6 +280,11 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("POST /admin/staff/managerpin", s.managerOnly(s.adminManagerPIN))
 	admin.HandleFunc("POST /admin/staff/businessid", s.managerOnly(s.adminBusinessID))
 	admin.HandleFunc("GET /admin/tableplan", s.managerOnly(s.adminTablePlan))
+	admin.HandleFunc("GET /admin/schedule", s.managerOnly(s.adminSchedule))
+	admin.HandleFunc("POST /admin/schedule", s.managerOnly(s.adminScheduleAdd))
+	admin.HandleFunc("POST /admin/schedule/copy", s.managerOnly(s.adminScheduleCopy))
+	admin.HandleFunc("POST /admin/schedule/{id}/remove", s.managerOnly(s.adminScheduleRemove))
+	admin.HandleFunc("GET /admin/myschedule", s.mySchedule)
 	admin.HandleFunc("POST /admin/tableplan", s.managerOnly(s.adminTablePlanSave))
 	admin.HandleFunc("GET /admin/hours", s.managerOnly(s.adminHours))
 	admin.HandleFunc("POST /admin/hours/{id}", s.managerOnly(s.adminHoursFix))

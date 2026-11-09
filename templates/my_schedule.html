@@ -1,0 +1,17 @@
+{{define "content"}}
+<div class="day-head"><h1>{{tr "My schedule"}}</h1></div>
+<p class="muted small">{{tr "Your shifts for the next two weeks, as the manager planned them."}}</p>
+{{if .Shifts}}
+<ul class="my-shifts">
+  {{range .Shifts}}
+  <li class="panel{{if eq .Date $.Today}} today{{end}}">
+    <span class="ms-day">{{.Day}}{{if eq .Date $.Today}} <span class="badge badge-ok">{{tr "Today"}}</span>{{end}}</span>
+    <strong class="ms-time">{{.From}}–{{.To}}</strong>
+    <span class="muted small">{{.Hours}}{{with .Note}} · {{.}}{{end}}</span>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<div class="panel empty"><strong>{{tr "No shifts planned"}}</strong>{{tr "The manager hasn't planned any shifts for you in the next two weeks."}}</div>
+{{end}}
+{{end}}

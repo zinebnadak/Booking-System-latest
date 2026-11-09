@@ -98,6 +98,10 @@ type data struct {
 	CashCounts []*CashCount `json:"cash_counts,omitempty"`
 	PushSubs   []*PushSub   `json:"push_subs,omitempty"`
 
+	// The staff schedule the manager plans (see rota.go).
+	Rota       []*RotaShift `json:"rota,omitempty"`
+	NextRotaID int          `json:"next_rota_id,omitempty"`
+
 	// The clock card (see shifts.go).
 	Shifts      []*Shift `json:"shifts,omitempty"`
 	NextShiftID int      `json:"next_shift_id,omitempty"`

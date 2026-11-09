@@ -377,6 +377,25 @@ func tableFromPath(r *http.Request) int {
 	return n
 }
 
+// joinOpt is a table to join with or move a dish to.
+type joinOpt struct {
+	No   int
+	Open bool // has an open bill
+}
+
+// joinError is the message for a failed join or move.
+func joinError(err error) string {
+	switch {
+	case errors.Is(err, db.ErrJoinDeposits):
+		return "joindeposits"
+	case errors.Is(err, db.ErrJoinBusy):
+		return "joinbusy"
+	case errors.Is(err, db.ErrJoinSelf), errors.Is(err, db.ErrNoTable):
+		return "jointable"
+	}
+	return orderError(err)
+}
+
 // woltMay are the bill actions a Wolt order has too (besides woltpickup).
 var woltMay = map[string]bool{"discount": true, "message": true, "void": true, "woltcancel": true}
 
@@ -553,6 +572,16 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	if tb, ok := schedule.TableInfo(table); ok {
 		data["TableSeats"] = tb.Seats
+	}
+	if open && bill.Wolt == "" { // for joining tables and moving a dish
+		var other []joinOpt
+		for _, t := range schedule.TableNos() {
+			if t != table {
+				other = append(other, joinOpt{No: t, Open: busy[t]})
+			}
+		}
+		sort.SliceStable(other, func(i, j int) bool { return other[i].Open && !other[j].Open }) // tables with guests first
+		data["OtherTables"] = other
 	}
 	if bill.Wolt != "" { // no table: no 3 meals, guests, waiter or moving
 		data["Wolt"] = bill.Wolt
@@ -832,6 +861,20 @@ func (s *Server) orderLine(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.Now()
 	switch r.PathValue("action") {
+	case "move": // a dish (or some of it) goes to another table's bill
+		to := atoiDefault(r.FormValue("to"), 0)
+		qty := atoiDefault(r.FormValue("qty"), 0)
+		if _, err := s.Store.MoveLine(billID, lineID, qty, to, now); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, joinError(err))
+			return
+		}
+		if qty <= 0 || qty > old.Qty {
+			qty = old.Qty
+		}
+		s.logActivity(r, table, "moved a dish to another table", fmt.Sprintf("%d× %s → %s", qty, old.Name, stf(langEN, "Table %d", to)))
+		s.live.publish()
+		redirectMsg(w, r, orderPath(table), url.Values{"to": {strconv.Itoa(to)}}, "linemoved")
+		return
 	case "remove", "approve": // only the manager takes things off
 		if !isManager(r) {
 			redirectMsg(w, r, orderPath(table), nil, "askmanager")
@@ -1021,6 +1064,15 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 		s.logActivity(r, table, "Wolt order picked up", b.Wolt+" · "+euro(b.Total()))
 		s.live.publish()
 		redirectMsg(w, r, "/admin/orders", nil, "woltdone")
+	case "join": // guests pushed two tables together: this bill goes onto the other
+		into := atoiDefault(r.FormValue("into"), 0)
+		if _, err := s.Store.JoinBills(billID, into, now); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, joinError(err))
+			return
+		}
+		s.logActivity(r, table, "joined the table with another", stf(langEN, "Table %d", into))
+		s.live.publish()
+		redirectMsg(w, r, orderPath(into), url.Values{"from": {strconv.Itoa(table)}}, "joined")
 	case "woltcancel": // started by mistake, nothing on it yet
 		if err := s.Store.CancelEmptyWolt(billID); err != nil {
 			redirectMsg(w, r, orderPath(table), nil, "askmanager")
@@ -1248,7 +1300,8 @@ type historyBill struct {
 	db.Bill
 	No       int          // the table's 1st, 2nd, 3rd... bill that day (0 = voided)
 	From, To string       // "18:05", "19:20"
-	State    string       // "open", "paid" or "voided"
+	State    string       // "open", "paid", "voided" or "joined"
+	JoinedTo int          // joined: the table it went onto
 	Shares   []splitGuest // split bills: each guest's part
 }
 
@@ -1301,6 +1354,11 @@ func (s *Server) orderHistory(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		switch {
+		case b.MergedInto != 0:
+			v.State = "joined"
+			if into, err := s.Store.BillByID(b.MergedInto); err == nil {
+				v.JoinedTo = into.Table
+			}
 		case b.Voided:
 			v.State = "voided"
 		case b.PaidAt == nil:
@@ -1419,12 +1477,57 @@ func (s *Server) adminKitchen(w http.ResponseWriter, r *http.Request) {
 		"Admin": true, "Bare": true, "Title": st(lang, "Kitchen"),
 		"Tickets": open, "Done": done, "Later": later, "Dishes": s.kitchenDishes(now), "Waiting": waiting,
 		"Ready": s.readyFood(now), "Deals": s.dealsWaiting(now), "MealsInDeal": schedule.MealsInDeal,
+		"AllDay": allDay(open),
 	}
 	if r.URL.Query().Get("part") == "tickets" {
 		s.renderBlock(w, r, "admin_kitchen", "tickets", http.StatusOK, data)
 		return
 	}
 	s.render(w, r, "admin_kitchen", http.StatusOK, data)
+}
+
+// allDayRow is one dish on the kitchen's "all day" strip: how many of it
+// all the open orders need together, so the chef can cook in batches.
+type allDayRow struct {
+	Name string
+	Qty  int
+}
+
+// allDay adds up the dishes on the tickets the kitchen is working on now
+// (takeaway only once it's time to cook it; cancelled dishes don't count).
+func allDay(open []ticketView) []allDayRow {
+	qty := map[string]int{}
+	var order []string
+	for _, t := range open {
+		if t.Message != "" || (t.IsTakeaway() && !t.Due && !t.New) {
+			continue
+		}
+		for _, it := range t.Items {
+			if it.Cancelled || it.Qty <= 0 {
+				continue
+			}
+			if _, ok := qty[it.Name]; !ok {
+				order = append(order, it.Name)
+			}
+			qty[it.Name] += it.Qty
+		}
+	}
+	out := make([]allDayRow, 0, len(order))
+	for _, n := range order {
+		out = append(out, allDayRow{Name: n, Qty: qty[n]})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Qty > out[j].Qty })
+	return out
+}
+
+// orderJump opens a table by its number (the box on Orders).
+func (s *Server) orderJump(w http.ResponseWriter, r *http.Request) {
+	n := atoiDefault(strings.TrimSpace(r.URL.Query().Get("no")), 0)
+	if !schedule.ValidTable(n) {
+		redirectMsg(w, r, "/admin/orders", url.Values{"no": {r.URL.Query().Get("no")}}, "notable")
+		return
+	}
+	http.Redirect(w, r, orderPath(n), http.StatusSeeOther)
 }
 
 func (s *Server) kitchenAction(w http.ResponseWriter, r *http.Request) {

@@ -276,7 +276,7 @@
       {{end}}
       {{end}}
       <details class="bill-more">
-        <summary>{{if .Wolt}}{{if .Manager}}{{tr "Discount or void"}}{{else}}{{tr "More"}}{{end}}{{else if .Manager}}{{tr "Discount, move or void"}}{{else}}{{tr "Move, or skip for now"}}{{end}}</summary>
+        <summary>{{if .Wolt}}{{if .Manager}}{{tr "Discount or void"}}{{else}}{{tr "More"}}{{end}}{{else if .Manager}}{{tr "Discount, move, join or void"}}{{else}}{{tr "Move, join, or skip for now"}}{{end}}</summary>
         {{if .Manager}}
         <form method="post" action="/admin/orders/{{.Table}}/discount" class="row">
           <input type="hidden" name="bill" value="{{.Bill.ID}}">
@@ -284,6 +284,13 @@
             <select name="pct">{{range $p := discountSteps}}<option value="{{$p}}">{{if eq $p 0}}{{tr "No discount"}}{{else if eq $p 100}}{{tr "100 % · on the house"}}{{else}}{{$p}} %{{end}}</option>{{end}}</select>
           </label>
           <button class="btn btn-secondary btn-sm">{{tr "Give discount"}}</button>
+        </form>
+        {{end}}
+        {{if and (not .Wolt) .OtherTables}}
+        <form method="post" action="/admin/orders/{{.Table}}/join" class="row" data-confirm="{{trf "Put everything from table %d onto the other table's bill? Table %d is then free." .Table .Table}}" data-confirm-ok="{{tr "Join the tables"}}">
+          <input type="hidden" name="bill" value="{{.Bill.ID}}">
+          <label class="field">{{tr "Join with table (pushed together)"}}<select name="into">{{range .OtherTables}}<option value="{{.No}}">{{trf "Table %d" .No}}{{if .Open}} · {{tr "open bill"}}{{end}}</option>{{end}}</select></label>
+          <button class="btn btn-secondary btn-sm">{{tr "Join"}}</button>
         </form>
         {{end}}
         {{if .FreeTables}}
@@ -398,6 +405,17 @@
         </form>
         {{end}}
       </div>
+      {{end}}
+      {{if and (not $.Wolt) (not $.Bill.IsSplit) $.OtherTables}}
+      <form method="post" action="/admin/orders/{{$.Table}}/lines/{{.ID}}/move" class="dlg-body line-move">
+        <input type="hidden" name="bill" value="{{$.Bill.ID}}">
+        <p class="line-move-h"><strong>{{tr "Move to another table"}}</strong> <span class="muted small">{{tr "The guest moved, or it was ordered at the wrong table."}}</span></p>
+        <div class="row">
+          {{if gt .Qty 1}}<label class="field">{{tr "How many"}}<select name="qty">{{$q := .Qty}}{{range .Counts}}<option value="{{.}}"{{if eq . $q}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
+          <label class="field">{{tr "To table"}}<select name="to">{{range $.OtherTables}}<option value="{{.No}}">{{trf "Table %d" .No}}{{if .Open}} · {{tr "open bill"}}{{end}}</option>{{end}}</select></label>
+          <button class="btn btn-secondary btn-sm">{{tr "Move"}}</button>
+        </div>
+      </form>
       {{end}}
     </dialog>
     {{end}}

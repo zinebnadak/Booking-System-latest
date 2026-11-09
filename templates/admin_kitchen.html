@@ -15,6 +15,12 @@
 {{end}}
 
 {{define "tickets"}}
+{{if .AllDay}}
+<section class="k-allday" aria-label="{{tr "All day: everything to cook now"}}">
+  <span class="k-allday-label">{{tr "All day"}}</span>
+  <ul>{{range .AllDay}}<li><b>{{.Qty}}×</b> {{.Name}}</li>{{end}}</ul>
+</section>
+{{end}}
 {{if .Tickets}}
 <div class="k-grid">
   {{range .Tickets}}

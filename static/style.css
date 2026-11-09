@@ -1775,3 +1775,53 @@ h1 .wolt-dot { width: 28px; height: 28px; font-size: .9rem; vertical-align: 3px;
 .table-meta .seats-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px var(--s3); margin: 0; padding-top: var(--s3); border-top: 1px solid var(--line); }
 .seats-pick { display: inline-flex; align-items: center; gap: 8px; }
 .seats-pick input { width: 5em; min-height: 40px; padding: 6px 10px; text-align: center; border-radius: 999px; }
+
+/* ------------------------------------------------------------ Orders: jump to a table by number */
+.table-jump { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.table-jump input { width: 7.5em; min-height: 40px; padding: 6px 12px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.table-jump input::-webkit-outer-spin-button, .table-jump input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.table-jump input { -moz-appearance: textfield; appearance: textfield; }
+
+/* ------------------------------------------------------------ kitchen: "all day" counter */
+.k-allday { display: flex; align-items: baseline; gap: 10px 16px; flex-wrap: wrap; margin: 0 0 var(--s4); padding: 12px 16px; border: 1px solid rgba(210, 170, 69, .45); border-radius: var(--r-lg); background: rgba(210, 170, 69, .08); color: #f2f2f2; }
+.k-allday-label { flex: none; font-family: var(--display); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); font-size: .9rem; }
+.k-allday ul { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; font-size: 1.15rem; }
+.k-allday b { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ Orders: jump to a table by number */
+.table-jump { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.table-jump input { width: 7.5em; min-height: 40px; padding: 6px 12px; border-radius: 999px; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.table-jump input::-webkit-outer-spin-button, .table-jump input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ------------------------------------------------------------ kitchen: "all day" counter */
+.k-allday { display: flex; align-items: baseline; gap: 10px 16px; flex-wrap: wrap; margin: 0 0 var(--s4); padding: 12px 16px; border: 1px solid rgba(210, 170, 69, .45); border-radius: var(--r-lg); background: rgba(210, 170, 69, .08); color: #f2f2f2; }
+.k-allday-label { flex: none; font-family: var(--display); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); font-size: .9rem; }
+.k-allday ul { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; font-size: 1.15rem; }
+.k-allday b { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ moving a dish to another table (line dialog) */
+dialog .line-move { margin: 0; padding-top: var(--s3); border-top: 1px solid var(--line); }
+.line-move-h { margin: 0 0 var(--s2); }
+.line-move .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s2) var(--s3); }
+.line-move .field { margin: 0; }
+
+/* ------------------------------------------------------------ staff schedule */
+.rota-add { margin-bottom: var(--s4); }
+.rota-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s2) var(--s3); align-items: end; }
+.rota-form .field { margin: 0; }
+.rota-form .grow { grid-column: span 2; }
+.rota-copy { margin-top: var(--s3); }
+.rota-week { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
+.rota-day { margin: 0; }
+.rota-day h2 { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin: 0 0 var(--s2); }
+.rota-day.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), var(--shadow-1); }
+.rota-shift { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.rota-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.rota-time { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.rota-x { width: 32px; height: 32px; flex: none; }
+.rota-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.my-shifts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.my-shifts li { display: grid; gap: 2px; margin: 0; }
+.my-shifts li.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), var(--shadow-1); }
+.ms-day { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.ms-time { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
