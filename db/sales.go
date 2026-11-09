@@ -21,7 +21,9 @@ type TillDay struct {
 	Methods      map[string]int // what came in, by way of paying (prepaid ones included)
 	Vouchers     int            // gift cards and lunch booklets sold
 	VoucherCents int            // ...and what they were sold for
-	Cash         int            // cash in: bills and gift cards paid in cash
+	Cash         int            // cash in: bills, gift cards and takeaway pickups paid in cash
+	PickupCash   int            // ...of which takeaway paid in cash at pickup
+	PickupCard   int            // takeaway paid by card at pickup
 }
 
 // Total is the money that came in: the bills and the gift cards sold.
@@ -67,6 +69,26 @@ func (s *Store) TillByDate(from, to string) map[string]*TillDay {
 			if m == PaidCash {
 				t.Cash += c
 			}
+		}
+	}
+	for _, b := range s.d.Bookings { // takeaway: the rest paid at pickup
+		if b.Kind != KindTakeaway || b.PickedUpAt == nil || b.PickupPaidBy == "" {
+			continue
+		}
+		d := schedule.FormatDate(*b.PickedUpAt)
+		if d < from || d > to {
+			continue
+		}
+		left := b.TotalCents - b.DepositCents
+		if left <= 0 {
+			continue
+		}
+		t := day(d)
+		if b.PickupPaidBy == PaidCash {
+			t.PickupCash += left
+			t.Cash += left
+		} else {
+			t.PickupCard += left
 		}
 	}
 	for _, v := range s.d.Vouchers {

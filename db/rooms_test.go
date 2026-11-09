@@ -32,7 +32,7 @@ func TestRealTablesBestFit(t *testing.T) {
 	}
 	free := s.FreeTables("2026-11-06", []string{"18:00"}, 6, true, now)["18:00"]
 	all6 := 0
-	for _, tb := range schedule.TablePlan {
+	for _, tb := range schedule.Tables() {
 		if tb.Seats >= 6 {
 			all6++
 		}
@@ -51,7 +51,7 @@ func TestRoomClosedOnline(t *testing.T) {
 		t.Fatal(err)
 	}
 	terrace := 0
-	for _, tb := range schedule.TablePlan {
+	for _, tb := range schedule.Tables() {
 		if tb.Room == "Terrassen" {
 			terrace++
 		}

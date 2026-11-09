@@ -104,6 +104,11 @@
   {{if not .Open}}<span class="muted small">{{if .Cfg.TableQR}}{{tr "Seats them here: the table opens for QR orders too."}}{{else}}{{tr "Seats them here and opens the bill."}}{{end}}</span>{{end}}
 </form>
 <form method="post" action="/admin/orders/{{.Table}}/guests" id="guests-more-{{.Table}}" hidden></form>
+{{if .TableSeats}}<form method="post" action="/admin/orders/{{.Table}}/seats" class="seats-row">
+  <label class="guests-label" for="seats-{{.Table}}">{{tr "Seats at this table"}}</label>
+  <span class="seats-pick"><input id="seats-{{.Table}}" type="number" name="seats" min="1" max="30" value="{{.TableSeats}}" inputmode="numeric"><button class="btn btn-secondary btn-sm">{{tr "Save"}}</button></span>
+  <span class="muted small">{{tr "Moved chairs or pushed tables together? Change it here: online bookings use it."}}</span>
+</form>{{end}}
 {{if .Open}}
 <form method="post" action="/admin/orders/{{.Table}}/waiter" class="waiter-row">
   <input type="hidden" name="bill" value="{{.Bill.ID}}">

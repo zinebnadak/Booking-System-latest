@@ -143,7 +143,8 @@ func staffLang(l string) string {
 
 // adminPickedUp marks a takeaway order as collected.
 func (s *Server) adminPickedUp(w http.ResponseWriter, r *http.Request) {
-	b, _, err := s.Store.MarkPickedUp(r.PathValue("ref"), s.Now())
+	r.ParseForm()
+	b, _, err := s.Store.MarkPickedUpWith(r.PathValue("ref"), r.FormValue("method"), s.Now())
 	if err != nil {
 		s.notFound(w, r)
 		return
@@ -165,4 +166,4 @@ func (s *Server) adminWaitRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 // tableOptions is every table for the "which table" pickers.
-func tableOptions() []schedule.Table { return schedule.TablePlan }
+func tableOptions() []schedule.Table { return schedule.Tables() }

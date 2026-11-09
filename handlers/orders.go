@@ -85,7 +85,7 @@ func (s *Server) orderTiles(lang string, now time.Time) (tiles, wolt []orderTile
 		names[m.ID] = m.Name
 	}
 	tiles = make([]orderTile, schedule.TableCount())
-	for i, tb := range schedule.TablePlan {
+	for i, tb := range schedule.Tables() {
 		t := &tiles[i]
 		t.No, t.Room = tb.No, tb.Room
 		t.Who = who[t.No]
@@ -550,6 +550,9 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	data["QROpen"] = open && bill.QROpen
 	if open {
 		data["Held"] = s.Store.HeldCourses(bill.ID)
+	}
+	if tb, ok := schedule.TableInfo(table); ok {
+		data["TableSeats"] = tb.Seats
 	}
 	if bill.Wolt != "" { // no table: no 3 meals, guests, waiter or moving
 		data["Wolt"] = bill.Wolt
@@ -1101,6 +1104,15 @@ func (s *Server) orderBillAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		redirectMsg(w, r, "/admin/orders", nil, "billpaid")
+	case "seats": // how many seats the table has (anyone on the floor may change it)
+		n := atoiDefault(r.FormValue("seats"), 0)
+		if err := s.Store.SetTableSeats(table, n, now); err != nil {
+			redirectMsg(w, r, orderPath(table), nil, "seatsbad")
+			return
+		}
+		s.logActivity(r, table, "changed the table's seats", strconv.Itoa(n))
+		s.live.publish()
+		redirectMsg(w, r, orderPath(table), nil, "seatssaved")
 	case "guests": // how many people sit there (seats them at a free table)
 		n := atoiDefault(r.FormValue("guests"), 0)
 		b, err := s.Store.SetGuests(table, n, now)

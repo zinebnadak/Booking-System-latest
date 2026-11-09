@@ -1,0 +1,49 @@
+{{define "content"}}
+<div class="day-head">
+  <h1>{{tr "Tables and seats"}}</h1>
+  <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/staff">{{tr "Staff"}}</a>
+</div>
+<p class="muted small">{{trf "%d tables, %d seats in all. Online bookings get the smallest free table with enough seats, so set the seats right." .Count .Seats}}</p>
+{{with .Problem}}<p class="notice plan-problem" role="alert">{{.}}</p>{{end}}
+
+<form method="post" action="/admin/tableplan" class="plan-form">
+  {{$rooms := .Rooms}}
+  {{range $ri, $room := .Rooms}}
+  <section class="panel plan-room">
+    <label class="field plan-room-name"><span class="field-label">{{tr "Room"}}</span>
+      <input name="room_{{$ri}}" value="{{$room.Name}}" maxlength="40" aria-label="{{tr "Room name"}}">
+    </label>
+    {{if $room.Tables}}
+    <div class="plan-grid">
+      {{range $room.Tables}}
+      <div class="plan-table">
+        <strong>{{trf "Table %d" .No}}</strong>
+        <label class="plan-seats"><span>{{tr "Seats"}}</span><input type="number" name="seats_{{.No}}" value="{{.Seats}}" min="1" max="{{$.MaxSeats}}" inputmode="numeric"></label>
+        {{if gt (len $rooms) 1}}<label class="plan-move"><span class="sr-only">{{tr "Room"}}</span><select name="room_of_{{.No}}">{{range $j, $r := $rooms}}<option value="{{$j}}"{{if eq $j $ri}} selected{{end}}>{{$r.Name}}</option>{{end}}</select></label>{{end}}
+        <label class="plan-del"><input type="checkbox" name="del_{{.No}}" value="1"> {{tr "Remove"}}</label>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <p class="muted small">{{tr "No tables here. Clear the name and save to remove the room."}}</p>
+    {{end}}
+  </section>
+  {{end}}
+
+  <section class="panel plan-add">
+    <h2>{{tr "Add"}}</h2>
+    <div class="plan-add-row">
+      <label class="field"><span class="field-label">{{tr "New table number"}}</span><input name="new_no" type="number" min="1" max="{{.MaxNo}}" inputmode="numeric" placeholder="{{tr "e.g. 32"}}"></label>
+      <label class="field"><span class="field-label">{{tr "Seats"}}</span><input name="new_seats" type="number" min="1" max="{{.MaxSeats}}" value="4" inputmode="numeric"></label>
+      <label class="field"><span class="field-label">{{tr "Room"}}</span><select name="new_room">{{range $j, $r := .Rooms}}<option value="{{$j}}">{{$r.Name}}</option>{{end}}<option value="new">{{tr "The new room below"}}</option></select></label>
+    </div>
+    <label class="field"><span class="field-label">{{tr "New room"}} <span class="hint">{{tr "optional"}}</span></span><input name="room_new" maxlength="40" placeholder="{{tr "e.g. Winter garden"}}"></label>
+  </section>
+
+  <div class="plan-save">
+    <button class="btn btn-primary">{{tr "Save tables and seats"}}</button>
+    <span class="muted small">{{tr "A table with an open bill or a booking still to come can't be removed."}}</span>
+  </div>
+</form>
+{{end}}

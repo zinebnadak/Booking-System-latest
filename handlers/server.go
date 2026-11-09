@@ -91,7 +91,7 @@ var pageNames = []string{
 	"admin_orders", "admin_order", "order_bill", "admin_kitchen", "order_history",
 	"admin_split", "order_receipts", "receipt",
 	"table_join", "guest_tab", "guest_tip", "dev_tab", "admin_offline", "qr_stickers", "review", "owner_feedback",
-	"admin_staff", "admin_activity", "admin_giftcards", "giftcard_print", "till", "admin_hours", "admin_stock",
+	"admin_staff", "admin_activity", "admin_giftcards", "giftcard_print", "till", "admin_hours", "admin_stock", "admin_tableplan",
 }
 
 // New builds the server. files must contain templates/ and static/.
@@ -277,6 +277,9 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("POST /admin/staff", s.managerOnly(s.adminStaffAdd))
 	admin.HandleFunc("POST /admin/staff/till", s.managerOnly(s.adminTillDevice))
 	admin.HandleFunc("POST /admin/staff/managerpin", s.managerOnly(s.adminManagerPIN))
+	admin.HandleFunc("POST /admin/staff/businessid", s.managerOnly(s.adminBusinessID))
+	admin.HandleFunc("GET /admin/tableplan", s.managerOnly(s.adminTablePlan))
+	admin.HandleFunc("POST /admin/tableplan", s.managerOnly(s.adminTablePlanSave))
 	admin.HandleFunc("GET /admin/hours", s.managerOnly(s.adminHours))
 	admin.HandleFunc("POST /admin/hours/{id}", s.managerOnly(s.adminHoursFix))
 	admin.HandleFunc("POST /admin/staff/{id}/{action}", s.managerOnly(s.adminStaffAction))

@@ -2,10 +2,21 @@
 <div class="day-head">
   <h1>{{tr "Staff"}}</h1>
   <span class="spacer"></span>
+  <a class="btn btn-secondary btn-sm" href="/admin/tableplan">{{tr "Tables and seats"}}</a>
   <a class="btn btn-secondary btn-sm" href="/admin/hours">{{tr "Hours (clock card)"}}</a>
   <a class="btn btn-secondary btn-sm" href="/admin/activity">{{tr "Activity"}}</a>
 </div>
 <p class="muted small">{{tr "Each waiter logs in with their own username and password. They can use the tables, orders, kitchen and bookings, but not the menu, closed days or this page. Payments, voids and price changes are recorded with their name."}}</p>
+
+<section class="panel biz-id{{if not .BusinessID}} biz-missing{{end}}" id="business-id">
+  <h2>{{tr "Business ID on receipts"}}</h2>
+  <p class="muted small">{{tr "Receipts in Finland must show the company's business ID (Y-tunnus / FO-nummer). It's on the company's papers, or ask the owner."}}</p>
+  <form method="post" action="/admin/staff/businessid" class="row">
+    <label class="field">{{tr "Business ID"}}<input name="id" value="{{if .BusinessTry}}{{.BusinessTry}}{{else}}{{.BusinessID}}{{end}}" placeholder="1234567-8" autocomplete="off" inputmode="numeric" maxlength="20"></label>
+    <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
+  </form>
+  {{if not .BusinessID}}<p class="notice biz-warn">{{tr "Not set yet: receipts don't show a business ID."}}</p>{{end}}
+</section>
 
 <section class="panel mgr-pin" id="manager-pin">
   <h2>{{tr "Manager's PIN"}}</h2>

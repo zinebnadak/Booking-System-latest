@@ -1,6 +1,7 @@
 package db
 
 import (
+	"emeal-booking/schedule"
 	"errors"
 	"testing"
 	"time"
@@ -177,5 +178,23 @@ func TestWaitlist(t *testing.T) {
 	s.RemoveWait(a.Ref)
 	if w := s.Waitlist("2026-10-30"); len(w) != 0 {
 		t.Fatalf("after remove, waitlist = %+v", w)
+	}
+}
+
+// Card or cash at pickup: cash goes in the drawer count.
+func TestPickupPaidInCash(t *testing.T) {
+	s := newStore(t)
+	cash, _ := s.CreateTakeaway(Booking{Date: "2026-10-23", Time: "12:00", TotalCents: 4000, DepositCents: 1000}, now0)
+	card, _ := s.CreateTakeaway(Booking{Date: "2026-10-23", Time: "12:30", TotalCents: 2000, DepositCents: 500, Email: "b@example.com", Phone: "0402"}, now0)
+	s.MarkPaid(cash.Ref, "pi1", now0)
+	s.MarkPaid(card.Ref, "pi2", now0)
+	if b, _, err := s.MarkPickedUpWith(cash.Ref, PaidCash, now0); err != nil || b.PickupPaidBy != PaidCash {
+		t.Fatalf("cash pickup: %+v %v", b, err)
+	}
+	s.MarkPickedUpWith(card.Ref, PaidCard, now0)
+	d := schedule.FormatDate(now0)
+	day := s.TillByDate(d, d)[d]
+	if day == nil || day.Cash != 3000 || day.PickupCash != 3000 || day.PickupCard != 1500 {
+		t.Fatalf("till %+v", day)
 	}
 }

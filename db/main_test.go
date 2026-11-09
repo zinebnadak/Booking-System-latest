@@ -15,7 +15,7 @@ var smallPlan = []schedule.Table{
 	{No: 4, Room: "Utrymme 1", Seats: 6}, {No: 5, Room: "Utrymme 1", Seats: 6}, {No: 6, Room: "Utrymme 1", Seats: 6},
 }
 
-var realRooms, realPlan = schedule.Rooms, schedule.TablePlan
+var realRooms, realPlan = schedule.RoomNames(), schedule.Tables()
 
 // realTables switches to the restaurant's real rooms and tables for one test.
 func realTables(t *testing.T) {

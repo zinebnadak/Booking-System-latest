@@ -71,9 +71,9 @@
     {{end}}
   </div>
   {{if not .Tables}}
-  <div class="empty"><strong>{{tr "No table bookings"}}</strong>{{tr "New bookings appear here as soon as the deposit is paid."}}</div>
+  <div class="empty"><strong>{{tr "No table bookings"}}</strong>{{if .Cfg.TableDeposit}}{{tr "New bookings appear here as soon as the deposit is paid."}}{{else}}{{tr "New bookings appear here as soon as they're made."}}{{end}}</div>
   {{else}}
-  <p class="muted small" style="margin-top:-4px">{{trf "Press Arrived when guests come in. Nobody checked in %d minutes after the start time means a no-show: the deposit is kept and the table is free again." .NoShowMin}}</p>
+  <p class="muted small" style="margin-top:-4px">{{if .Cfg.TableDeposit}}{{trf "Press Arrived when guests come in. Nobody checked in %d minutes after the start time means a no-show: the deposit is kept and the table is free again." .NoShowMin}}{{else}}{{trf "Press Arrived when guests come in. Nobody checked in %d minutes after the start time means a no-show, and the table is free again." .NoShowMin}}{{end}}</p>
   <div class="bk-list">
     {{range .Tables}}
     <article class="bk{{if or (eq .Group "cancelled") (eq .Group "noshow") .Past}} dim{{end}}{{if .Highlight}} flash{{end}}" id="b-{{.Ref}}" data-group="{{.Group}}">
@@ -88,7 +88,7 @@
           {{with .History.Visits}}<span class="pill pill-regular" title="{{tr "Earlier visits"}}">{{trf "Visited %d× before" .}}</span>{{end}}
           {{with .History.NoShows}}<span class="badge badge-bad" title="{{tr "Earlier bookings they didn't come to"}}">{{if eq . 1}}{{tr "1 no-show before"}}{{else}}{{trf "%d no-shows before" .}}{{end}}</span>{{end}}
         </div>
-        <div class="bk-meta">{{if eq .PartySize 1}}{{tr "1 guest"}}{{else}}{{trf "%d guests" .PartySize}}{{end}} · {{if .DepositCents}}{{trf "deposit %s" (euro .DepositCents)}}{{else}}{{tr "no deposit"}}{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}</div>
+        <div class="bk-meta">{{if eq .PartySize 1}}{{tr "1 guest"}}{{else}}{{trf "%d guests" .PartySize}}{{end}}{{if .DepositCents}} · {{trf "deposit %s" (euro .DepositCents)}}{{else if $.Cfg.TableDeposit}} · {{tr "no deposit"}}{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}</div>
         {{with .Notes}}<div class="bk-notes">{{.}}</div>{{end}}
         {{if eq .Status "paid"}}<div class="bk-hint">{{trf "No-show at %s if not checked in" .NoShowAt}}</div>{{end}}
       </div>
@@ -214,14 +214,23 @@
           <span class="badge badge-{{.Status}}">{{statusText .Status}}</span>
         </div>
         <ul class="bk-items">{{range .Items}}<li>{{.Quantity}} × {{.Name}}</li>{{end}}</ul>
-        <div class="bk-meta">{{trf "Total %s" (euro .TotalCents)}} · {{trf "deposit %s" (euro .DepositCents)}} · {{if eq .Status "picked_up"}}{{tr "rest paid at pickup"}}{{else}}<strong style="color:var(--ink)">{{trf "%s to pay at pickup" (euro .RemainingCents)}}</strong>{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}</div>
+        <div class="bk-meta">{{trf "Total %s" (euro .TotalCents)}} · {{trf "deposit %s" (euro .DepositCents)}} · {{if eq .Status "picked_up"}}{{if eq .PickupPaidBy "cash"}}{{tr "rest paid in cash at pickup"}}{{else if eq .PickupPaidBy "card"}}{{tr "rest paid by card at pickup"}}{{else}}{{tr "rest paid at pickup"}}{{end}}{{else}}<strong style="color:var(--ink)">{{trf "%s to pay at pickup" (euro .RemainingCents)}}</strong>{{end}}{{with .Phone}} · <a href="tel:{{.}}">{{.}}</a>{{end}}</div>
         {{with .Notes}}<div class="bk-notes">{{.}}</div>{{end}}
       </div>
       <div class="bk-actions">
         {{if eq .Status "paid"}}
-        <form method="post" action="/admin/bookings/{{.Ref}}/pickedup" data-confirm="{{trf "%s picked up the order and paid the %s left?" .Name (euro .RemainingCents)}}" data-confirm-ok="{{tr "Yes, picked up"}}">
+        {{if gt .RemainingCents 0}}
+        <form method="post" action="/admin/bookings/{{.Ref}}/pickedup" data-confirm="{{trf "%s picked up the order and paid the %s left by card?" .Name (euro .RemainingCents)}}" data-confirm-ok="{{tr "Yes, picked up"}}">
+          <input type="hidden" name="method" value="card"><button class="btn btn-ok btn-sm">{{tr "Picked up · card"}}</button>
+        </form>
+        <form method="post" action="/admin/bookings/{{.Ref}}/pickedup" data-confirm="{{trf "%s picked up the order and paid the %s left in cash?" .Name (euro .RemainingCents)}}" data-confirm-ok="{{tr "Yes, picked up"}}">
+          <input type="hidden" name="method" value="cash"><button class="btn btn-ok btn-sm">{{tr "Picked up · cash"}}</button>
+        </form>
+        {{else}}
+        <form method="post" action="/admin/bookings/{{.Ref}}/pickedup" data-confirm="{{trf "%s picked up the order?" .Name}}" data-confirm-ok="{{tr "Yes, picked up"}}">
           <button class="btn btn-ok btn-sm">{{tr "Picked up"}}</button>
         </form>
+        {{end}}
         <form method="post" action="/admin/bookings/{{.Ref}}/cancel" data-confirm="{{trf "Cancel %s's order? The %s deposit is non-refundable and will be kept." .Name (euro .DepositCents)}}" data-confirm-ok="{{tr "Cancel order"}}" data-danger>
           <input type="hidden" name="refund" value="no">
           <button class="btn btn-danger btn-sm">{{tr "Cancel order"}}</button>
@@ -240,7 +249,7 @@
 <dialog id="dlg-phone" aria-labelledby="dlg-phone-h">
   <form method="post" action="/admin/bookings/new" class="dlg-form">
     <div class="dlg-head">
-      <div><h2 id="dlg-phone-h">{{tr "Phone booking"}}</h2><p>{{prettyDate .Date}} · {{tr "no deposit, confirmed straight away"}}</p></div>
+      <div><h2 id="dlg-phone-h">{{tr "Phone booking"}}</h2><p>{{prettyDate .Date}} · {{if .Cfg.TableDeposit}}{{tr "no deposit, confirmed straight away"}}{{else}}{{tr "confirmed straight away"}}{{end}}</p></div>
       <button type="button" class="icon-btn dlg-close" data-close aria-label="{{tr "Close"}}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="dlg-body">

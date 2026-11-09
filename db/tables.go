@@ -420,7 +420,7 @@ func (s *Store) TablesNow() []TableNow {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := make([]TableNow, schedule.TableCount())
-	for i, t := range schedule.TablePlan {
+	for i, t := range schedule.Tables() {
 		out[i].No, out[i].Room = t.No, t.Room
 	}
 	for _, m := range s.d.MealRuns {

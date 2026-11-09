@@ -177,6 +177,20 @@ Any provider with SMTP works. Fill in the `SMTP_*` and `MAIL_FROM` settings in `
 
 ## 6. Go live (checklist)
 
+**The free way: `go-live.command`.** E-Meal runs on a Mac at the restaurant
+and a free Cloudflare Tunnel gives it your own https address, e.g.
+`https://bord.emealkitchen.com`. No server to rent. You need a free
+Cloudflare account with your domain added to it. Double-click
+`go-live.command`: the first time it asks for the address, opens the
+Cloudflare login, makes the tunnel, points the address at it, sets
+`BASE_URL`, `TRUST_PROXY`, `SESSION_SECRET` and a manager password in `.env`,
+and can start E-Meal by itself in the background (also after a restart).
+Run it again after a `git pull` to rebuild and restart. Keep that Mac awake
+and on the internet; everything else below still applies (Stripe keys for
+takeaway, backups).
+
+**Or rent a server:**
+
 1. **Hosting:** it must keep the `data/` folder between restarts. Options:
    - a small VPS (e.g. Hetzner, around 4 €/month)
    - Fly.io or Railway with a **volume** mounted at `/app/data`
@@ -184,7 +198,7 @@ Any provider with SMTP works. Fill in the `SMTP_*` and `MAIL_FROM` settings in `
    Build with `go build`, then upload the single program file. The pages are built into it.
 2. Set `ADMIN_PASSWORD` and `OWNER_PASSWORD`: at least 12 characters each, and different (`openssl rand -base64 18` makes one). The program won't start on a public address without them.
    If the host puts a proxy in front (Caddy, nginx, Render, Fly.io), also set `TRUST_PROXY=1`.
-3. Put a domain in front of it with **HTTPS**, e.g. `book.ozmo.ax`. Set `BASE_URL` to that address.
+3. Put a domain in front of it with **HTTPS**, e.g. `bord.emealkitchen.com`. Set `BASE_URL` to that address.
 4. In Stripe live mode:
    - Copy the `sk_live_...` key.
    - Go to **Developers → Webhooks → Add endpoint**: `https://<your-domain>/stripe/webhook`.
@@ -192,7 +206,7 @@ Any provider with SMTP works. Fill in the `SMTP_*` and `MAIL_FROM` settings in `
    - Copy its `whsec_...` secret.
 5. Turn on receipts: Stripe **Settings → Customer emails → Successful payments**.
 6. Set `CALENDAR_TOKEN` (any long random text). The **Calendar** page then shows a link the manager adds to their phone once.
-7. **Back up** the whole `data/` folder every day: `ozmo.json` holds all bookings, bills, button codes, feedback and waiters' logins, and `photos/` the dish photos.
+7. **Back up** the whole `data/` folder every day: `emeal.json` holds all bookings, bills, button codes, feedback and waiters' logins, and `photos/` the dish photos.
 8. Do one real booking with a real card and refund it from the dashboard.
 9. Print the table QR stickers and the review sticker from the real address (**Orders → Table QR codes**), and try "Pay for the whole table" once with a real card, then refund it in Stripe.
 10. Set `GOOGLE_REVIEW_URL` (section 11) and, if the end-of-day email should go somewhere else than `MANAGER_EMAIL`, `REPORT_EMAIL` (section 13).

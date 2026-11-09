@@ -6,18 +6,21 @@
   <h2>Bordsbokning</h2>
   <ul>
     <li>Ett bord har plats för 1–6 personer och är ert i 2 timmar.</li>
-    <li>Handpenningen är 10 € för 1–2 personer och 20 € för 3–6 personer. Den betalas när du bokar och dras av från notan.</li>
+    {{if .Cfg.TableDeposit}}<li>Handpenningen är 10 € för 1–2 personer och 20 € för 3–6 personer. Den betalas när du bokar och dras av från notan.</li>
     <li>Bokningen är bekräftad när handpenningen är betald. Betalas den inte inom 30 minuter släpps bordet.</li>
+    {{else}}<li>Det är gratis att boka och bokningen bekräftas direkt.</li>{{end}}
     <li>Är ni fler än 6? Ring oss.</li>
   </ul>
   <h2>Ändra eller avboka</h2>
   <ul>
     <li>Du kan ändra eller avboka själv via länken i bekräftelsen.</li>
-    <li>Avbokar du senast 24 timmar innan får du hela handpenningen tillbaka. Det tar 5–10 dagar innan pengarna syns på kontot.</li>
+    {{if .Cfg.TableDeposit}}<li>Avbokar du senast 24 timmar innan får du hela handpenningen tillbaka. Det tar 5–10 dagar innan pengarna syns på kontot.</li>
     <li>Vid senare avbokning behålls handpenningen.</li>
     <li>Kommer ni inte inom {{.NoShowAfterText}} efter bokad tid, och har inte hört av er, räknas bokningen som uteblivet besök. Bordet kan då ges till någon annan och handpenningen behålls.</li>
+    {{else}}<li>Kan ni inte komma? Avboka gärna så snart som möjligt, så kan någon annan få bordet.</li>
+    <li>Kommer ni inte inom {{.NoShowAfterText}} efter bokad tid, och har inte hört av er, räknas bokningen som uteblivet besök och bordet kan ges till någon annan.</li>{{end}}
     <li>Blir ni försenade? Ring oss, så håller vi bordet om det går.</li>
-    <li>Måste vi själva ställa in, till exempel vid stängning, får du alltid hela handpenningen tillbaka.</li>
+    {{if .Cfg.TableDeposit}}<li>Måste vi själva ställa in, till exempel vid stängning, får du alltid hela handpenningen tillbaka.</li>{{end}}
   </ul>
   <h2>Avhämtning</h2>
   <ul>
@@ -32,18 +35,21 @@
   <h2>Table bookings</h2>
   <ul>
     <li>A table seats 1–6 guests and is yours for 2 hours.</li>
-    <li>The deposit is 10 € for 1–2 guests and 20 € for 3–6 guests. You pay it when you book, and it's taken off your bill.</li>
+    {{if .Cfg.TableDeposit}}<li>The deposit is 10 € for 1–2 guests and 20 € for 3–6 guests. You pay it when you book, and it's taken off your bill.</li>
     <li>Your booking is confirmed once the deposit is paid. If it isn't paid within 30 minutes, the table is released.</li>
+    {{else}}<li>Booking is free and confirmed straight away.</li>{{end}}
     <li>More than 6 guests? Please call us.</li>
   </ul>
   <h2>Changing or cancelling</h2>
   <ul>
     <li>You can change or cancel your booking yourself, with the link in your confirmation.</li>
-    <li>Cancel at least 24 hours before and you get the whole deposit back. It takes 5–10 days to show on your account.</li>
+    {{if .Cfg.TableDeposit}}<li>Cancel at least 24 hours before and you get the whole deposit back. It takes 5–10 days to show on your account.</li>
     <li>If you cancel later than that, the deposit is kept.</li>
     <li>If you haven't arrived {{.NoShowAfterText}} after your booking time and haven't told us, the booking counts as a no-show. We may give the table to someone else, and the deposit is kept.</li>
+    {{else}}<li>Can't come? Please cancel as soon as you can, so someone else can have the table.</li>
+    <li>If you haven't arrived {{.NoShowAfterText}} after your booking time and haven't told us, the booking counts as a no-show and we may give the table to someone else.</li>{{end}}
     <li>Running late? Call us and we'll hold the table if we can.</li>
-    <li>If we ever have to cancel, for example because we're closed, you always get the whole deposit back.</li>
+    {{if .Cfg.TableDeposit}}<li>If we ever have to cancel, for example because we're closed, you always get the whole deposit back.</li>{{end}}
   </ul>
   <h2>Takeaway</h2>
   <ul>

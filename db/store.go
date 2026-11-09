@@ -125,6 +125,10 @@ type Settings struct {
 	WoltPctSet bool `json:"wolt_pct_set,omitempty"`
 	// CashFloat is the change the cash drawer starts the day with.
 	CashFloat int `json:"cash_float,omitempty"`
+	// Plan is the manager's table plan (see tableplan.go); nil: the default.
+	Plan *PlanSetting `json:"table_plan,omitempty"`
+	// BusinessID is the Y-tunnus / FO-nummer printed on receipts (see business.go).
+	BusinessID string `json:"business_id,omitempty"`
 	// VAPID is this server's key for push notifications (see push.go).
 	VAPID string `json:"vapid,omitempty"`
 }
@@ -172,6 +176,9 @@ func Open(path string) (*Store, error) {
 		if s.d.NextWaitID == 0 { // data file from before the waiting list existed
 			s.d.NextWaitID = 1
 		}
+	}
+	if err := s.usePlan(); err != nil { // the manager's table plan
+		return nil, fmt.Errorf("table plan in %s: %w", path, err)
 	}
 	addedButtons := s.ensureButtons()  // every table gets a secret button code
 	addedRefs := s.ensureBillRefs()    // and every bill a code for its online copy
@@ -264,7 +271,7 @@ func (s *Store) freeTablesFor(date, clock string, minutes int, need tableNeed, n
 		}
 	}
 	var free []schedule.Table
-	for _, t := range schedule.TablePlan {
+	for _, t := range schedule.Tables() {
 		if !used[t.No] && t.Seats >= need.size && !offline[t.Room] {
 			free = append(free, t)
 		}
@@ -320,7 +327,7 @@ func (s *Store) RoomsOffline() []string {
 // SetRoomOnline opens or closes a room for online bookings.
 func (s *Store) SetRoomOnline(room string, online bool) error {
 	ok := false
-	for _, r := range schedule.Rooms {
+	for _, r := range schedule.RoomNames() {
 		ok = ok || r == room
 	}
 	if !ok {

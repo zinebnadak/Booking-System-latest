@@ -20,7 +20,7 @@ type roomGroup[T any] struct {
 
 // roomID: the tab id of a room ("r1"), or of the room a table is in.
 func roomID(room string) string {
-	for i, r := range schedule.Rooms {
+	for i, r := range schedule.RoomNames() {
 		if r == room {
 			return "r" + strconv.Itoa(i+1)
 		}
@@ -38,9 +38,9 @@ func roomIDOfTable(n int) string {
 
 // byRoom sorts tiles into their rooms, in the plan's order.
 func byRoom[T any](tiles []T, room func(T) string, busy func(T) bool) []roomGroup[T] {
-	groups := make([]roomGroup[T], len(schedule.Rooms))
+	groups := make([]roomGroup[T], len(schedule.RoomNames()))
 	idx := map[string]int{}
-	for i, r := range schedule.Rooms {
+	for i, r := range schedule.RoomNames() {
 		groups[i] = roomGroup[T]{ID: roomID(r), Name: r}
 		idx[r] = i
 	}

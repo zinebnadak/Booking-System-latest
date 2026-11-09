@@ -11,6 +11,7 @@
   <form method="get" action="/owner" data-autosubmit><input type="hidden" name="wolt" value="{{.WoltMode}}"><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
 </div>
 {{template "wolt-filter" .}}
+{{if not .BusinessID}}<p class="notice"><a href="/admin/staff#business-id">{{tr "Receipts don't show your business ID yet. Add it under Staff."}}</a></p>{{end}}
 
 <section class="panel hero-kpi">
   <div>
@@ -27,7 +28,8 @@
   <div class="kpi-split">
     <div><strong>{{euro .S.Till}}</strong><span>{{tr "At the tables"}}</span></div>
     <div><strong>{{euro .S.TakeawaySales}}</strong><span>{{tr "Takeaway food"}}</span></div>
-    <div><strong>{{euro .S.DepositsNet}}</strong><span>{{tr "Table deposits"}}</span></div>
+    {{if or .Cfg.TableDeposit .S.DepositsGross}}<div><strong>{{euro .S.DepositsNet}}</strong><span>{{tr "Table deposits"}}</span></div>
+    {{else}}<div><strong>{{euro .S.Tips}}</strong><span>{{tr "Tips"}}</span></div>{{end}}
     <div class="kpi-wolt"><strong>{{euro .S.WoltNet}}</strong><span>{{if eq .S.WoltOrders 1}}{{tr "Wolt · 1 order"}}{{else}}{{trf "Wolt · %d orders" .S.WoltOrders}}{{end}}{{if .S.WoltFee}} · {{tr "after Wolt's cut"}}{{end}}</span></div>
   </div>
 </section>
@@ -52,7 +54,7 @@
 
 <section class="panel cash-panel" id="cash" aria-labelledby="cash-h">
   <h2 id="cash-h">{{tr "Cash check at closing"}}</h2>
-  <p class="muted small">{{tr "Count the cash drawer when you close. The app compares it with the change you started with and the cash taken today (bills and gift cards). Takeaway paid at pickup isn't in it."}}</p>
+  <p class="muted small">{{tr "Count the cash drawer when you close. The app compares it with the change you started with and the cash taken today: bills, gift cards and takeaway paid in cash at pickup."}}</p>
   <div class="cash-sum">
     <div><span>{{tr "Cash taken"}}</span><strong>{{euro .Cash.Taken}}</strong></div>
     {{with .Cash.Count}}
@@ -78,6 +80,7 @@
 </section>
 
 <div class="stat-groups">
+{{if or .Cfg.TableDeposit .S.DepositsGross .S.NeverPaid}}
   <section class="panel stat-group">
     <h2><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>{{tr "Deposits"}}</h2>
     <div class="stat-grid">
@@ -87,6 +90,7 @@
       <div class="stat"><strong>{{.S.NeverPaid}}</strong><span class="lbl">{{tr "Left without paying"}}</span><span class="amt">{{tr "no money taken"}}</span></div>
     </div>
   </section>
+  {{end}}
 
   <section class="panel stat-group">
     <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>{{tr "Takeaway"}}</h2>

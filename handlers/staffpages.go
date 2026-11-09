@@ -22,7 +22,30 @@ func (s *Server) adminStaff(w http.ResponseWriter, r *http.Request) {
 		"Admin": true, "Nav": "staff", "Title": st(lang, "Staff"),
 		"List": list, "Min": db.MinStaffPassword, "Toast": flashText(r),
 		"IsTill": s.isTill(r), "Served": s.servedBy(list, s.Now()), "HasPIN": s.Store.HasManagerPIN(),
+		"BusinessID": s.businessID(), "BusinessTry": r.URL.Query().Get("id"),
 	})
+}
+
+// businessID is printed on receipts: what the manager saved on the Staff
+// page, or else BUSINESS_ID from the settings file.
+func (s *Server) businessID() string {
+	if id := s.Store.BusinessID(); id != "" {
+		return id
+	}
+	return s.Cfg.BusinessID
+}
+
+// adminBusinessID saves the business ID for receipts.
+func (s *Server) adminBusinessID(w http.ResponseWriter, r *http.Request) {
+	if !s.parseStaffForm(w, r) {
+		return
+	}
+	if err := s.Store.SetBusinessID(strings.TrimSpace(r.FormValue("id"))); err != nil {
+		redirectMsg(w, r, "/admin/staff", url.Values{"id": {r.FormValue("id")}}, "bizbad")
+		return
+	}
+	s.logActivity(r, 0, "changed the business ID on receipts", s.Store.BusinessID())
+	redirectMsg(w, r, "/admin/staff", nil, "bizsaved")
 }
 
 // servedRow is one waiter on "Who served the most tables".

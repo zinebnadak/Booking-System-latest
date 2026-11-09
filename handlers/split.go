@@ -86,7 +86,7 @@ func (s *Server) publicBase(r *http.Request) string {
 // receiptFor builds a receipt for the whole bill (guest 0) or one guest.
 func (s *Server) receiptFor(b db.Bill, guest int, base string, now time.Time) receiptView {
 	v := receiptView{Table: b.Table, BillID: b.ID, Guest: guest, Guests: len(b.Split), Restaurant: s.Cfg.RestaurantName,
-		Address: s.Cfg.Address, Phone: s.Cfg.RestaurantPhone, BusinessID: s.Cfg.BusinessID}
+		Address: s.Cfg.Address, Phone: s.Cfg.RestaurantPhone, BusinessID: s.businessID()}
 	v.No = billNumbers(s.Store.BillsForTable(b.Table))[b.ID]
 	at := now
 	if guest == 0 {

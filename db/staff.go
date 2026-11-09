@@ -105,12 +105,24 @@ func (s *Store) FreeNow(date, clock string, minMinutes int, now time.Time) []Tab
 
 // MarkPickedUp records that a takeaway order was collected (and the rest paid).
 func (s *Store) MarkPickedUp(ref string, now time.Time) (Booking, bool, error) {
+	return s.MarkPickedUpWith(ref, "", now)
+}
+
+// MarkPickedUpWith is MarkPickedUp, saying how the rest was paid (PaidCard
+// or PaidCash; "" if unknown), so cash at pickup is in the drawer count.
+func (s *Store) MarkPickedUpWith(ref, method string, now time.Time) (Booking, bool, error) {
+	if method != PaidCard && method != PaidCash {
+		method = ""
+	}
 	return s.update(ref, func(b *Booking) bool {
 		if b.Kind != KindTakeaway || b.Status != StatusPaid || b.PickedUpAt != nil {
 			return false
 		}
 		t := now
 		b.PickedUpAt = &t
+		if b.RemainingCents() > 0 {
+			b.PickupPaidBy = method
+		}
 		return true
 	})
 }

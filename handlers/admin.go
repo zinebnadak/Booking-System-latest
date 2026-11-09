@@ -112,6 +112,11 @@ var flashes = map[string]string{
 	"woltfull":      "Too many Wolt orders are open. Finish one first.",
 	"woltcancelled": "The Wolt order is cancelled.",
 	"cashsaved":     "Cash count saved.",
+	"plansaved":     "Saved. Bookings and Orders use the new tables now.",
+	"seatssaved":    "Saved. Online bookings use the new number of seats.",
+	"seatsbad":      "A table has 1 to 30 seats.",
+	"bizsaved":      "Saved. Receipts show the business ID now.",
+	"bizbad":        "That isn't a business ID. It looks like 1234567-8 (Y-tunnus / FO-nummer).",
 	"shiftstarted":  "Your shift has started. Have a good one!",
 	"shiftended":    "Your shift has ended. Thanks!",
 	"shiftnone":     "You weren't on a shift.",
@@ -262,7 +267,7 @@ func (s *Server) adminDay(w http.ResponseWriter, r *http.Request) {
 	}
 	var tables, takeaway []bookingRow
 	cards := make([]tableCard, schedule.TableCount())
-	for i, t := range schedule.TablePlan {
+	for i, t := range schedule.Tables() {
 		cards[i].No, cards[i].Room, cards[i].Seats = t.No, t.Room, t.Seats
 	}
 	guests, deposits, noShows := 0, 0, 0
@@ -722,9 +727,9 @@ func (s *Server) adminClosed(w http.ResponseWriter, r *http.Request) {
 		Online bool
 	}
 	var rooms []roomRow
-	for _, name := range schedule.Rooms {
+	for _, name := range schedule.RoomNames() {
 		n := 0
-		for _, t := range schedule.TablePlan {
+		for _, t := range schedule.Tables() {
 			if t.Room == name {
 				n++
 			}

@@ -7,6 +7,8 @@ package schedule
 
 import (
 	"fmt"
+	"strings"
+	"sync/atomic"
 	"time"
 	_ "time/tzdata" // embeds time zone data so "Europe/Mariehamn" works on any server
 )
@@ -68,11 +70,12 @@ type Table struct {
 	Seats int
 }
 
-// Rooms in the order the staff screens show them.
-var Rooms = []string{"Utrymme 1", "Utrymme 2", "Terrassen"}
+// DefaultRooms are the rooms in the order the staff screens show them,
+// until the manager changes the table plan (Tables and seats).
+var DefaultRooms = []string{"Utrymme 1", "Utrymme 2", "Terrassen"}
 
-// TablePlan is every table, room by room.
-var TablePlan = []Table{
+// DefaultTablePlan is every table, room by room, until the manager changes it.
+var DefaultTablePlan = []Table{
 	// Utrymme 1: the dining room with the bar counter
 	{1, "Utrymme 1", 2}, {2, "Utrymme 1", 4}, {3, "Utrymme 1", 2}, {4, "Utrymme 1", 2},
 	{5, "Utrymme 1", 4}, {6, "Utrymme 1", 6}, {7, "Utrymme 1", 8},
@@ -95,7 +98,21 @@ var TablePlan = []Table{
 	{66, "Terrassen", 2},
 }
 
-var tableIndex = indexTables(TablePlan)
+// tablePlan is the plan in use. The manager can change it while the app
+// runs (SetPlan), so it's swapped as a whole, never changed in place.
+type tablePlan struct {
+	rooms  []string
+	tables []Table
+	index  map[int]int
+}
+
+var plan atomic.Pointer[tablePlan]
+
+func init() { plan.Store(newPlan(DefaultRooms, DefaultTablePlan)) }
+
+func newPlan(rooms []string, tables []Table) *tablePlan {
+	return &tablePlan{rooms: rooms, tables: tables, index: indexTables(tables)}
+}
 
 func indexTables(plan []Table) map[int]int {
 	m := make(map[int]int, len(plan))
@@ -105,21 +122,101 @@ func indexTables(plan []Table) map[int]int {
 	return m
 }
 
+// Tables is every table, room by room. Don't change the slice.
+func Tables() []Table { return plan.Load().tables }
+
+// RoomNames are the rooms in the order the staff screens show them.
+func RoomNames() []string { return plan.Load().rooms }
+
+// Limits for the table plan.
+const (
+	MaxTableNo    = 899 // 901 and up are Wolt orders
+	MaxTableSeats = 30
+	MaxTables     = 200
+	MaxRooms      = 12
+)
+
+// PlanError says what's wrong with a table plan. Msg is an English
+// sentence the staff pages translate, with Arg filled in.
+type PlanError struct {
+	Msg string
+	Arg any
+}
+
+func (e PlanError) Error() string {
+	if e.Arg == nil {
+		return e.Msg
+	}
+	return fmt.Sprintf(e.Msg, e.Arg)
+}
+
+// CheckPlan reports what's wrong with a table plan, or nil.
+func CheckPlan(rooms []string, tables []Table) error {
+	if len(rooms) == 0 || len(rooms) > MaxRooms {
+		return PlanError{"Between 1 and %d rooms.", MaxRooms}
+	}
+	room := map[string]bool{}
+	for _, r := range rooms {
+		if strings.TrimSpace(r) == "" || len(r) > 40 || room[r] {
+			return PlanError{Msg: "Room names must be filled in and different."}
+		}
+		room[r] = true
+	}
+	if len(tables) == 0 || len(tables) > MaxTables {
+		return PlanError{"Between 1 and %d tables.", MaxTables}
+	}
+	seen := map[int]bool{}
+	for _, t := range tables {
+		switch {
+		case t.No < 1 || t.No > MaxTableNo:
+			return PlanError{"Table numbers go from 1 to %d.", MaxTableNo}
+		case seen[t.No]:
+			return PlanError{"Table %d is there twice.", t.No}
+		case t.Seats < 1 || t.Seats > MaxTableSeats:
+			return PlanError{"A table has 1 to %d seats.", MaxTableSeats}
+		case !room[t.Room]:
+			return PlanError{"Table %d is in a room that doesn't exist.", t.No}
+		}
+		seen[t.No] = true
+	}
+	return nil
+}
+
+// SetPlan puts a new table plan in use (checked with CheckPlan). Tables are
+// kept room by room, in the rooms' order.
+func SetPlan(rooms []string, tables []Table) error {
+	if err := CheckPlan(rooms, tables); err != nil {
+		return err
+	}
+	rs := append([]string(nil), rooms...)
+	var ts []Table
+	for _, r := range rs {
+		for _, t := range tables {
+			if t.Room == r {
+				ts = append(ts, t)
+			}
+		}
+	}
+	plan.Store(newPlan(rs, ts))
+	return nil
+}
+
 // UseTables swaps in another table plan (for tests) and returns a function
 // that puts the old one back.
-func UseTables(rooms []string, plan []Table) (restore func()) {
-	oldRooms, oldPlan, oldIndex := Rooms, TablePlan, tableIndex
-	Rooms, TablePlan, tableIndex = rooms, plan, indexTables(plan)
-	return func() { Rooms, TablePlan, tableIndex = oldRooms, oldPlan, oldIndex }
+func UseTables(rooms []string, tables []Table) (restore func()) {
+	old := plan.Load()
+	plan.Store(newPlan(rooms, tables))
+	return func() { plan.Store(old) }
 }
 
 // TableCount is how many tables the restaurant has.
-func TableCount() int { return len(TablePlan) }
+func TableCount() int { return len(plan.Load().tables) }
 
 // TableNos lists every table number, room by room.
 func TableNos() []int {
-	out := make([]int, len(TablePlan))
-	for i, t := range TablePlan {
+	ts := Tables()
+	out := make([]int, len(ts))
+	for i, t := range ts {
 		out[i] = t.No
 	}
 	return out
@@ -136,20 +233,21 @@ const (
 func IsWolt(n int) bool { return n >= WoltFirst && n <= WoltLast }
 
 // ValidTable reports whether n is one of the restaurant's tables.
-func ValidTable(n int) bool { _, ok := tableIndex[n]; return ok }
+func ValidTable(n int) bool { _, ok := plan.Load().index[n]; return ok }
 
 // TableInfo returns a table's room and seats.
 func TableInfo(n int) (Table, bool) {
-	i, ok := tableIndex[n]
+	p := plan.Load()
+	i, ok := p.index[n]
 	if !ok {
 		return Table{}, false
 	}
-	return TablePlan[i], true
+	return p.tables[i], true
 }
 
 // TableOrder is a table's place in the plan (for sorting), -1 if unknown.
 func TableOrder(n int) int {
-	if i, ok := tableIndex[n]; ok {
+	if i, ok := plan.Load().index[n]; ok {
 		return i
 	}
 	return -1

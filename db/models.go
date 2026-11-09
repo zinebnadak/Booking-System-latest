@@ -92,12 +92,13 @@ type Booking struct {
 	HoldExpiresAt time.Time  `json:"hold_expires_at"`
 	PaidAt        *time.Time `json:"paid_at,omitempty"`
 	CancelledAt   *time.Time `json:"cancelled_at,omitempty"`
-	ArrivedAt     *time.Time `json:"arrived_at,omitempty"`   // when the manager pressed "Arrived"
-	RemindedAt    *time.Time `json:"reminded_at,omitempty"`  // reminder email sent
-	PickedUpAt    *time.Time `json:"picked_up_at,omitempty"` // takeaway collected
-	CancelledBy   string     `json:"cancelled_by,omitempty"` // "guest" or "staff"
-	TableCode     string     `json:"table_code,omitempty"`   // table bookings: 4 digits that unlock the table's QR code
-	Anonymized    bool       `json:"anonymized,omitempty"`   // personal details removed (old booking)
+	ArrivedAt     *time.Time `json:"arrived_at,omitempty"`     // when the manager pressed "Arrived"
+	RemindedAt    *time.Time `json:"reminded_at,omitempty"`    // reminder email sent
+	PickedUpAt    *time.Time `json:"picked_up_at,omitempty"`   // takeaway collected
+	PickupPaidBy  string     `json:"pickup_paid_by,omitempty"` // how the rest was paid at pickup (PaidCard, PaidCash)
+	CancelledBy   string     `json:"cancelled_by,omitempty"`   // "guest" or "staff"
+	TableCode     string     `json:"table_code,omitempty"`     // table bookings: 4 digits that unlock the table's QR code
+	Anonymized    bool       `json:"anonymized,omitempty"`     // personal details removed (old booking)
 }
 
 // Online reports whether the guest booked on the website (and paid a deposit).

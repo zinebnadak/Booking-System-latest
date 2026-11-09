@@ -270,3 +270,59 @@ func TestReceiptAfterPaying(t *testing.T) {
 		t.Fatalf("one guest's bill only, got %d", n)
 	}
 }
+
+// The manager saves the business ID (checked), and receipts show it.
+func TestBusinessIDOnReceipts(t *testing.T) {
+	e := newEnv(t, nil)
+	e.expect(e.do("GET", "/owner", nil, true), 200, "show your business ID yet")
+	location(t, e.do("POST", "/admin/staff/businessid", url.Values{"id": {"0112038-8"}}, true), "msg=bizbad")
+	location(t, e.do("POST", "/admin/staff/businessid", url.Values{"id": {"01120389"}}, true), "msg=bizsaved")
+	burger := e.menuItem("E-Meal-burgare")
+	location(t, e.do("POST", "/admin/orders/3/add", url.Values{"bill": {"0"}, fmt.Sprintf("qty_%d", burger.ID): {"1"}}, true), "msg=added")
+	b, _ := e.store.OpenBill(3)
+	e.expect(e.do("GET", fmt.Sprintf("/admin/orders/3/bill?bill=%d", b.ID), nil, true), 200, "0112038-9")
+}
+
+// The manager changes seats, moves and removes tables, adds one; a table
+// with an open bill can't be removed. Online booking uses the new seats.
+func TestTablePlanByTheManager(t *testing.T) {
+	t.Cleanup(schedule.UseTables(schedule.RoomNames(), schedule.Tables()))
+	e := newEnv(t, nil)
+	e.expect(e.do("GET", "/admin/tableplan", nil, true), 200, "Tables and seats", `name="seats_3"`)
+	form := url.Values{"room_0": {"Utrymme 1"}, "seats_1": {"2"}, "del_6": {"1"}, "new_no": {"40"}, "new_seats": {"8"}, "new_room": {"new"}, "room_new": {"Terrassen"}}
+	location(t, e.do("POST", "/admin/tableplan", form, true), "msg=plansaved")
+	if tb, _ := schedule.TableInfo(1); tb.Seats != 2 {
+		t.Fatalf("table 1: %+v", tb)
+	}
+	if schedule.ValidTable(6) {
+		t.Fatal("table 6 should be gone")
+	}
+	if tb, ok := schedule.TableInfo(40); !ok || tb.Room != "Terrassen" || tb.Seats != 8 {
+		t.Fatalf("table 40: %+v %v", tb, ok)
+	}
+	// Table 3 has an open bill: it can't be removed.
+	location(t, e.do("POST", "/admin/orders/3/guests", url.Values{"guests": {"2"}}, true), "")
+	rec := e.do("POST", "/admin/tableplan", url.Values{"room_0": {"Utrymme 1"}, "room_1": {"Terrassen"}, "del_3": {"1"}}, true)
+	e.expect(rec, 422, "Table 3 has an open bill")
+	if !schedule.ValidTable(3) {
+		t.Fatal("table 3 must stay")
+	}
+	// A room can't be emptied of its name while it has tables.
+	e.expect(e.do("POST", "/admin/tableplan", url.Values{"room_0": {"Utrymme 1"}, "room_1": {""}}, true), 422, "still has tables")
+}
+
+// A waiter changes a table's seats from the table's page; online booking
+// uses it at once.
+func TestWaiterChangesSeats(t *testing.T) {
+	t.Cleanup(schedule.UseTables(schedule.RoomNames(), schedule.Tables()))
+	wrongPasswordDelay = 0
+	e := newEnv(t, nil)
+	e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
+	lisa, _ := e.loginAs(t, "lisa", "a-long-password-1")
+	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, "Seats at this table", `name="seats"`)
+	location(t, e.as(lisa, "POST", "/admin/orders/3/seats", url.Values{"seats": {"2"}}), "msg=seatssaved")
+	if tb, _ := schedule.TableInfo(3); tb.Seats != 2 {
+		t.Fatalf("table 3 has %d seats", tb.Seats)
+	}
+	location(t, e.as(lisa, "POST", "/admin/orders/3/seats", url.Values{"seats": {"99"}}), "msg=seatsbad")
+}

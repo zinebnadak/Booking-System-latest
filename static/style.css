@@ -1755,3 +1755,23 @@ h1 .wolt-dot { width: 28px; height: 28px; font-size: .9rem; vertical-align: 3px;
 .gp-print { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 8px; font-size: .88rem; font-weight: 600; color: var(--brass); text-decoration: none; }
 .gp-print:hover { text-decoration: underline; }
 .gp-print svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+
+/* ------------------------------------------------------------ tables and seats (the manager's table plan) */
+.plan-problem { border-color: #e9b9ad; background: var(--bad-soft); color: #7a2414; }
+.plan-room { margin-bottom: var(--s4); }
+.plan-room-name { max-width: 360px; margin: 0 0 var(--s3); }
+.plan-room-name input { font-weight: 600; }
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--s2); }
+.plan-table { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+.plan-seats { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .9rem; color: var(--ink-2); }
+.plan-seats input { width: 5em; min-height: 40px; padding: 6px 10px; text-align: center; }
+.plan-move select { width: 100%; min-height: 40px; padding: 6px 10px; font-size: .9rem; }
+.plan-del { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--bad); cursor: pointer; }
+.plan-del input { width: 18px; height: 18px; accent-color: var(--bad); }
+.plan-add { margin-bottom: var(--s4); }
+.plan-add-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--s3); }
+.plan-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-bottom: var(--s6); }
+.plan-save { position: sticky; bottom: 0; z-index: 5; padding: 12px var(--s4); margin: 0 calc(-1 * var(--s4)) var(--s6); background: rgba(242, 242, 242, .94); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border-top: 1px solid var(--line); }
+.table-meta .seats-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px var(--s3); margin: 0; padding-top: var(--s3); border-top: 1px solid var(--line); }
+.seats-pick { display: inline-flex; align-items: center; gap: 8px; }
+.seats-pick input { width: 5em; min-height: 40px; padding: 6px 10px; text-align: center; border-radius: 999px; }
