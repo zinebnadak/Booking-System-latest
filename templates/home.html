@@ -1,13 +1,13 @@
 {{define "content"}}
 <section class="hero">
   <h1>{{.T.home_title}}</h1>
-  <p class="lead">{{.T.home_lead}}</p>
+  <p class="lead">{{if .Cfg.TableDeposit}}{{.T.home_lead}}{{else}}{{.T.home_lead_free}}{{end}}</p>
 </section>
 
 <div class="choices">
   <a class="choice" href="/book">
     <span class="choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10h16M6 10v9M18 10v9M3 7l9-3 9 3"/></svg></span>
-    <span class="choice-text"><strong>{{.T.cta_book}}</strong><span>{{.T.choice_book}}</span></span>
+    <span class="choice-text"><strong>{{.T.cta_book}}</strong><span>{{if .Cfg.TableDeposit}}{{.T.choice_book}}{{else}}{{.T.choice_book_free}}{{end}}</span></span>
     <span class="choice-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
   </a>
   <a class="choice" href="/takeaway">
@@ -30,7 +30,7 @@
   <section class="card">
     <h2>{{.T.good_to_know}}</h2>
     <ul class="facts">
-      <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><strong>{{.T.dep_title}}</strong><span class="muted">{{.T.dep_text}} {{.T.dep_note}}</span></div></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div>{{if .Cfg.TableDeposit}}<strong>{{.T.dep_title}}</strong><span class="muted">{{.T.dep_text}} {{.T.dep_note}}</span>{{else}}<strong>{{.T.dep_free_title}}</strong><span class="muted">{{.T.dep_free_text}}</span>{{end}}</div></li>
       <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><div><strong>{{.T.ta_title}}</strong><span class="muted">{{.T.ta_text}} {{.T.ta_note}}</span></div></li>
       <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4v16"/></svg><div><strong>{{.T.big_title}}</strong><span class="muted">{{.T.big_group}}{{with .Cfg.RestaurantPhone}} <a href="tel:{{.}}">{{.}}</a>{{end}}</span></div></li>
     </ul>

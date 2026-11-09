@@ -126,7 +126,7 @@ func (s *Server) bookData(r *http.Request, date string, size int, form, errs map
 		"Size":      size,
 		"Date":      date,
 		"Days":      days,
-		"Deposit":   schedule.TableDeposit(size),
+		"Deposit":   s.tableDeposit(size),
 		"Form":      form,
 		"Errors":    errs,
 		"Occasions": occasions,
@@ -299,7 +299,7 @@ func (s *Server) bookSubmit(w http.ResponseWriter, r *http.Request) {
 	b, err := s.Store.CreateTableBooking(db.Booking{
 		Name: c.Name, Email: c.Email, Phone: c.Phone, Notes: c.Notes, Lang: lang,
 		Date: form["date"], Time: form["time"], PartySize: size, Occasion: form["occasion"],
-		DepositCents: schedule.TableDeposit(size),
+		DepositCents: s.tableDeposit(size),
 	}, now)
 	var dup db.ErrDuplicate
 	if errors.As(err, &dup) {
@@ -321,8 +321,24 @@ func (s *Server) bookSubmit(w http.ResponseWriter, r *http.Request) {
 		s.message(w, r, 500, "m_wrong_t", "m_wrong_book", "/book", "m_try_again")
 		return
 	}
+	if b.DepositCents == 0 { // free booking: confirmed straight away
+		if err := s.confirmPaid(b.Ref, ""); err != nil {
+			log.Printf("confirm free booking %s: %v", b.Ref, err)
+		}
+		http.Redirect(w, r, "/b/"+b.Ref, http.StatusSeeOther)
+		return
+	}
 	desc := fmt.Sprintf(t["sd_table"], b.PartySize, shortDateL(lang, b.Date), b.Time)
 	s.startPayment(w, r, b, desc)
+}
+
+// tableDeposit is what a guest pays to book a table online: nothing
+// while table deposits are switched off (Cfg.TableDeposit).
+func (s *Server) tableDeposit(size int) int {
+	if !s.Cfg.TableDeposit {
+		return 0
+	}
+	return schedule.TableDeposit(size)
 }
 
 // ---------- Takeaway ----------

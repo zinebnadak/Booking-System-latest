@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="page-head">
   <h1>{{.T.book_title}}</h1>
-  <p>{{.T.book_lead}}</p>
+  <p>{{if .Cfg.TableDeposit}}{{.T.book_lead}}{{else}}{{.T.book_lead_free}}{{end}}</p>
 </div>
 
 <form method="post" action="/book" id="booking" class="book-layout" novalidate
@@ -80,8 +80,13 @@
           {{with .Errors.notes}}<span class="field-error">{{.}}</span>{{end}}
         </label>
       </div>
+      {{if .Cfg.TableDeposit}}
       <button class="btn btn-primary btn-block inline-pay" style="margin-top:20px" data-pay data-loading="{{.T.opening_payment}}">{{.T.pay_deposit}} · <span data-sum="deposit">{{euro .Deposit}}</span></button>
       <p class="step-note">{{.T.deposit_note_tbl}}</p>
+      {{else}}
+      <button class="btn btn-primary btn-block inline-pay" style="margin-top:20px" data-pay data-loading="{{.T.confirming}}">{{.T.confirm_book}}</button>
+      <p class="step-note">{{.T.free_note_tbl}}</p>
+      {{end}}
       <p class="consent">{{.T.consent_1}} <a href="/terms" target="_blank">{{.T.consent_terms}}</a> {{.T.consent_2}} <a href="/privacy" target="_blank">{{.T.consent_privacy}}</a>.</p>
     </section>
   </div>
@@ -93,18 +98,23 @@
       <dt>{{.T.lbl_time}}</dt><dd data-sum="time"{{if not .Form.time}} class="empty"{{end}}>{{if .Form.time}}{{.Form.time}}{{else}}{{.T.pick_time}}{{end}}</dd>
       <dt>{{.T.lbl_guests}}</dt><dd data-sum="guests">{{guests .Lang .Size}}</dd>
     </dl>
+    {{if .Cfg.TableDeposit}}
     <div class="sum-total"><span>{{.T.deposit}}</span><strong data-sum="deposit">{{euro .Deposit}}</strong></div>
     <button class="btn btn-primary btn-block" data-pay data-loading="{{.T.opening_payment}}">{{.T.pay_deposit}}</button>
     <p class="sum-note">{{.T.deposit_note_tbl}}</p>
+    {{else}}
+    <button class="btn btn-primary btn-block" data-pay data-loading="{{.T.confirming}}">{{.T.confirm_book}}</button>
+    <p class="sum-note">{{.T.free_note_tbl}}</p>
+    {{end}}
   </aside>
 
   <div class="paybar">
     <div class="paybar-inner">
       <div class="paybar-text">
         <strong><span data-sum="date">{{if .WhenShort}}{{.WhenShort}}{{else}}{{.T.pick_day}}{{end}}</span> · <span data-sum="time">{{if .Form.time}}{{.Form.time}}{{else}}{{.T.pick_time}}{{end}}</span></strong>
-        <span><span data-sum="guests">{{guests .Lang .Size}}</span> · {{.T.deposit}} <span data-sum="deposit">{{euro .Deposit}}</span></span>
+        <span><span data-sum="guests">{{guests .Lang .Size}}</span>{{if .Cfg.TableDeposit}} · {{.T.deposit}} <span data-sum="deposit">{{euro .Deposit}}</span>{{end}}</span>
       </div>
-      <button class="btn btn-primary" data-pay data-loading="…">{{.T.pay}}</button>
+      <button class="btn btn-primary" data-pay data-loading="…">{{if .Cfg.TableDeposit}}{{.T.pay}}{{else}}{{.T.confirm_book}}{{end}}</button>
     </div>
   </div>
 </form>

@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"emeal-booking/db"
 )
 
 // The table buttons and ordering with the table's QR code are switched off
@@ -42,4 +44,31 @@ func TestButtonsAndTableQROff(t *testing.T) {
 		t.Error("table stickers still offered")
 	}
 	e.expect(e.do("GET", "/review", nil, false), 200)
+}
+
+// Table deposits are switched off for now: booking a table online is free,
+// confirmed at once with no payment page, and the pages say so.
+func TestFreeTableBooking(t *testing.T) {
+	e := newEnv(t, nil)
+	e.srv.Cfg.TableDeposit = false
+
+	home := e.do("GET", "/", nil, false)
+	e.expect(home, 200, "No payment needed")
+	page := e.do("GET", "/book", nil, false)
+	e.expect(page, 200, "Confirm booking")
+	if strings.Contains(page.Body.String(), "Pay deposit") {
+		t.Error("the booking page still asks for a deposit")
+	}
+
+	rec := e.do("POST", "/book", bookingForm("18:00", "2"), false)
+	loc := rec.Header().Get("Location")
+	if rec.Code != 303 || !strings.HasPrefix(loc, "/b/") {
+		t.Fatalf("free booking should go to its page, got %d %s", rec.Code, loc)
+	}
+	ref := refFromLocation(t, loc)
+	b, _ := e.store.Get(ref)
+	if b.Status != db.StatusPaid || b.DepositCents != 0 {
+		t.Fatalf("booking: status %s, deposit %d", b.Status, b.DepositCents)
+	}
+	e.expect(e.do("GET", "/b/"+ref, nil, false), 200, "Your table is booked")
 }

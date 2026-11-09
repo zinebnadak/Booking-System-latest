@@ -38,8 +38,11 @@ type Config struct {
 	// TableButtons: the call button on each table (TABLE_BUTTONS=1).
 	// TableQR: guests order and pay with the table's QR code (TABLE_QR=1).
 	// With TableQR off there's one QR code: feedback.
-	TableButtons  bool
-	TableQR       bool
+	TableButtons bool
+	TableQR      bool
+	// TableDeposit: guests pay a deposit to book a table online
+	// (TABLE_DEPOSIT=1). Off: booking online is free and confirmed at once.
+	TableDeposit  bool
 	AdminUser     string
 	AdminPassword string
 	OwnerUser     string // a second manager login (was the head manager)
