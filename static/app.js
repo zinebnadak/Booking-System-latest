@@ -840,7 +840,8 @@
 
   // Menu editor: the on/off switch saves straight away.
   // Staff date pickers jump to the chosen day straight away.
-  $$('form[data-autosubmit] input[type="checkbox"], form[data-autosubmit] input[type="date"]').forEach(function (c) {
+  // The "Guests at the table" dropdown saves as soon as a number is picked.
+  $$('form[data-autosubmit] input[type="checkbox"], form[data-autosubmit] input[type="date"], form[data-autosubmit] select:not([data-autosubmit-select])').forEach(function (c) {
     c.addEventListener('change', function () { c.form.requestSubmit ? c.form.requestSubmit() : c.form.submit(); });
   });
 

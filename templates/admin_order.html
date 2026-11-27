@@ -94,21 +94,16 @@
 </form>{{end}}
 
 {{if not .Wolt}}<div class="panel table-meta">
-<form method="post" action="/admin/orders/{{.Table}}/guests" class="guests-row">
-  <span class="guests-label">{{tr "Guests at the table"}}</span>
-  <span class="guests-pick" role="group" aria-label="{{tr "Guests at the table"}}">
-    {{range .GuestChoices}}<button class="gchip{{if and $.Open (eq . $.Bill.Guests)}} on{{end}}" name="guests" value="{{.}}"{{if and $.Open (eq . $.Bill.Guests)}} aria-pressed="true"{{end}}>{{.}}</button>{{end}}
-    <label class="gmore"><span class="sr-only">{{tr "More guests"}}</span><input type="number" name="guests" min="9" max="{{.MaxGuests}}" inputmode="numeric" placeholder="9+" form="guests-more-{{.Table}}"{{if and .Open (gt .Bill.Guests 8)}} value="{{.Bill.Guests}}"{{end}}></label>
-    <button class="btn btn-secondary btn-sm" form="guests-more-{{.Table}}">{{tr "OK"}}</button>
-  </span>
+<form method="post" action="/admin/orders/{{.Table}}/guests" class="guests-row" data-autosubmit>
+  <label class="guests-label" for="guests-{{.Table}}">{{tr "Guests at the table"}}</label>
+  <select id="guests-{{.Table}}" name="guests" class="guests-select" required>
+    {{if not (and .Open .Bill.Guests)}}<option value="" selected disabled>{{tr "Choose…"}}</option>{{end}}
+    {{range .GuestChoices}}<option value="{{.}}"{{if and $.Open (eq . $.Bill.Guests)}} selected{{end}}>{{.}}</option>{{end}}
+  </select>
   {{if not .Open}}<span class="muted small">{{if .Cfg.TableQR}}{{tr "Seats them here: the table opens for QR orders too."}}{{else}}{{tr "Seats them here and opens the bill."}}{{end}}</span>{{end}}
 </form>
-<form method="post" action="/admin/orders/{{.Table}}/guests" id="guests-more-{{.Table}}" hidden></form>
-{{if .TableSeats}}<form method="post" action="/admin/orders/{{.Table}}/seats" class="seats-row">
-  <label class="guests-label" for="seats-{{.Table}}">{{tr "Seats at this table"}}</label>
-  <span class="seats-pick"><input id="seats-{{.Table}}" type="number" name="seats" min="1" max="30" value="{{.TableSeats}}" inputmode="numeric"><button class="btn btn-secondary btn-sm">{{tr "Save"}}</button></span>
-  <span class="muted small">{{tr "Moved chairs or pushed tables together? Change it here: online bookings use it."}}</span>
-</form>{{end}}
+{{/* "Seats at this table" is hidden here (it looked like "Guests at the
+   table"): the manager changes seats on Staff → Tables and seats. */}}
 {{if .Open}}
 <form method="post" action="/admin/orders/{{.Table}}/waiter" class="waiter-row">
   <input type="hidden" name="bill" value="{{.Bill.ID}}">

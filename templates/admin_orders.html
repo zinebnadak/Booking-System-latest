@@ -17,7 +17,7 @@
   <a class="btn btn-secondary btn-sm" href="/admin/offline">{{tr "If the internet goes down"}}</a>
 </div>
 <p class="muted small deal-line">{{tr "Tap a table to take an order. Everything goes on the table's bill until it's paid."}}
-  {{if .Cfg.TableButtons}}{{if .DealToday}}{{tr "3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here."}}{{else}}{{trf "3 meals runs on %s. Today the buttons just call a waiter." .DealDays}}{{end}}
+  {{if not .Cfg.ThreeMeals}}{{else if .Cfg.TableButtons}}{{if .DealToday}}{{tr "3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here."}}{{else}}{{trf "3 meals runs on %s. Today the buttons just call a waiter." .DealDays}}{{end}}
   {{else}}{{if .DealToday}}{{tr "3 meals runs today. When guests are ready for the next meal, open the table and send it to the kitchen."}}{{end}}{{end}}</p>
 {{if .Cfg.TableQR}}<form method="post" action="/admin/phone-orders/check" class="qr-switch{{if .CheckPhoneOrders}} on{{end}}">
   <input type="hidden" name="on" value="{{if .CheckPhoneOrders}}0{{else}}1{{end}}">

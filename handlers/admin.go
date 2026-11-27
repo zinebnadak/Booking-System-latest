@@ -592,7 +592,13 @@ func (s *Server) adminCalendar(w http.ResponseWriter, r *http.Request) {
 // ---------- Menu editor ----------
 
 func (s *Server) adminMenu(w http.ResponseWriter, r *http.Request) {
-	items := s.Store.Menu(false)
+	var items []db.MenuItem
+	for _, it := range s.Store.Menu(false) {
+		if it.Category == db.DealCategory && !s.Cfg.ThreeMeals {
+			continue // 3 meals is switched off: its price line isn't shown
+		}
+		items = append(items, it)
+	}
 	var cats []string
 	seen := map[string]bool{}
 	for _, it := range items {

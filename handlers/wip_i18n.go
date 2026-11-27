@@ -44,6 +44,9 @@ var wipSV = map[string]string{
 	"The menu, with allergens.":                                          "Menyn, med allergener.",
 	"Leave feedback after a visit.":                                      "Lämna omdöme efter ett besök.",
 
+	// Orders: the "Guests at the table" dropdown
+	"Choose…": "Välj…",
+
 	// Orders: Wolt
 	"Taking Wolt orders here isn't ready yet.": "Att ta emot Wolt-beställningar här är inte klart än.",
 }

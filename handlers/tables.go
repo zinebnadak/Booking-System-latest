@@ -396,6 +396,10 @@ func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) {
 	var msg string
 	switch r.PathValue("action") {
 	case "start":
+		if !s.Cfg.ThreeMeals { // 3 meals is switched off
+			s.notFound(w, r)
+			return
+		}
 		if !schedule.MealDealToday(schedule.Today(now)) && r.FormValue("anyway") != "1" {
 			err = errNotDealDay
 		} else {

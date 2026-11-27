@@ -70,3 +70,31 @@ func TestFreeTableBooking(t *testing.T) {
 	}
 	e.expect(e.do("GET", "/b/"+ref, nil, false), 200, "Your table is booked")
 }
+
+// 3 meals (3 rätter) is switched off for now: taking an order doesn't offer
+// it, "3 rätter" isn't on the order form or the Menu page, and it can't be
+// started. With it on, it's all there again.
+func TestThreeMealsOff(t *testing.T) {
+	e := newEnv(t, nil)
+	if _, err := e.store.DealItem(); err != nil { // the "3 rätter" price line
+		t.Fatal(err)
+	}
+	e.srv.Cfg.ThreeMeals = false
+	order := e.do("GET", "/admin/orders/5", nil, true).Body.String()
+	for _, gone := range []string{"3 rätter", "3 meals", `action="/admin/tables/5/start"`} {
+		if strings.Contains(order, gone) {
+			t.Errorf("the order page still shows %q", gone)
+		}
+	}
+	if strings.Contains(e.do("GET", "/admin/menu", nil, true).Body.String(), "3 rätter") {
+		t.Error("the Menu page still shows 3 rätter")
+	}
+	e.expect(e.do("POST", "/admin/tables/5/start", url.Values{"guests": {"2"}, "anyway": {"1"}}, true), 404)
+	orders := e.do("GET", "/admin/orders", nil, true).Body.String()
+	if strings.Contains(orders, "3 meals") {
+		t.Error("Orders still mentions 3 meals")
+	}
+
+	e.srv.Cfg.ThreeMeals = true
+	e.expect(e.do("GET", "/admin/orders/5", nil, true), 200, "3 rätter", `action="/admin/tables/5/start"`)
+}

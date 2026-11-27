@@ -234,7 +234,7 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		"Drinks": s.drinksToBring(), "Receipts": s.receiptsToPrint(lang), "Calls": s.callsNow(lang, now),
 		"PhoneOrders": s.pendingOrders(lang, now), "CheckPhoneOrders": s.Store.CheckPhoneOrders(),
 		"Stock": s.stockStrip(), "OnlinePaid": s.onlinePaid(lang, now), "ReadyFood": s.readyFood(now),
-		"MealsInDeal": schedule.MealsInDeal, "DealToday": schedule.MealDealToday(schedule.Today(now)), "DealDays": dealDaysText(lang),
+		"MealsInDeal": schedule.MealsInDeal, "DealToday": s.Cfg.ThreeMeals && schedule.MealDealToday(schedule.Today(now)), "DealDays": dealDaysText(lang),
 		"Warnings": s.buttonWarnings(now),
 	}
 	// Just paid: does the guest want a receipt? (One for the whole bill.)
@@ -244,6 +244,9 @@ func (s *Server) adminOrders(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	stats := s.Store.DealStatsOn(today, now)
+	if !s.Cfg.ThreeMeals {
+		stats = db.DealStats{} // 3 meals is switched off: no "3 meals today"
+	}
 	data["Stats"], data["EatMin"], data["WaitMin"] = stats, roundMinutes(stats.Eat), roundMinutes(stats.Wait)
 	if r.URL.Query().Get("part") == "tiles" {
 		s.renderBlock(w, r, "admin_orders", "tiles", http.StatusOK, data)
@@ -517,7 +520,7 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	data := M{
 		"Admin": true, "Nav": "orders", "Title": stf(lang, "Table %d", table),
 		"Table": table, "Open": open, "Bill": bill, "Lines": lines,
-		"Menu": groupMenu(s.Store.StaffMenu()), "FreeTables": freeTables, "Today": schedule.FormatDate(schedule.Today(now)),
+		"Menu": groupMenu(s.staffMenu()), "FreeTables": freeTables, "Today": schedule.FormatDate(schedule.Today(now)),
 		"Who": s.seatedNow(lang, now)[table], "NextDeposit": deposit, "NextBooking": ref,
 		"Toast": flashText(r), "Stock": s.stockStrip(), "Ingredients": s.Store.Ingredients(),
 		"MealsInDeal": schedule.MealsInDeal, "DealToday": schedule.MealDealToday(schedule.Today(now)), "Booked": s.bookedLater(lang, now)[table], "DealDays": dealDaysText(lang),
@@ -546,7 +549,7 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	data["HasPIN"] = s.Store.HasManagerPIN()
 	data["MeName"] = actor(r)
 	data["Reasons"] = removeReasons
-	data["GuestChoices"] = []int{1, 2, 3, 4, 5, 6, 7, 8}
+	data["GuestChoices"] = guestChoices(bill.Guests) // the dropdown: 1–30
 	data["MaxGuests"] = db.MaxTableGuests
 	data["Favourites"] = s.favourites(now)
 	data["QuickNotes"] = quickNotes
@@ -558,7 +561,7 @@ func (s *Server) adminOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	data["FoodNames"] = food
 	for _, tt := range s.tableTiles(lang, now) {
-		if tt.No == table {
+		if tt.No == table && s.Cfg.ThreeMeals {
 			data["Deal"] = tt
 		}
 	}
@@ -1624,6 +1627,36 @@ type dishView struct {
 	Name    string
 	Cat     string
 	SoldOut bool
+}
+
+// guestChoices are the numbers in the "Guests at the table" dropdown: 1 to
+// 30, and the table's own number if a big party has more.
+func guestChoices(now int) []int {
+	n := 30
+	if now > n && now <= db.MaxTableGuests {
+		n = now
+	}
+	out := make([]int, n)
+	for i := range out {
+		out[i] = i + 1
+	}
+	return out
+}
+
+// staffMenu is the menu for taking orders: without the "3 rätter" line
+// while 3 meals is switched off (THREE_MEALS).
+func (s *Server) staffMenu() []db.MenuItem {
+	all := s.Store.StaffMenu()
+	if s.Cfg.ThreeMeals {
+		return all
+	}
+	var out []db.MenuItem
+	for _, m := range all {
+		if m.Category != db.DealCategory {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // kitchenDishes: the food on the menu, for the chef to mark sold out.

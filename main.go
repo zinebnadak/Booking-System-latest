@@ -51,6 +51,7 @@ func main() {
 		ManagerPhone:    env("MANAGER_PHONE", ""),
 		TableButtons:    env("TABLE_BUTTONS", "") == "1", // off for now
 		TableQR:         env("TABLE_QR", "") == "1",      // off for now: one QR, for feedback
+		ThreeMeals:      env("THREE_MEALS", "") == "1",   // off for now: no "3 rätter" when taking orders
 		TableDeposit:    env("TABLE_DEPOSIT", "") == "1", // off: booking a table online is free
 		AdminUser:       env("ADMIN_USER", "admin"),
 		AdminPassword:   env("ADMIN_PASSWORD", ""),

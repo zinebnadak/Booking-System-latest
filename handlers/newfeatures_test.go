@@ -314,15 +314,17 @@ func TestTablePlanByTheManager(t *testing.T) {
 	e.expect(e.do("POST", "/admin/tableplan", url.Values{"room_0": {"Utrymme 1"}, "room_1": {""}}, true), 422, "still has tables")
 }
 
-// A waiter changes a table's seats from the table's page; online booking
-// uses it at once.
+// A table's seats can still be changed (the box is hidden on the table's
+// page: seats are set on Tables and seats); online booking uses it at once.
 func TestWaiterChangesSeats(t *testing.T) {
 	t.Cleanup(schedule.UseTables(schedule.RoomNames(), schedule.Tables()))
 	wrongPasswordDelay = 0
 	e := newEnv(t, nil)
 	e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
 	lisa, _ := e.loginAs(t, "lisa", "a-long-password-1")
-	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, "Seats at this table", `name="seats"`)
+	if strings.Contains(e.as(lisa, "GET", "/admin/orders/3", nil).Body.String(), "Seats at this table") {
+		t.Error("the table's page still shows Seats at this table")
+	}
 	location(t, e.as(lisa, "POST", "/admin/orders/3/seats", url.Values{"seats": {"2"}}), "msg=seatssaved")
 	if tb, _ := schedule.TableInfo(3); tb.Seats != 2 {
 		t.Fatalf("table 3 has %d seats", tb.Seats)

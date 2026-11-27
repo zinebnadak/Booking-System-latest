@@ -135,13 +135,13 @@ func TestGuestsAtTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	lisa := &http.Cookie{Name: sessionCookie, Value: e.srv.makeStaffSession(m, e.srv.Now())}
-	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, "Guests at the table", `class="gchip" name="guests" value="2"`)
+	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, "Guests at the table", `<select id="guests-3" name="guests"`, `<option value="2">2</option>`)
 	location(t, e.as(lisa, "POST", "/admin/orders/3/guests", url.Values{"guests": {"2"}}), "/admin/orders/3?msg=guestsset")
 	b, open := e.store.OpenBill(3)
 	if !open || b.Guests != 2 || b.WaiterName != "Lisa" || !b.QROpen {
 		t.Fatalf("seated: %+v", b)
 	}
-	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, `class="gchip on" name="guests" value="2" aria-pressed="true"`)
+	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, `<option value="2" selected>2</option>`)
 	e.expect(e.as(lisa, "GET", "/admin/orders?part=tiles", nil), 200, `class="ot-ppl" title="2 guests"`)
 	location(t, e.as(lisa, "POST", "/admin/orders/3/guests", url.Values{"guests": {"12"}}), "msg=guestsset")
 	if b, _ := e.store.OpenBill(3); b.Guests != 12 {

@@ -42,6 +42,9 @@ type Config struct {
 	// With TableQR off there's one QR code: feedback.
 	TableButtons bool
 	TableQR      bool
+	// ThreeMeals: the "3 meals" deal (3 rätter) on the order screen
+	// (THREE_MEALS=1). Off: it's not offered and "3 rätter" isn't shown.
+	ThreeMeals bool
 	// TableDeposit: guests pay a deposit to book a table online
 	// (TABLE_DEPOSIT=1). Off: booking online is free and confirmed at once.
 	TableDeposit  bool
