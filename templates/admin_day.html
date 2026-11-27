@@ -22,7 +22,6 @@
   <div class="sum-chip" role="listitem"><strong>{{.Waiting}}</strong><span>{{tr "not here yet"}}</span></div>
   <div class="sum-chip" role="listitem"><strong>{{.ArrivedN}}</strong><span>{{tr "arrived"}}</span></div>
   <div class="sum-chip" role="listitem"><strong>{{.NoShows}}</strong><span>{{tr "no-shows"}}</span></div>
-  <div class="sum-chip" role="listitem"><strong>{{len .Takeaway}}</strong><span>{{tr "takeaway"}}</span></div>
 </div>
 
 <section class="panel">
@@ -200,6 +199,7 @@
 </section>
 {{end}}
 
+{{/* Takeaway is a work in progress: hidden on this page for now. Remove this "if false" to show it again. */}}{{if false}}
 <section class="panel">
   <div class="panel-head"><h2>{{tr "Takeaway"}}</h2></div>
   {{if not .Takeaway}}
@@ -245,6 +245,7 @@
   </div>
   {{end}}
 </section>
+{{end}}
 
 {{if .StaffSlots}}
 <dialog id="dlg-phone" aria-labelledby="dlg-phone-h">

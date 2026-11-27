@@ -1,6 +1,7 @@
 package db
 
-// The restaurant's menu, copied from its printed menus (October 2026). It's
+// The restaurant's menu, copied from its printed menus (November 2026:
+// "Schnitzelveckor" and "Dryckesmeny"). It's
 // the starting menu of a new data file, and it replaces the old made-up demo
 // menu once (see upgradeMenu); after that the manager changes it from the
 // Menu page.
@@ -14,7 +15,7 @@ package db
 
 // menuVersion is the version of seedMenu. Data files with an older version
 // that still have the untouched demo menu get this one instead.
-const menuVersion = 2
+const menuVersion = 3
 
 // Courses: when the kitchen makes a dish (see the hold-the-mains buttons).
 const (
@@ -35,14 +36,14 @@ func seedMenu() []MenuItem {
 	food := func(cat string, course int, list ...MenuItem) { add(cat, course, false, false, list...) }
 	drink := func(cat string, alcohol bool, list ...MenuItem) { add(cat, CourseNone, true, alcohol, list...) }
 
-	// ---- Food ----
-	food("Förrätter", CourseStarter,
+	// ---- Food (the printed "Schnitzelveckor" menu) ----
+	food("Förrätt", CourseStarter,
 		MenuItem{Name: "Jordärtskockssoppa", Description: "Med rostat bacon", PriceCents: 1090},
-		MenuItem{Name: "Liten toast skagen", Description: "Skagenröra på stekt bröd", PriceCents: 1590},
+		MenuItem{Name: "Liten toast skagen", PriceCents: 1590},
 		MenuItem{Name: "Råbiff", Description: "Med tryffelaioli, parmesan, rostade nötter, rotsakschips och picklad rödlök", PriceCents: 1790},
 	)
-	// One schnitzel a week ("Veckans schnitzel"): switch on this week's.
-	food("Veckans schnitzel", CourseMain,
+	// A new schnitzel every week ("Veckans schnitzel från 22,50 €"): switch on this week's.
+	food("Schnitzelveckor", CourseMain,
 		MenuItem{Name: "Jägarschnitzel", Description: "Fläskschnitzel med krämig jägersås, sidosallad och pommes crispers", PriceCents: 2250, Tags: "L"},
 		MenuItem{Name: "Cordon bleu", Description: "Fläskschnitzel fylld med ost och skinka. Serveras med krämig cheddarsås, sidosallad och pommes crispers", PriceCents: 2550, Tags: "L"},
 		MenuItem{Name: "Wienerschnitzel på oxfilé", Description: "Panerad oxfilé med citron, ansjovis, kapris och rödvinssky. Serveras med sidosallad och pommes crispers", PriceCents: 3990, Tags: "L"},
@@ -51,15 +52,15 @@ func seedMenu() []MenuItem {
 	food("Pasta", CourseMain,
 		MenuItem{Name: "Oxfilépasta med tryffel", Description: "Med oxfilé, svamp, pepparsås, parmesan, rödlök och tryffelolja", PriceCents: 2390, Tags: "L"},
 		MenuItem{Name: "Pasta carbonara", Description: "Med bacon, parmesan, rödlök, balsamicosirap och ruccola", PriceCents: 1890, Tags: "L"},
-		MenuItem{Name: "Kyckling pomodoro pasta", Description: "Med kyckling, husets pomodorosås, parmesan, ruccola och balsamicosirap", PriceCents: 2290, Tags: "L"},
+		MenuItem{Name: "Kyckling pomodoro pasta", Description: "Med kyckling, E-Meal's pomodorosås, parmesan, ruccola och balsamicosirap", PriceCents: 2290, Tags: "L"},
 	)
 	food("Klassiska rätter", CourseMain,
 		MenuItem{Name: "Jägarsmörgås", Description: "Fläskschnitzel på stekt bröd med champinjonsås, salladsbädd och pommes crispers", PriceCents: 2550, Tags: "L"},
 		MenuItem{Name: "Stor toast skagen", Description: "Skagenröra, stekt bröd, körsbärstomater, picklad rödlök, salladsbädd och citron", PriceCents: 2190, Tags: "M"},
 		MenuItem{Name: "Oxfilé", Description: "Med rödvinssky, bearnaise och pommes crispers", PriceCents: 3990, Tags: "G, L"},
 	)
-	food("Burgare", CourseMain,
-		MenuItem{Name: "Chipotle bacon burgare", Description: "Med smashed nötfärs, cheddarost, bacon, chipotlemajo, sidosallad och pommes crispers", PriceCents: 1990, Tags: "L"},
+	food("Burger", CourseMain,
+		MenuItem{Name: "E-Meal's chipotle bacon burgare", Description: "Med smashed nötfärs, cheddarost, bacon, chipotlemajo, sidosallad och pommes crispers", PriceCents: 1990, Tags: "L"},
 	)
 	food("Sallad & bowl", CourseMain,
 		MenuItem{Name: "Caesarsallad", Description: "Med kyckling, bacon, parmesanaioli, körsbärstomater, rödlök, romansallad, bröd, färskost och krutonger. Går att få glutenfri", PriceCents: 1990, Tags: "L, *G"},
@@ -76,64 +77,9 @@ func seedMenu() []MenuItem {
 		MenuItem{Name: "Chokladmousse", Description: "Med rostade nötter och vispad grädde", PriceCents: 890},
 		MenuItem{Name: "Vaniljglass", Description: "Med kinuskisås och hallonkompott", PriceCents: 990},
 	)
-	// Sides and dips go out with the mains. Prices weren't on the photos.
-	food("Tillbehör & dippar", CourseMain,
-		MenuItem{Name: "Extra biff"},
-		MenuItem{Name: "Byt till sötpotatispommes"},
-		MenuItem{Name: "Pommes crispers"},
-		MenuItem{Name: "Sötpotatispommes"},
-		MenuItem{Name: "Lökringar"},
-		MenuItem{Name: "Mozzarella sticks"},
-		MenuItem{Name: "Chili cheese balls"},
-		MenuItem{Name: "Chicken fingers"},
-		MenuItem{Name: "Chipotledipp"},
-		MenuItem{Name: "Tryffeldipp"},
-		MenuItem{Name: "Aioli"},
-		MenuItem{Name: "Vegansk aioli"},
-		MenuItem{Name: "Bearnaise"},
-		MenuItem{Name: "Rödvinssky"},
-		MenuItem{Name: "Pepparsås"},
-	)
-	// Lunch (weekdays): the dishes change, so the prices are set by the manager.
-	food("Lunch", CourseMain,
-		MenuItem{Name: "Dagens lunch"},
-		MenuItem{Name: "Dagens vegetariska"},
-		MenuItem{Name: "Veckans schnitzel (lunch)"},
-		MenuItem{Name: "Veckans fisk"},
-		MenuItem{Name: "Veckans sallad"},
-		MenuItem{Name: "Lunch carbonara"},
-		MenuItem{Name: "Lunch caesarsallad"},
-		MenuItem{Name: "Lunch spicy chicken bowl"},
-		MenuItem{Name: "Lunch burgare"},
-		MenuItem{Name: "Husets lunch"},
-		MenuItem{Name: "Barnlunch"},
-	)
 
-	// After Work (from the printed After Work menu): the set menu lines have
-	// the price and never go to the chef; the waiter adds the dishes the
-	// guest picks, which are in the price. Staff only: guests order it from
-	// the waiter. The 15 € + 5 € split of "1 rätt + 1 dryck 20 €" follows the
-	// old till's "AW Dryck 5" button: check it with the owner.
-	setMenu := func(list ...MenuItem) {
-		for _, it := range list {
-			it.Category, it.StaffOnly = "After Work", true
-			items = append(items, it)
-		}
-	}
-	setMenu(
-		MenuItem{Name: "After Work · 3 rätter", Description: "Förrätt, varmrätt och dessert: lägg till rätterna gästen väljer nedan", PriceCents: 3000, Package: true},
-		MenuItem{Name: "After Work · 1 rätt", Description: "Med en dryck: lägg också till After Work · dryck (20 € tillsammans)", PriceCents: 1500, Package: true},
-		MenuItem{Name: "After Work · dryck", Description: "Dryck med alkohol till After Work-menyn (3 rätter + dryck 35 €)", PriceCents: 500, Drink: true, Alcohol: true},
-		MenuItem{Name: "After Work · alkoholfri dryck", Description: "Alkoholfri dryck till After Work-menyn", PriceCents: 500, Drink: true},
-		MenuItem{Name: "AW Hummersoppa", Description: "Mustig hummersoppa med surdegsbröd och vispat smör", Included: true, Course: CourseStarter},
-		MenuItem{Name: "AW Blue cheese smokey BBQ-burgare", Description: "Med smashad biff, cheddarost, picklad rödlök, sidosallad, aioli och pommes", Included: true, Course: CourseMain},
-		MenuItem{Name: "AW Jägarschnitzel", Description: "Med svampsås, sidosallad och pommes", Tags: "L", Included: true, Course: CourseMain},
-		MenuItem{Name: "AW Stor toast skagen", Description: "Med sidosallad och citron", Included: true, Course: CourseMain},
-		MenuItem{Name: "AW Jordärtskocksrisotto", Description: "Med parmesan, körsbärstomater och balsamico", Included: true, Course: CourseMain},
-		MenuItem{Name: "AW Passionsfruktcheesecake", Included: true, Course: CourseDessert},
-	)
-
-	// ---- Drinks (tables only, never to the chef) ----
+	// ---- Drinks (the printed "Dryckesmeny"; tables only, never to the chef) ----
+	// Wine and bubbles: a glass and a bottle, as the two prices on the menu.
 	drink("Cocktails", true,
 		MenuItem{Name: "Aperol spritz", Description: "Aperol, prosecco, soda och apelsin", PriceCents: 990},
 		MenuItem{Name: "Limoncello spritz", Description: "Limoncello, prosecco, soda och citron", PriceCents: 990},
@@ -148,33 +94,27 @@ func seedMenu() []MenuItem {
 		MenuItem{Name: "Spanish coffee", Description: "Likör 43, kaffe och vispad grädde", PriceCents: 1090},
 	)
 	drink("Bubbel", true,
-		MenuItem{Name: "Arthur Metz Crémant 12 cl", PriceCents: 1050},
+		MenuItem{Name: "Arthur Metz Crémant, glas", PriceCents: 1050},
 		MenuItem{Name: "Arthur Metz Crémant, flaska", PriceCents: 4000},
-		MenuItem{Name: "Prosecco Rocca 8, 12 cl", PriceCents: 1050},
+		MenuItem{Name: "Prosecco Rocca 8, glas", PriceCents: 1050},
 		MenuItem{Name: "Prosecco Rocca 8, flaska", PriceCents: 4000},
 		MenuItem{Name: "Moët & Chandon Impérial, flaska", PriceCents: 8500},
 	)
-	drink("Vitt vin", true,
-		MenuItem{Name: "Yellow Tail Pinot Grigio 16 cl", PriceCents: 950},
-		MenuItem{Name: "Yellow Tail Pinot Grigio 24 cl"},
+	drink("Vitvin", true,
+		MenuItem{Name: "Yellow Tail Pinot Grigio, glas", PriceCents: 950},
 		MenuItem{Name: "Yellow Tail Pinot Grigio, flaska", PriceCents: 3600},
-		MenuItem{Name: "Yellow Tail Sauvignon Blanc 16 cl", PriceCents: 1150},
-		MenuItem{Name: "Yellow Tail Sauvignon Blanc 24 cl"},
+		MenuItem{Name: "Yellow Tail Sauvignon Blanc, glas", PriceCents: 1150},
 		MenuItem{Name: "Yellow Tail Sauvignon Blanc, flaska", PriceCents: 3600},
-		MenuItem{Name: "Kung Fu Girl Riesling 16 cl", PriceCents: 1290},
-		MenuItem{Name: "Kung Fu Girl Riesling 24 cl"},
+		MenuItem{Name: "Kung Fu Girl Riesling, glas", PriceCents: 1290},
 		MenuItem{Name: "Kung Fu Girl Riesling, flaska", PriceCents: 4800},
 		MenuItem{Name: "Moillard Petit Chablis, flaska", PriceCents: 5400},
 	)
-	drink("Rött vin", true,
-		MenuItem{Name: "Yellow Tail Shiraz 16 cl", PriceCents: 950},
-		MenuItem{Name: "Yellow Tail Shiraz 24 cl"},
+	drink("Rödvin", true,
+		MenuItem{Name: "Yellow Tail Shiraz, glas", PriceCents: 950},
 		MenuItem{Name: "Yellow Tail Shiraz, flaska", PriceCents: 3600},
-		MenuItem{Name: "Cuma Malbec 16 cl", PriceCents: 1190},
-		MenuItem{Name: "Cuma Malbec 24 cl"},
+		MenuItem{Name: "Cuma Malbec, glas", PriceCents: 1190},
 		MenuItem{Name: "Cuma Malbec, flaska", PriceCents: 4200},
-		MenuItem{Name: "Gnarly Head Old Vine Zinfandel 16 cl", PriceCents: 1350},
-		MenuItem{Name: "Gnarly Head Old Vine Zinfandel 24 cl"},
+		MenuItem{Name: "Gnarly Head Old Vine Zinfandel, glas", PriceCents: 1350},
 		MenuItem{Name: "Gnarly Head Old Vine Zinfandel, flaska", PriceCents: 4600},
 		MenuItem{Name: "Roberto Sarotto Barolo, flaska", PriceCents: 7500},
 	)
@@ -189,7 +129,7 @@ func seedMenu() []MenuItem {
 	)
 	drink("Cider & longdrink", true,
 		MenuItem{Name: "Briska fläder", PriceCents: 800},
-		MenuItem{Name: "Happy Joe äpple", PriceCents: 800},
+		MenuItem{Name: "Happy Joe äppel", PriceCents: 800},
 		MenuItem{Name: "Happy Joe päron", PriceCents: 800},
 		MenuItem{Name: "Longdrink", PriceCents: 800},
 	)
@@ -197,7 +137,7 @@ func seedMenu() []MenuItem {
 	drink("Alkoholfritt", false,
 		MenuItem{Name: "Stallhagen Styrman", PriceCents: 600},
 		MenuItem{Name: "Heineken 0,0 %", PriceCents: 600},
-		MenuItem{Name: "Briska fläder 0,5 %"},
+		MenuItem{Name: "Briska fläder 0,5 %", PriceCents: 600},
 	)
 	drink("Läsk & juice", false,
 		MenuItem{Name: "Coca-Cola", PriceCents: 350},
@@ -205,14 +145,6 @@ func seedMenu() []MenuItem {
 		MenuItem{Name: "Jaffa", PriceCents: 350},
 		MenuItem{Name: "Sprite Zero", PriceCents: 350},
 		MenuItem{Name: "Grannas äppeljuice", PriceCents: 350},
-	)
-	drink("Kaffe & te", false,
-		MenuItem{Name: "Kaffe"},
-		MenuItem{Name: "Te"},
-		MenuItem{Name: "Espresso"},
-		MenuItem{Name: "Espresso doppio"},
-		MenuItem{Name: "Cappuccino"},
-		MenuItem{Name: "Caffè latte"},
 	)
 
 	// Only this week's schnitzel is on; the manager switches them weekly.
@@ -232,14 +164,22 @@ var demoMenuNames = map[string]bool{
 	"Kaffe": true, "Husets vin, glas": true,
 }
 
-// upgradeMenu puts in the restaurant's menu, once, if the data file still has
-// the made-up demo menu (and nothing else). A menu the manager has built is
-// never touched. Callers hold s.mu.
+// upgradeMenu brings an older data file's menu up to date, once:
+//   - the made-up demo menu (and nothing else) is replaced by seedMenu;
+//     any other menu from before version 2 is the manager's and left alone;
+//   - version 2 (the October menus) becomes the November menus: see menuV3.
+//
+// Callers hold s.mu.
 func (s *Store) upgradeMenu() bool {
 	if s.d.MenuVersion >= menuVersion {
 		return false
 	}
+	from := s.d.MenuVersion
 	s.d.MenuVersion = menuVersion
+	if from >= 2 {
+		s.menuV3()
+		return true
+	}
 	demo := len(s.d.Menu) > 0
 	for _, m := range s.d.Menu {
 		demo = demo && demoMenuNames[m.Name]
@@ -255,4 +195,86 @@ func (s *Store) upgradeMenu() bool {
 		s.d.Menu = append(s.d.Menu, &it)
 	}
 	return true
+}
+
+// Menu version 2 to 3: dishes renamed on the November menus.
+var renamedV3 = map[string]string{
+	"Chipotle bacon burgare":               "E-Meal's chipotle bacon burgare",
+	"Happy Joe äpple":                      "Happy Joe äppel",
+	"Arthur Metz Crémant 12 cl":            "Arthur Metz Crémant, glas",
+	"Prosecco Rocca 8, 12 cl":              "Prosecco Rocca 8, glas",
+	"Yellow Tail Pinot Grigio 16 cl":       "Yellow Tail Pinot Grigio, glas",
+	"Yellow Tail Sauvignon Blanc 16 cl":    "Yellow Tail Sauvignon Blanc, glas",
+	"Kung Fu Girl Riesling 16 cl":          "Kung Fu Girl Riesling, glas",
+	"Yellow Tail Shiraz 16 cl":             "Yellow Tail Shiraz, glas",
+	"Cuma Malbec 16 cl":                    "Cuma Malbec, glas",
+	"Gnarly Head Old Vine Zinfandel 16 cl": "Gnarly Head Old Vine Zinfandel, glas",
+}
+
+// Menu version 2 to 3: version 2's dishes that aren't on the November menus.
+var droppedV3 = map[string]bool{
+	// Tillbehör & dippar
+	"Extra biff": true, "Byt till sötpotatispommes": true, "Pommes crispers": true, "Sötpotatispommes": true,
+	"Lökringar": true, "Mozzarella sticks": true, "Chili cheese balls": true, "Chicken fingers": true,
+	"Chipotledipp": true, "Tryffeldipp": true, "Aioli": true, "Vegansk aioli": true, "Bearnaise": true,
+	"Rödvinssky": true, "Pepparsås": true,
+	// Lunch
+	"Dagens lunch": true, "Dagens vegetariska": true, "Veckans schnitzel (lunch)": true, "Veckans fisk": true,
+	"Veckans sallad": true, "Lunch carbonara": true, "Lunch caesarsallad": true, "Lunch spicy chicken bowl": true,
+	"Lunch burgare": true, "Husets lunch": true, "Barnlunch": true,
+	// After Work
+	"After Work · 3 rätter": true, "After Work · 1 rätt": true, "After Work · dryck": true,
+	"After Work · alkoholfri dryck": true, "AW Hummersoppa": true, "AW Blue cheese smokey BBQ-burgare": true,
+	"AW Jägarschnitzel": true, "AW Stor toast skagen": true, "AW Jordärtskocksrisotto": true,
+	"AW Passionsfruktcheesecake": true,
+	// Wine by 24 cl (no price on the menu)
+	"Yellow Tail Pinot Grigio 24 cl": true, "Yellow Tail Sauvignon Blanc 24 cl": true, "Kung Fu Girl Riesling 24 cl": true,
+	"Yellow Tail Shiraz 24 cl": true, "Cuma Malbec 24 cl": true, "Gnarly Head Old Vine Zinfandel 24 cl": true,
+	// Kaffe & te
+	"Kaffe": true, "Te": true, "Espresso": true, "Espresso doppio": true, "Cappuccino": true, "Caffè latte": true,
+}
+
+// menuV3 makes a version 2 menu the November menus, in place: each dish
+// keeps its id (so bills, stock and photos still point to it), its photo,
+// allergens and whether it's on today, and gets the printed name, text,
+// price, section and order. Dishes no longer printed are removed; dishes
+// the manager added themselves are kept. Callers hold s.mu.
+func (s *Store) menuV3() {
+	want := seedMenu()
+	byName := map[string]int{}
+	for i, it := range want {
+		byName[it.Name] = i
+	}
+	seen := map[string]bool{}
+	var menu []*MenuItem
+	for _, m := range s.d.Menu {
+		name := m.Name
+		if n, ok := renamedV3[name]; ok {
+			name = n
+		}
+		i, printed := byName[name]
+		switch {
+		case printed && !seen[name]:
+			w := want[i]
+			m.Name, m.Description, m.PriceCents, m.Tags = w.Name, w.Description, w.PriceCents, w.Tags
+			m.Category, m.Sort, m.Course, m.Drink, m.Alcohol = w.Category, w.Sort, w.Course, w.Drink, w.Alcohol
+			m.Package, m.Included, m.StaffOnly = false, false, false
+			seen[name] = true
+			menu = append(menu, m)
+		case droppedV3[m.Name] || printed:
+			// not on the menus any more (or a second copy): removed
+		default:
+			menu = append(menu, m) // the manager's own dish
+		}
+	}
+	for _, w := range want {
+		if seen[w.Name] {
+			continue
+		}
+		it := w
+		it.ID = s.d.NextMenuID
+		s.d.NextMenuID++
+		menu = append(menu, &it)
+	}
+	s.d.Menu = menu
 }

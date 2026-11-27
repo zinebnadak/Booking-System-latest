@@ -1631,7 +1631,8 @@ func (s *Server) kitchenDishes(now time.Time) []dishView {
 	today := schedule.FormatDate(schedule.Today(now))
 	var out []dishView
 	for _, m := range s.Store.Menu(false) {
-		if m.Active(today) && !m.Drink {
+		// Price lines like "3 rätter" aren't dishes: nothing to run out of.
+		if m.Active(today) && !m.Drink && !m.Package {
 			out = append(out, dishView{ID: m.ID, Name: m.Name, Cat: m.Category, SoldOut: m.Gone(today)})
 		}
 	}

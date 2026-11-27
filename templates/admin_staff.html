@@ -9,16 +9,6 @@
 </div>
 <p class="muted small">{{tr "Each waiter logs in with their own username and password. They can use the tables, orders, kitchen and bookings, but not the menu, closed days or this page. Payments, voids and price changes are recorded with their name."}}</p>
 
-<section class="panel biz-id{{if not .BusinessID}} biz-missing{{end}}" id="business-id">
-  <h2>{{tr "Business ID on receipts"}}</h2>
-  <p class="muted small">{{tr "Receipts in Finland must show the company's business ID (Y-tunnus / FO-nummer). It's on the company's papers, or ask the owner."}}</p>
-  <form method="post" action="/admin/staff/businessid" class="row">
-    <label class="field">{{tr "Business ID"}}<input name="id" value="{{if .BusinessTry}}{{.BusinessTry}}{{else}}{{.BusinessID}}{{end}}" placeholder="1234567-8" autocomplete="off" inputmode="numeric" maxlength="20"></label>
-    <button class="btn btn-primary btn-sm">{{tr "Save"}}</button>
-  </form>
-  {{if not .BusinessID}}<p class="notice biz-warn">{{tr "Not set yet: receipts don't show a business ID."}}</p>{{end}}
-</section>
-
 <section class="panel mgr-pin" id="manager-pin">
   <h2>{{tr "Manager's PIN"}}</h2>
   <p class="muted small">{{tr "Waiters can't take anything off a bill. When you're next to them, type this PIN on their iPad or phone to take it off right there. It's recorded as yours."}}</p>
@@ -29,33 +19,20 @@
   {{if .HasPIN}}<form method="post" action="/admin/staff/managerpin"><input type="hidden" name="off" value="1"><button class="btn-link">{{tr "Turn the PIN off"}}</button></form>{{end}}
 </section>
 
-<section class="panel served-by" id="served">
-  <h2>{{tr "Who served the most tables"}}</h2>
-  <p class="muted small">{{tr "Paid tables, counted for the waiter who had the table when it was paid."}}</p>
-  {{if .Served}}
-  <ol class="hbars">
-    {{range .Served}}
-    <li>
-      <div class="hbar-text"><span>{{if .Nobody}}<em>{{tr "No waiter"}}</em>{{else}}<strong>{{.Name}}</strong>{{end}}</span>
-        <span class="muted">{{trf "Today %d · %s" .Today (euro .TodayCents)}} &nbsp;·&nbsp; {{trf "This month %d · %s" .Month (euro .MonthCents)}}</span></div>
-      {{if not .Nobody}}<div class="hbar-track"><div class="hbar" style="width: {{printf "%.1f" .MonthPct}}%"></div></div>{{end}}
-    </li>
-    {{end}}
-  </ol>
-  {{else}}
-  <p class="muted">{{tr "No tables paid this month yet."}}</p>
-  {{end}}
-</section>
-
 <section class="panel till-setup">
-  <h2>{{tr "Shared till"}}</h2>
-  <p class="muted small">{{tr "Like the old till: on the shared screen, a waiter types their number and a 4-digit PIN to log in, and taps Lock when done. The same keypad clocks them in and out. It only works on devices you make a till here, so nobody can try PINs from outside."}}</p>
-  {{if .IsTill}}
-  <p><span class="badge badge-ok">{{tr "This device is a till"}}</span> <a href="/till">{{tr "Open the keypad"}}</a></p>
-  <form method="post" action="/admin/staff/till"><input type="hidden" name="on" value="0"><button class="btn-link">{{tr "Stop using this device as a till"}}</button></form>
-  {{else}}
-  <form method="post" action="/admin/staff/till"><input type="hidden" name="on" value="1"><button class="btn btn-secondary btn-sm">{{tr "Make this device a till"}}</button></form>
-  {{end}}
+  <div class="panel-head"><h2>{{tr "Shared till"}}</h2><span class="badge badge-wip">{{tr "Work in progress"}}</span></div>
+  <div class="wip">
+    <p>{{tr "Shared till lets several waiters share one device, for example an iPad by the bar, the same way as the till today."}}</p>
+    <h3>{{tr "How it will work"}}</h3>
+    <ol>
+      <li>{{tr "You choose which device becomes the shared till, on this page."}}</li>
+      <li>{{tr "A waiter walks up, types their number and a 4-digit PIN, and is logged in."}}</li>
+      <li>{{tr "They take the order, then tap Lock, so the next person can log in."}}</li>
+      <li>{{tr "The same keypad works as a time clock: waiters clock in and out of their shift there."}}</li>
+    </ol>
+    <h3>{{tr "Why it's safe"}}</h3>
+    <p>{{tr "The keypad only works on devices you've made a till here, so nobody can try PINs from outside. Everything a waiter does is still recorded with their name."}}</p>
+  </div>
 </section>
 
 <section class="panel">

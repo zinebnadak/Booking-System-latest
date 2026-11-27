@@ -89,7 +89,10 @@ func TestWoltCut(t *testing.T) {
 	location(t, e.do("POST", "/owner/woltpct", url.Values{"pct": {"30"}}, true), "msg=woltpctsaved")
 	gross := b.Total()
 	fee := (gross*30 + 50) / 100
-	e.expect(e.do("GET", "/owner?wolt=only", nil, true), 200, `<div class="kpi-big">`+euro(gross-fee), "Wolt keeps", euro(fee), "30 % of each order")
+	_ = fee // Wolt is hidden in the money pages: Money today doesn't count it.
+	if page := e.do("GET", "/owner?wolt=only", nil, true).Body.String(); strings.Contains(page, "Wolt keeps") || strings.Contains(page, `<div class="kpi-big">`+euro(gross)) {
+		t.Error("Money today still shows Wolt")
+	}
 }
 
 // Waiters and the chef start and end their shift from their own login;
@@ -275,7 +278,6 @@ func TestReceiptAfterPaying(t *testing.T) {
 // The manager saves the business ID (checked), and receipts show it.
 func TestBusinessIDOnReceipts(t *testing.T) {
 	e := newEnv(t, nil)
-	e.expect(e.do("GET", "/owner", nil, true), 200, "show your business ID yet")
 	location(t, e.do("POST", "/admin/staff/businessid", url.Values{"id": {"0112038-8"}}, true), "msg=bizbad")
 	location(t, e.do("POST", "/admin/staff/businessid", url.Values{"id": {"01120389"}}, true), "msg=bizsaved")
 	burger := e.menuItem("E-Meal-burgare")

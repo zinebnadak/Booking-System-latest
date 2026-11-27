@@ -91,7 +91,7 @@ var pageNames = []string{
 	"admin_orders", "admin_order", "order_bill", "admin_kitchen", "order_history",
 	"admin_split", "order_receipts", "receipt",
 	"table_join", "guest_tab", "guest_tip", "dev_tab", "admin_offline", "qr_stickers", "review", "owner_feedback",
-	"admin_staff", "admin_activity", "admin_giftcards", "giftcard_print", "till", "admin_hours", "admin_stock", "admin_tableplan", "admin_schedule", "my_schedule",
+	"admin_staff", "admin_activity", "admin_giftcards", "giftcard_print", "till", "admin_hours", "admin_stock", "admin_tableplan", "admin_schedule", "my_schedule", "admin_guestsite",
 }
 
 // New builds the server. files must contain templates/ and static/.
@@ -252,6 +252,7 @@ func (s *Server) Routes() http.Handler {
 	admin.HandleFunc("POST /admin/orders/{table}/{action}", s.orderBillAction)
 	admin.HandleFunc("GET /admin/tables/qr", s.qrStickers)
 	admin.HandleFunc("GET /admin/offline", s.offlinePlan)
+	admin.HandleFunc("GET /admin/guestsite", s.guestSiteNote)
 	admin.HandleFunc("POST /admin/tables/qr/{no}/new", s.ifTableQR(s.managerOnly(s.qrNewCode)))
 	admin.HandleFunc("POST /admin/receipts/{bill}/{guest}/given", s.receiptGiven)
 	admin.HandleFunc("POST /admin/phone-orders/{id}/{action}", s.phoneOrderAction)

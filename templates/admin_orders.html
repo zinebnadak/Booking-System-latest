@@ -12,13 +12,13 @@
   <button type="button" class="btn btn-secondary btn-sm push-btn" data-push hidden aria-pressed="false" data-text-off="{{tr "Turn on notifications"}}" data-text-on="{{tr "Notifications on"}}" data-text-denied="{{tr "Notifications are blocked: allow them in the phone's settings"}}" data-text-fail="{{tr "Notifications didn't work on this phone"}}">{{tr "Turn on notifications"}}</button>
   <span class="muted small push-hint" data-push-hint hidden>{{tr "For notifications on iPhone: Share → Add to Home Screen, then open E-Meal from the home screen."}}</span>
   <button type="button" class="btn btn-secondary btn-sm" data-sound hidden data-text-live="{{tr "Sound on"}}" data-text-wait="{{tr "Turn on sound"}}">{{tr "Turn on sound"}}</button>
-  <a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{if .Cfg.TableQR}}{{tr "Table QR codes"}}{{else}}{{tr "Feedback QR code"}}{{end}}</a>
+  {{if .Cfg.TableQR}}<a class="btn btn-secondary btn-sm" href="/admin/tables/qr">{{tr "Table QR codes"}}</a>{{end}}
   {{if .Manager}}<a class="btn btn-secondary btn-sm" href="/admin/kitchen" target="_blank" rel="noopener">{{tr "Kitchen screen"}}</a>{{end}}
   <a class="btn btn-secondary btn-sm" href="/admin/offline">{{tr "If the internet goes down"}}</a>
 </div>
 <p class="muted small deal-line">{{tr "Tap a table to take an order. Everything goes on the table's bill until it's paid."}}
   {{if .Cfg.TableButtons}}{{if .DealToday}}{{tr "3 meals runs today. When guests finish a meal they press the button on their table, and the table lights up here."}}{{else}}{{trf "3 meals runs on %s. Today the buttons just call a waiter." .DealDays}}{{end}}
-  {{else}}{{if .DealToday}}{{tr "3 meals runs today. When guests are ready for the next meal, open the table and send it to the kitchen."}}{{else}}{{trf "3 meals runs on %s." .DealDays}}{{end}}{{end}}</p>
+  {{else}}{{if .DealToday}}{{tr "3 meals runs today. When guests are ready for the next meal, open the table and send it to the kitchen."}}{{end}}{{end}}</p>
 {{if .Cfg.TableQR}}<form method="post" action="/admin/phone-orders/check" class="qr-switch{{if .CheckPhoneOrders}} on{{end}}">
   <input type="hidden" name="on" value="{{if .CheckPhoneOrders}}0{{else}}1{{end}}">
   <span class="qr-switch-text">
@@ -233,9 +233,10 @@
 </div>
 {{end}}
 <section class="wolt-row" aria-labelledby="wolt-h">
-  <h2 class="room-h" id="wolt-h">Wolt{{with .Wolt}} <span class="nw-count wolt-count">{{len .}}</span>{{end}}</h2>
+  <h2 class="room-h" id="wolt-h">Wolt{{with .Wolt}} <span class="nw-count wolt-count">{{len .}}</span>{{end}} <span class="badge badge-wip">{{tr "Work in progress"}}</span></h2>
+  <p class="muted small wolt-wip">{{tr "Taking Wolt orders here isn't ready yet."}}</p>
   <div class="wolt-bar">
-    <button type="button" class="wolt-new" data-open="dlg-wolt" aria-label="{{tr "New Wolt order"}}">
+    <button type="button" class="wolt-new" disabled aria-disabled="true" aria-label="{{tr "New Wolt order"}} · {{tr "Work in progress"}}">
       <span class="wolt-circle" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
       <span class="wolt-new-text">{{tr "New Wolt order"}}</span>
     </button>
@@ -338,23 +339,9 @@
 <p class="notice">{{if .Low}}{{trf "The button on table %d is low on battery (%d %%). Charge it with a USB-C cable." .Table .Battery}}{{else}}{{trf "The button on table %d hasn't been heard from in %d days. Check that it's charged and in Wi-Fi range." .Table .Silent}}{{end}}</p>
 {{end}}{{end}}
 
-{{if .Manager}}<section class="panel">
-  <h2>{{tr "Paid today"}}</h2>
-  {{if or .Day.Bills .Day.Vouchers}}
-  <dl class="sum-rows">
-    <dt>{{tr "Bills"}}</dt><dd>{{.Day.Bills}}</dd>
-    {{range .Day.Rows}}<dt>{{.Name}}{{if .Prepaid}} <span class="muted small">{{tr "(paid when sold)"}}</span>{{end}}</dt><dd>{{euro .Cents}}</dd>{{end}}
-    <dt>{{tr "Total"}}</dt><dd>{{euro .Day.Total}}</dd>
-    {{if .Day.Tips}}<dt>{{tr "Tips on phones (for the staff)"}}</dt><dd>{{euro .Day.Tips}}</dd>{{end}}
-    {{if .Day.Vouchers}}<dt>{{trf "Gift cards and lunch booklets sold (%d)" .Day.Vouchers}}</dt><dd>{{euro .Day.VouchersSold}}</dd>{{end}}
-  </dl>
-  {{else}}
-  <p class="muted">{{tr "No bills paid yet today."}}</p>
-  {{end}}
-  <p class="muted small">{{tr "What guests paid at the tables, after online deposits. Gift cards and lunch coupons were paid for when they were sold, so they're listed apart."}}</p>
-  <p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a>{{if .Manager}} <a class="btn btn-secondary btn-sm" href="/admin/staff#served">{{tr "Who served the most tables"}}</a>{{end}}</p>
-</section>{{else}}
-<p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a></p>{{end}}
+{{/* "Paid today" (the manager's panel that was here) is hidden for now.
+   To show it again, take it back from git. */}}
+<p><a class="btn btn-secondary btn-sm" href="/admin/giftcards">{{tr "Gift cards and lunch booklets"}}</a></p>
 
 <section class="panel">
   <h2>{{tr "Table history"}}</h2>

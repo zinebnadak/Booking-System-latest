@@ -156,7 +156,7 @@ func TestUnpaidBookingsPerGuestAreCapped(t *testing.T) {
 
 func TestSecurityHeaders(t *testing.T) {
 	e := newEnv(t, nil)
-	rec := e.do("GET", "/", nil, false)
+	rec := e.do("GET", "/book", nil, false)
 	h := rec.Header()
 	for k, want := range map[string]string{
 		"X-Content-Type-Options":     "nosniff",

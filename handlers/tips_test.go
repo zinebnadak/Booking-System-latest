@@ -56,7 +56,7 @@ func TestTipWhenPayingOnThePhone(t *testing.T) {
 
 	// Guest 2 pays at the terminal; the day's takings show the tip apart from the sales.
 	e.do("POST", "/admin/orders/5/split/pay", url.Values{"bill": {itoa(bill.ID)}, "guest": {"2"}, "method": {"card"}}, true)
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Tips on phones (for the staff)", "2,69 €", "46,80 €")
+	e.expect(e.do("GET", "/owner", nil, true), 200, "added on phones", "2,69 €", "46,80 €")
 	_, report := e.srv.dailyReport(e.srv.Now(), e.srv.Now().Add(6*3600e9))
 	if !strings.Contains(report, "Tips on phones:       2,69 €") || !strings.Contains(report, "PAID AT THE TABLES: 46,80 €") {
 		t.Fatalf("report:\n%s", report)

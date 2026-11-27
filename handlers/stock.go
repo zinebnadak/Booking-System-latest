@@ -24,7 +24,8 @@ func (s *Server) adminStock(w http.ResponseWriter, r *http.Request) {
 	today := schedule.FormatDate(schedule.Today(now))
 	var items []db.MenuItem
 	for _, m := range s.Store.Menu(false) {
-		if m.Active(today) {
+		// Price lines like "3 rätter" aren't food or drink: nothing to count.
+		if m.Active(today) && !m.Package {
 			items = append(items, m)
 		}
 	}

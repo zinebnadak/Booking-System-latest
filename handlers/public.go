@@ -24,8 +24,12 @@ const dayChips = 14
 
 // ---------- Home ----------
 
+// The front page is hidden for now: "/" opens the staff login (which sends
+// someone already logged in straight on to their page). Guests still book
+// at /book and order at /takeaway. To show the front page again, render
+// "home" here instead: s.render(w, r, "home", 200, M{"Hours": hoursRows(langOf(r))})
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, "home", 200, M{"Hours": hoursRows(langOf(r))})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // ---------- Day chips ----------

@@ -84,13 +84,11 @@ const (
 	woltOnly    = "only"
 )
 
-// woltMode is the Wolt filter from the page's address.
+// woltMode is the Wolt filter for the money pages. Wolt is switched off in
+// the manager's view for now, so the totals are always without Wolt (the
+// filter tabs are gone too).
 func woltMode(r *http.Request) string {
-	switch m := r.URL.Query().Get("wolt"); m {
-	case woltWithout, woltOnly:
-		return m
-	}
-	return woltWith
+	return woltWithout
 }
 
 // addMoney puts the table bills, gift cards sold and Wolt orders from one
@@ -420,9 +418,7 @@ var metrics = []metric{
 	{"money", "Money", "eur", func(d dayVals) float64 { return float64(d.Money) / 100 }},
 	{"tables", "Table bookings", "count", func(d dayVals) float64 { return float64(d.Tables) }},
 	{"guests", "Guests", "count", func(d dayVals) float64 { return float64(d.Guests) }},
-	{"orders", "Takeaway orders", "count", func(d dayVals) float64 { return float64(d.Orders) }},
 	{"lost", "No-shows & cancellations", "count", func(d dayVals) float64 { return float64(d.Lost) }},
-	{"wolt", "Wolt orders", "count", func(d dayVals) float64 { return float64(d.WoltOrders) }},
 }
 
 // byDate groups bookings into per-day numbers.

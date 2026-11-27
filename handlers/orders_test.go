@@ -109,7 +109,7 @@ func TestTableOrderToPaidBill(t *testing.T) {
 	if _, ok := e.store.OpenBill(5); ok {
 		t.Fatal("bill still open after paying")
 	}
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Paid today", "In cash", "19,00 €")
+	e.expect(e.do("GET", "/owner", nil, true), 200, "In cash", "19,00 €")
 
 	// A waiter still looking at the paid bill can't add to it.
 	location(t, e.do("POST", "/admin/orders/5/add", url.Values{"bill": {bid}, "qty_" + id(soda): {"1"}}, true), "msg=billstale")

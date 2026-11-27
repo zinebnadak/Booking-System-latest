@@ -7,8 +7,22 @@ import (
 	"emeal-booking/schedule"
 )
 
+// afterWorkMenu is a set menu like the restaurant's After Work menu (no
+// longer on the printed menus, but the set-menu buttons still work).
+func afterWorkMenu() []MenuItem {
+	items := []MenuItem{
+		{Name: "After Work · 3 rätter", PriceCents: 3000, Package: true},
+		{Name: "AW Hummersoppa", Included: true, Course: CourseStarter},
+		{Name: "AW Blue cheese smokey BBQ-burgare", Included: true, Course: CourseMain},
+	}
+	for i := range items {
+		items[i].Category, items[i].StaffOnly, items[i].Available = "After Work", true, true
+	}
+	return append(seedMenu(), items...)
+}
+
 func TestAfterWorkSetMenu(t *testing.T) {
-	defer UseStartMenu(seedMenu)()
+	defer UseStartMenu(afterWorkMenu)()
 	s := newStore(t)
 	byName := map[string]MenuItem{}
 	for _, m := range s.Menu(true) {

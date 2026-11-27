@@ -72,18 +72,14 @@ func TestWoltOrder(t *testing.T) {
 		t.Error("a picked-up Wolt order's page should go back to Orders")
 	}
 
-	// Money pages: with Wolt (the start), without, only.
+	// Money pages: Wolt is hidden there, so they're always without Wolt.
 	want := euro(2 * burger.PriceCents)
-	e.expect(e.do("GET", "/owner", nil, true), 200, "Wolt · 1 order", want, "Without Wolt")
-	only := e.do("GET", "/owner?wolt=only", nil, true).Body.String()
-	if !strings.Contains(only, `<div class="kpi-big">`+want) {
-		t.Error("only Wolt: the big number should be the Wolt money")
+	for _, p := range []string{"/owner", "/owner?wolt=only", "/owner/charts", "/owner/charts?metric=wolt"} {
+		body := e.do("GET", p, nil, true).Body.String()
+		if strings.Contains(body, `<div class="kpi-big">`+want) || strings.Contains(body, "Without Wolt") || strings.Contains(body, "Wolt orders") {
+			t.Errorf("%s still shows Wolt", p)
+		}
 	}
-	without := e.do("GET", "/owner?wolt=without", nil, true).Body.String()
-	if strings.Contains(without, `<div class="kpi-big">`+want) {
-		t.Error("without Wolt: the big number shouldn't have the Wolt money")
-	}
-	e.expect(e.do("GET", "/owner/charts?metric=wolt", nil, true), 200, "Wolt orders")
 }
 
 // A Wolt order started by mistake can be cancelled while it's empty, by

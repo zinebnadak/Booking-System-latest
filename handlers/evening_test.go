@@ -107,7 +107,7 @@ func TestAWholeLunch(t *testing.T) {
 			t.Fatalf("report is missing %q:\n%s", want, report)
 		}
 	}
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, euro(total))
+	e.expect(e.do("GET", "/owner", nil, true), 200, euro(total))
 	e.expect(e.do("GET", "/admin/activity?date=2026-10-26", nil, true), 200,
 		"Lisa", "counted the stock", "paid with a gift card", "paid with a lunch card", "paid in cash", "sold a gift card")
 	e.expect(e.do("GET", "/admin/stock", nil, true), 200, "Out of stock now", "Husets vin, glas")

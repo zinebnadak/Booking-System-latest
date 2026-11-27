@@ -19,13 +19,13 @@
 
 </section>
 <section class="panel">
-  <h2>{{tr "On your phone"}}</h2>
+  <div class="panel-head"><h2>{{tr "On your phone"}}</h2>{{if not .FeedURL}}<span class="badge badge-wip">{{tr "Work in progress"}}</span>{{end}}</div>
   {{if .FeedURL}}
   <p>{{tr "Subscribe to this link once in Google Calendar (\"Other calendars → From URL\") or on iPhone (Settings → Calendar → Accounts → Add subscribed calendar). Every confirmed booking then appears in your phone's calendar automatically."}}</p>
   <p><input class="copy" readonly value="{{.FeedURL}}" data-select aria-label="{{tr "Calendar feed link"}}"></p>
   <p class="muted small">{{tr "Keep this link private: anyone with it can see the bookings."}}</p>
   {{else}}
-  <p class="muted">{{tr "Set CALENDAR_TOKEN in the settings to get a calendar link you can add to your phone."}}</p>
+  <div class="wip"><p>{{tr "Coming soon: a private link you add once to your phone's calendar (Google Calendar or iPhone). Every confirmed booking then shows up there by itself."}}</p></div>
   {{end}}
 </section>
 {{end}}

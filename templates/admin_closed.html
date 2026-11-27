@@ -1,5 +1,19 @@
 {{define "content"}}
-<div class="day-head"><h1>{{tr "Closed days"}}</h1></div>
+<div class="day-head"><h1>{{tr "Closed days"}}</h1><span class="badge badge-wip">{{tr "Work in progress"}}</span></div>
+
+<div class="wip">
+  <h2>{{tr "One place for our opening times"}}</h2>
+  <p>{{tr "Our opening times change a lot: holidays, private events, short weeks. The plan is to change them only here, and have everything else update by itself."}}</p>
+  <h3>{{tr "How it will work"}}</h3>
+  <ol>
+    <li>{{tr "You mark a closed day or different hours here, with a short reason."}}</li>
+    <li>{{tr "Booking stops for that day at once."}}</li>
+    <li>{{tr "The public website shows the new times by itself."}}</li>
+    <li>{{tr "The same change is posted to our social media and Google, so guests see it wherever they look."}}</li>
+  </ol>
+</div>
+{{/* The old closed-days tools, hidden while this page is being rebuilt.
+     Remove this "if false" to show them again. */}}{{if false}}
 <p class="muted">{{tr "Close the restaurant for holidays or private events. Guests can't book tables or order takeaway on these days."}}</p>
 
 <section class="panel">
@@ -46,4 +60,5 @@
   </table>
   {{end}}
 </section>
+{{end}}
 {{end}}

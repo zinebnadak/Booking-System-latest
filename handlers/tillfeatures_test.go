@@ -58,7 +58,7 @@ func TestTillFeaturesAtATable(t *testing.T) {
 	if tk[db.PaidGiftCard] != 4000 || tk[db.PaidEdenred] != 2000 || tk[db.PaidCard] != paid.ToPay()-6000 {
 		t.Fatalf("takings %v", tk)
 	}
-	day := e.do("GET", "/admin/orders", nil, true)
+	day := e.do("GET", "/owner", nil, true)
 	e.expect(day, 200, "Gift card", "Edenred", "Gift cards and lunch booklets sold (1)")
 	e.expect(e.do("GET", "/admin/activity", nil, true), 200, "paid with a gift card", "paid with a lunch card", "gave a discount on the whole bill", "sold a gift card")
 

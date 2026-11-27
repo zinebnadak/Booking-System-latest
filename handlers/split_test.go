@@ -70,7 +70,7 @@ func TestSplitBillEachPaysTheirOwn(t *testing.T) {
 	}
 
 	// The day's takings count every part by how it was paid.
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "In cash</dt><dd>19,75 €", "Total</dt><dd>92,70 €")
+	e.expect(e.do("GET", "/owner", nil, true), 200, "In cash</dt><dd>19,75 €", "92,70 €")
 
 	// Guest 2 scans their QR code: only what they had, no login needed.
 	guest2 := codes[1][1]

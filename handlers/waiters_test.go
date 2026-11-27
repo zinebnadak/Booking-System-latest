@@ -72,14 +72,7 @@ func TestWaitersTables(t *testing.T) {
 		t.Fatal("still needs a waiter")
 	}
 
-	// Paid: the manager sees who served the most tables.
-	for _, no := range []int{5, 2} {
-		b, _ := e.store.OpenBill(no)
-		if _, err := e.store.PayBill(b.ID, db.PaidCard, e.srv.Now()); err != nil {
-			t.Fatal(err)
-		}
-	}
-	e.expect(e.do("GET", "/admin/staff", nil, true), 200, "Who served the most tables", "<strong>Lisa</strong>", "<strong>Erik</strong>", "Today 1 · ")
+	// The staff page is the manager's.
 	if loc(e.as(lisa, "GET", "/admin/staff", nil)) == "" && e.as(lisa, "GET", "/admin/staff", nil).Code == 200 {
 		t.Fatal("a waiter can see the staff page")
 	}
@@ -159,7 +152,8 @@ func TestGuestsAtTable(t *testing.T) {
 	e.expect(e.as(lisa, "GET", "/admin/orders/3", nil), 200, `inputmode="numeric" value="12" required`)
 }
 
-// What was paid today is the manager's to see, not the waiters'.
+// "Paid today" is hidden on Orders for now (Money today has the takings),
+// and waiters never see it.
 func TestPaidTodayManagerOnly(t *testing.T) {
 	e := newEnv(t, nil)
 	m, err := e.store.AddStaff("Lisa", "lisa", "a-long-password-1", e.srv.Now())
@@ -170,5 +164,7 @@ func TestPaidTodayManagerOnly(t *testing.T) {
 	if strings.Contains(e.as(lisa, "GET", "/admin/orders", nil).Body.String(), "Paid today") {
 		t.Fatal("a waiter sees Paid today")
 	}
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Paid today")
+	if strings.Contains(e.do("GET", "/admin/orders", nil, true).Body.String(), "Paid today") {
+		t.Fatal("Paid today should be hidden")
+	}
 }

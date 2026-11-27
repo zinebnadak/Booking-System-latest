@@ -1,10 +1,12 @@
 {{define "content"}}
 <div class="day-head">
   <h1>{{tr "Feedback"}}</h1>
+  <span class="badge badge-wip">{{tr "Work in progress"}}</span>
   <span class="spacer"></span>
   <a class="btn btn-secondary btn-sm" href="/admin/tables/qr#review-sticker">{{tr "Review QR code"}}</a>
 </div>
-<p class="muted small">{{tr "What guests told you after their visit. It's private: nothing here is published. After giving feedback, every guest is offered your Google review link."}}{{if not .Google}} {{tr "(Add your Google review link as GOOGLE_REVIEW_URL in the settings file to offer it.)"}}{{end}}</p>
+<p class="muted small">{{tr "What guests told you after their visit. It's private: nothing here is published."}}</p>
+<div class="wip"><span class="badge badge-wip">{{tr "Work in progress"}}</span><p>{{tr "Feedback isn't finished yet. Guests can already give stars and a comment, and they show up here. How it looks and works may still change."}}</p></div>
 
 <section class="panel fb-sum">
   {{if .Count}}

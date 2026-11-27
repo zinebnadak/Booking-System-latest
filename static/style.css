@@ -1874,3 +1874,17 @@ dialog .line-move { margin: 0; padding-top: var(--s3); border-top: 1px solid var
 .nav-more-foot button { background: none; border: 0; color: #cfcfcf; font: 500 .94rem var(--ui); padding: 8px 4px; cursor: pointer; }
 .nav-more-foot button:hover { color: #fff; text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) { .nav-more-btn svg { transition: none; } }
+
+/* ------------------------------------------------------------ work in progress */
+/* Parts of the system that aren't finished yet: a badge by the page title,
+   and a dashed box saying what the part will do. */
+.badge-wip { background: var(--warn-soft); color: var(--warn); }
+.wip { border: 1px dashed #e0b77d; background: #fffaf2; border-radius: var(--r-lg); padding: var(--s4); margin: 0 0 var(--s4); color: var(--ink-2); }
+.wip h2, .wip h3 { margin: var(--s2) 0 var(--s1); font-size: 1.05rem; }
+.wip p { margin: var(--s2) 0 0; }
+.wip ol, .wip ul { margin: var(--s2) 0 0; padding-left: 1.3em; }
+.wip li + li { margin-top: var(--s1); }
+.room-h .badge-wip { text-transform: none; letter-spacing: 0; vertical-align: middle; margin-left: var(--s1); }
+.wolt-wip { margin: 0 0 var(--s2); }
+.wolt-new:disabled { opacity: .55; cursor: not-allowed; }
+.wolt-new:disabled .wolt-circle { transform: none; }

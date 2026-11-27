@@ -82,7 +82,7 @@ func TestStaffPagesInSwedish(t *testing.T) {
 		"/admin/day":                  {"Bordsbokningar", "Borden", "måndag 26 oktober", "Bekräftad", "Telefonbokning", "Logga ut", `lang="sv"`},
 		"/admin/calendar":             {"Oktober 2026", "mån", "I din telefon"},
 		"/admin/menu":                 {"Dryck med alkohol (25,5 % moms)", "Lägg till rätt"},
-		"/admin/closed":               {"Stängda dagar", "Stäng en dag"},
+		"/admin/closed":               {"Stängda dagar", "Under arbete"},
 		"/owner?date=2026-10-26":      {"Intäkter i dag", "jämfört med måndag förra veckan"},
 		"/owner/charts?month=2026-10": {"Dag för dag", "Mest sålda rätter", "Oktober 2026", "Pengar"},
 	}

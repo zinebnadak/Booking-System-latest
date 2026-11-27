@@ -27,7 +27,7 @@ func TestWaitersSeeAPhonePayment(t *testing.T) {
 	for _, p := range []string{"/admin/orders?part=tiles"} {
 		e.expect(e.do("GET", p, nil, true), 200, "Paid on phones", "Table 5", "Erik paid 19,90 € online", "1,99 € tip", "for the whole table", "Table is free", `data-alert-key="paid-`+ref)
 	}
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Online at the table", "19,90 €")
+	e.expect(e.do("GET", "/owner", nil, true), 200, "Online at the table", "19,90 €")
 	// A waiter taps OK: gone from the screens.
 	if rec := e.do("POST", "/admin/online/"+ref+"/seen", url.Values{}, true); rec.Code != 303 {
 		t.Fatalf("seen: %d", rec.Code)

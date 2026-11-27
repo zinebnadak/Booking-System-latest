@@ -18,8 +18,9 @@ func TestRealMenu(t *testing.T) {
 		byName[m.Name] = m
 	}
 	for name, want := range map[string]int{
-		"Råbiff": 1790, "Jägarschnitzel": 2250, "Oxfilé": 3990, "Chipotle bacon burgare": 1990,
-		"Aperol spritz": 990, "Cuma Malbec, flaska": 4200, "Heineken 0,5 l": 900, "Coca-Cola": 350,
+		"Råbiff": 1790, "Jägarschnitzel": 2250, "Oxfilé": 3990, "E-Meal's chipotle bacon burgare": 1990,
+		"Aperol spritz": 990, "Cuma Malbec, glas": 1190, "Cuma Malbec, flaska": 4200, "Heineken 0,5 l": 900,
+		"Briska fläder 0,5 %": 600, "Coca-Cola": 350, "Vaniljglass": 990, "Chicken fingers med pommes": 1190,
 	} {
 		if got := byName[name].PriceCents; got != want {
 			t.Errorf("%s: %d, want %d", name, got, want)
@@ -37,9 +38,14 @@ func TestRealMenu(t *testing.T) {
 	if byName["Cordon bleu"].Available || !byName["Jägarschnitzel"].Available {
 		t.Error("only this week's schnitzel should be on")
 	}
-	// Dishes without a price: on the staff menu, never for guests.
-	if !byName["Dagens lunch"].PriceMissing() {
-		t.Fatal("Dagens lunch should have no price yet")
+	// Every dish and drink on the printed menus has its price.
+	for _, m := range s.Menu(false) {
+		if m.PriceMissing() {
+			t.Errorf("%s has no price", m.Name)
+		}
+	}
+	if len(byName) != 70 {
+		t.Errorf("%d items, want the 70 on the printed menus (23 dishes, 47 drinks)", len(byName))
 	}
 	for _, m := range s.GuestMenu() {
 		if m.PriceMissing() {
@@ -87,6 +93,54 @@ func TestDemoMenuIsReplacedOnce(t *testing.T) {
 	}
 	if m := s2.Menu(false); len(m) != 1 || m[0].Name != "Husets pizza" {
 		t.Fatalf("own menu touched: %+v", m)
+	}
+}
+
+// A data file with the October menu (version 2) gets the November menus,
+// in place: ids, photos and on/off stay; renamed dishes keep their id;
+// dishes no longer printed go; the manager's own dishes stay.
+func TestMenuV2BecomesV3(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "data.json")
+	old := data{NextBookingID: 1, NextWaitID: 1, NextMenuID: 6, MenuVersion: 2, Menu: []*MenuItem{
+		{ID: 1, Category: "Burgare", Name: "Chipotle bacon burgare", PriceCents: 1890, Photo: "burger.jpg", Available: true},
+		{ID: 2, Category: "Lunch", Name: "Dagens lunch", Available: true},
+		{ID: 3, Category: "Vitt vin", Name: "Kung Fu Girl Riesling 24 cl"},
+		{ID: 4, Category: "Egna", Name: "Husets pizza", PriceCents: 1500, Available: true},
+		{ID: 5, Category: "Veckans schnitzel", Name: "Cordon bleu", PriceCents: 2550, Available: true},
+	}}
+	raw, _ := json.Marshal(old)
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]MenuItem{}
+	for _, m := range s.Menu(false) {
+		byName[m.Name] = m
+	}
+	if b := byName["E-Meal's chipotle bacon burgare"]; b.ID != 1 || b.PriceCents != 1990 || b.Photo != "burger.jpg" || b.Category != "Burger" {
+		t.Errorf("burger: %+v", b)
+	}
+	if _, ok := byName["Dagens lunch"]; ok {
+		t.Error("Dagens lunch is still on the menu")
+	}
+	if _, ok := byName["Kung Fu Girl Riesling 24 cl"]; ok {
+		t.Error("the 24 cl wine is still on the menu")
+	}
+	if p := byName["Husets pizza"]; p.ID != 4 {
+		t.Error("the manager's own dish was removed")
+	}
+	if c := byName["Cordon bleu"]; c.ID != 5 || !c.Available || c.Category != "Schnitzelveckor" {
+		t.Errorf("cordon bleu: %+v", c)
+	}
+	if len(byName) != 70+1 {
+		t.Errorf("%d items, want the 70 printed and the manager's pizza", len(byName))
+	}
+	if m := byName["Råbiff"]; m.ID < 6 {
+		t.Errorf("new dishes get new ids: %d", m.ID)
 	}
 }
 

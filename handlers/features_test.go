@@ -144,7 +144,6 @@ func TestTakeawayPickedUp(t *testing.T) {
 		"qty_" + itoa(menu[0].ID): {"2"}}
 	ref := refFromLocation(t, e.do("POST", "/takeaway", f, false).Header().Get("Location"))
 	e.do("POST", "/dev/pay/"+ref, url.Values{}, false)
-	e.expect(e.do("GET", "/admin/day", nil, true), 200, "Picked up", "to pay at pickup")
 
 	e.do("POST", "/admin/bookings/"+ref+"/pickedup", url.Values{}, true)
 	b, _ := e.store.Get(ref)

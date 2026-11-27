@@ -3,26 +3,25 @@
 {{define "content"}}
 <div class="day-head">
   {{if eq .View "days"}}
-  <a class="icon-btn" href="/owner/charts?view=days&month={{.PrevMonth}}&wolt={{$.WoltMode}}&metric={{.Metric.Key}}" aria-label="{{tr "Previous month"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <a class="icon-btn" href="/owner/charts?view=days&month={{.PrevMonth}}&metric={{.Metric.Key}}" aria-label="{{tr "Previous month"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
   <h1>{{.PeriodLabel}}</h1>
-  <a class="icon-btn" href="/owner/charts?view=days&month={{.NextMonth}}&wolt={{$.WoltMode}}&metric={{.Metric.Key}}" aria-label="{{tr "Next month"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <a class="icon-btn" href="/owner/charts?view=days&month={{.NextMonth}}&metric={{.Metric.Key}}" aria-label="{{tr "Next month"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
   {{else}}
-  <a class="icon-btn" href="/owner/charts?view=months&month={{.PrevYear}}&wolt={{$.WoltMode}}&metric={{.Metric.Key}}" aria-label="{{tr "Previous year"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <a class="icon-btn" href="/owner/charts?view=months&month={{.PrevYear}}&metric={{.Metric.Key}}" aria-label="{{tr "Previous year"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
   <h1>{{.PeriodLabel}}</h1>
-  <a class="icon-btn" href="/owner/charts?view=months&month={{.NextYear}}&wolt={{$.WoltMode}}&metric={{.Metric.Key}}" aria-label="{{tr "Next year"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <a class="icon-btn" href="/owner/charts?view=months&month={{.NextYear}}&metric={{.Metric.Key}}" aria-label="{{tr "Next year"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
   {{end}}
   <span class="spacer"></span>
   <a class="btn btn-secondary btn-sm" href="/owner/export.csv?month={{.MonthKey}}" download>{{if eq .View "days"}}{{tr "Download month as spreadsheet"}}{{else}}{{tr "Download this month as spreadsheet"}}{{end}}</a>
 </div>
 
 <div class="chart-controls">
-  {{template "wolt-filter" .}}
   <nav class="tabs" aria-label="{{tr "Compare"}}">
-    <a href="/owner/charts?view=days&month={{.MonthKey}}&wolt={{$.WoltMode}}&metric={{.Metric.Key}}"{{if eq .View "days"}} aria-current="page"{{end}}>{{tr "Day by day"}}</a>
-    <a href="/owner/charts?view=months&month={{.MonthKey}}&wolt={{$.WoltMode}}&metric={{.Metric.Key}}"{{if eq .View "months"}} aria-current="page"{{end}}>{{tr "Month by month"}}</a>
+    <a href="/owner/charts?view=days&month={{.MonthKey}}&metric={{.Metric.Key}}"{{if eq .View "days"}} aria-current="page"{{end}}>{{tr "Day by day"}}</a>
+    <a href="/owner/charts?view=months&month={{.MonthKey}}&metric={{.Metric.Key}}"{{if eq .View "months"}} aria-current="page"{{end}}>{{tr "Month by month"}}</a>
   </nav>
   <nav class="tabs" aria-label="{{tr "What to show"}}">
-    {{range .Metrics}}<a href="/owner/charts?view={{$.View}}&month={{$.MonthKey}}&wolt={{$.WoltMode}}&metric={{.Key}}"{{if eq .Key $.Metric.Key}} aria-current="page"{{end}}>{{tr .Label}}</a>{{end}}
+    {{range .Metrics}}<a href="/owner/charts?view={{$.View}}&month={{$.MonthKey}}&metric={{.Key}}"{{if eq .Key $.Metric.Key}} aria-current="page"{{end}}>{{tr .Label}}</a>{{end}}
   </nav>
 </div>
 
@@ -132,7 +131,7 @@
   </section>
 </div>
 
-<p class="scope-note" style="margin-top:16px"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Money is everything: bills paid at the tables, gift cards sold, the website (deposits and takeaway) and what we keep of Wolt orders."}}</span></p>
+<p class="scope-note" style="margin-top:16px"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Money is everything: bills paid at the tables, gift cards sold and the website (deposits and takeaway)."}}</span></p>
 {{end}}
 
 {{define "sellers"}}

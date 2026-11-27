@@ -43,7 +43,7 @@
       <a href="/admin/day"{{if eq .Nav "day"}} aria-current="page"{{end}}>{{tr "Bookings"}}</a>
       <a href="/admin/calendar"{{if eq .Nav "calendar"}} aria-current="page"{{end}}>{{tr "Calendar"}}</a>
       <a href="/admin/myschedule"{{if eq .Nav "myschedule"}} aria-current="page"{{end}}>{{tr "My schedule"}}</a>
-      <a href="/" target="_blank" rel="noopener">{{tr "Guest site"}}</a>
+      <a href="/admin/guestsite"{{if eq .Nav "guestsite"}} aria-current="page"{{end}}>{{tr "Guest site"}}</a>
       {{end}}
       {{if ne .Role "manager"}}
       {{if .TillDevice}}<form method="post" action="/till/lock" class="nav-logout nav-lock"><button type="submit">{{tr "Lock"}}</button></form>
@@ -77,7 +77,7 @@
         <a href="/admin/closed"{{if eq .Nav "closed"}} aria-current="page"{{end}}>{{tr "Closed days"}}</a>
         {{if .Cfg.TableButtons}}<a href="/owner/buttons"{{if eq .Nav "buttons"}} aria-current="page"{{end}}>{{tr "Table buttons"}}</a>{{end}}
         <a href="/admin/activity"{{if eq .Nav "activity"}} aria-current="page"{{end}}>{{tr "Activity"}}</a>
-        <a href="/" target="_blank" rel="noopener">{{tr "Guest site"}}</a>
+        <a href="/admin/guestsite"{{if eq .Nav "guestsite"}} aria-current="page"{{end}}>{{tr "Guest site"}}</a>
       </section>
       <div class="nav-more-foot">
         {{if .TillDevice}}<form method="post" action="/till/lock"><button type="submit">{{tr "Lock"}}</button></form>
@@ -87,7 +87,6 @@
   </div>
   {{end}}
 </header>
-{{if .DemoMode}}<div class="demo-banner">{{tr "Demo mode: payments are simulated until Stripe keys are added."}}</div>{{end}}
 {{if .Role}}
 <div id="offline-bar" class="offline-bar" role="alert" hidden>
   <strong>{{tr "No internet. Switch to paper."}}</strong>

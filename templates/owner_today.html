@@ -2,20 +2,18 @@
 
 {{define "content"}}
 <div class="day-head">
-  <a class="icon-btn" href="/owner?date={{.Prev}}&amp;wolt={{.WoltMode}}" aria-label="{{tr "Previous day"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <a class="icon-btn" href="/owner?date={{.Prev}}" aria-label="{{tr "Previous day"}}"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
   <h1>{{if .IsToday}}{{tr "Today"}}, {{end}}{{prettyDate .Date}}</h1>
-  <a class="icon-btn" href="/owner?date={{.Next}}&amp;wolt={{.WoltMode}}" aria-label="{{tr "Next day"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+  <a class="icon-btn" href="/owner?date={{.Next}}" aria-label="{{tr "Next day"}}"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
   <span class="spacer"></span>
-  {{if not .IsToday}}<a class="btn btn-secondary btn-sm" href="/owner?wolt={{.WoltMode}}">{{tr "Go to today"}}</a>{{end}}
+  {{if not .IsToday}}<a class="btn btn-secondary btn-sm" href="/owner">{{tr "Go to today"}}</a>{{end}}
   <a class="btn btn-secondary btn-sm" href="/owner/summary?date={{.Date}}" target="_blank" rel="noopener">{{tr "End-of-day email"}}</a>
-  <form method="get" action="/owner" data-autosubmit><input type="hidden" name="wolt" value="{{.WoltMode}}"><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
+  <form method="get" action="/owner" data-autosubmit><input type="date" name="date" value="{{.Date}}" aria-label="{{tr "Go to date"}}"></form>
 </div>
-{{template "wolt-filter" .}}
-{{if not .BusinessID}}<p class="notice"><a href="/admin/staff#business-id">{{tr "Receipts don't show your business ID yet. Add it under Staff."}}</a></p>{{end}}
 
 <section class="panel hero-kpi">
   <div>
-    <div class="kpi-label">{{if .IsToday}}{{tr "Made today"}}{{else}}{{tr "Made on this day"}}{{end}}{{if eq .WoltMode "only"}} · {{tr "Wolt only"}}{{else if eq .WoltMode "without"}} · {{tr "without Wolt"}}{{end}}</div>
+    <div class="kpi-label">{{if .IsToday}}{{tr "Made today"}}{{else}}{{tr "Made on this day"}}{{end}}</div>
     <div class="kpi-big">{{euro .S.Revenue}}</div>
     <div class="kpi-sub">
       <span>{{template "chg" .VsWeek}} {{trf "vs last %s (%s)" .WeekDay (euro .WeekAgo.Revenue)}}</span>
@@ -27,10 +25,8 @@
   </div>
   <div class="kpi-split">
     <div><strong>{{euro .S.Till}}</strong><span>{{tr "At the tables"}}</span></div>
-    <div><strong>{{euro .S.TakeawaySales}}</strong><span>{{tr "Takeaway food"}}</span></div>
     {{if or .Cfg.TableDeposit .S.DepositsGross}}<div><strong>{{euro .S.DepositsNet}}</strong><span>{{tr "Table deposits"}}</span></div>
     {{else}}<div><strong>{{euro .S.Tips}}</strong><span>{{tr "Tips"}}</span></div>{{end}}
-    <div class="kpi-wolt"><strong>{{euro .S.WoltNet}}</strong><span>{{if eq .S.WoltOrders 1}}{{tr "Wolt · 1 order"}}{{else}}{{trf "Wolt · %d orders" .S.WoltOrders}}{{end}}{{if .S.WoltFee}} · {{tr "after Wolt's cut"}}{{end}}</span></div>
   </div>
 </section>
 
@@ -65,7 +61,7 @@
   </div>
   {{with .Cash.Count}}<p class="small muted">{{trf "Counted by %s at %s" .By (clock .At)}}{{if .Previous}} · {{trf "recounted %d times" .Previous}}{{end}}{{with .Note}} · {{.}}{{end}}</p>{{end}}
   <form method="post" action="/owner/cash" class="cash-form">
-    <input type="hidden" name="date" value="{{.Date}}"><input type="hidden" name="wolt" value="{{.WoltMode}}">
+    <input type="hidden" name="date" value="{{.Date}}">
     <label class="field">{{tr "Change at the start €"}}<input name="float" inputmode="decimal" value="{{if .Cash.Float}}{{euroPlain .Cash.Float}}{{end}}" placeholder="0"></label>
     <label class="field">{{tr "Counted now €"}}<input name="counted" inputmode="decimal" required placeholder="0,00"></label>
     <label class="field grow"><span class="field-label">{{tr "Note"}} <span class="hint">{{tr "optional"}}</span></span><input name="note" maxlength="200" placeholder="{{tr "e.g. 20 € taken out for milk"}}"></label>
@@ -92,33 +88,8 @@
   </section>
   {{end}}
 
-  <section class="panel stat-group">
-    <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>{{tr "Takeaway"}}</h2>
-    <div class="stat-grid">
-      <div class="stat ok"><strong>{{.S.TakeawayOrders}}</strong><span class="lbl">{{tr "Orders"}}</span><span class="amt">{{trf "%s of food" (euro .S.TakeawaySales)}}</span></div>
-      <div class="stat wait"><strong>{{euro .S.ToCollect}}</strong><span class="lbl">{{tr "To collect at pickup"}}</span><span class="amt">{{if eq .S.PickedUp 1}}{{tr "1 picked up already"}}{{else if .S.PickedUp}}{{trf "%d picked up already" .S.PickedUp}}{{else}}{{tr "the other 75 %"}}{{end}}</span></div>
-      <div class="stat bad"><strong>{{.S.TakeawayCancelled}}</strong><span class="lbl">{{tr "Cancelled"}}</span><span class="amt">{{trf "%s kept" (euro .S.TakeawayKept)}}</span></div>
-      <div class="stat"><strong>{{if .S.TakeawayOrders}}{{euro (divr .S.TakeawaySales .S.TakeawayOrders)}}{{else}}–{{end}}</strong><span class="lbl">{{tr "Average order"}}</span><span class="amt">{{tr "food per order"}}</span></div>
-    </div>
-  </section>
 </div>
 
-<section class="panel stat-group wolt-group" id="wolt">
-  <h2><span class="wolt-dot" aria-hidden="true">W</span>Wolt</h2>
-  <div class="stat-grid stat-grid-4">
-    <div class="stat ok"><strong>{{.S.WoltOrders}}</strong><span class="lbl">{{tr "Orders"}}</span><span class="amt">{{trf "%s paid by guests" (euro .S.WoltSales)}}</span></div>
-    <div class="stat bad"><strong>{{euro .S.WoltFee}}</strong><span class="lbl">{{tr "Wolt keeps"}}</span><span class="amt">{{if .S.WoltPctSet}}{{trf "%d %% of each order" .S.WoltPct}}{{else}}{{tr "set Wolt's cut below"}}{{end}}</span></div>
-    <div class="stat ok"><strong>{{euro .S.WoltNet}}</strong><span class="lbl">{{tr "We keep"}}</span><span class="amt">{{if .S.WoltOrders}}{{trf "%s per order" (euro (divr .S.WoltNet .S.WoltOrders))}}{{else}}–{{end}}</span></div>
-    <div class="stat"><strong>{{.MTD.WoltOrders}}</strong><span class="lbl">{{trf "%s so far" .MonthName}}</span><span class="amt">{{trf "we keep %s" (euro .MTD.WoltNet)}}</span></div>
-  </div>
-  <form method="post" action="/owner/woltpct" class="wolt-pct">
-    <input type="hidden" name="date" value="{{.Date}}"><input type="hidden" name="wolt" value="{{.WoltMode}}">
-    <label for="wolt-pct">{{tr "Wolt's cut"}}</label>
-    <span class="pct-in"><input id="wolt-pct" name="pct" type="number" min="0" max="60" step="1" inputmode="numeric" value="{{.S.WoltPct}}"> %</span>
-    <button class="btn btn-secondary btn-sm">{{tr "Save"}}</button>
-    <span class="muted small">{{tr "From your Wolt contract, usually 25–30 %. Used for every Wolt order, old ones too."}}</span>
-  </form>
-</section>
 
 <section class="panel">
   <div class="panel-head"><h2>{{tr "Everything on this day"}}</h2><a class="btn btn-secondary btn-sm" href="/owner/charts?month={{.Month}}">{{tr "See charts"}}</a></div>
@@ -141,5 +112,5 @@
   {{end}}
 </section>
 
-<p class="scope-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Made today is everything: bills paid at the tables (card, cash, lunch cards, phones), gift cards sold, money paid on the website (table deposits and takeaway), and what we keep of Wolt orders. Bills count on the day they're paid, bookings on the day of the visit or pickup, Wolt orders on the day the courier took them."}}</span></p>
+<p class="scope-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>{{tr "Made today is everything: bills paid at the tables (card, cash, lunch cards, phones), gift cards sold, and money paid on the website (table deposits and takeaway). Bills count on the day they're paid, bookings on the day of the visit or pickup."}}</span></p>
 {{end}}

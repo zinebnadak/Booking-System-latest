@@ -185,7 +185,7 @@ func TestQRGuestsOrderAndOnePaysForAll(t *testing.T) {
 	}
 	paid, _ := e.store.BillByID(bill.ID)
 	e.expect(e.do("GET", "/r/"+paid.Split[0].Ref, nil, false), 200, "Paid online", "Guest 2 paid this for you.", "Anna")
-	e.expect(e.do("GET", "/admin/orders", nil, true), 200, "Online at the table", "75,70 €")
+	e.expect(e.do("GET", "/owner", nil, true), 200, "Online at the table", "75,70 €")
 }
 
 func TestQRPayForAllTimesOut(t *testing.T) {

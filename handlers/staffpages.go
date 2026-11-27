@@ -223,6 +223,14 @@ func (s *Server) adminActivity(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// guestSiteNote stands in for the guest site while it's hidden: a note of
+// what it could be (work in progress).
+func (s *Server) guestSiteNote(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "admin_guestsite", http.StatusOK, M{
+		"Admin": true, "Nav": "guestsite", "Title": st(langOf(r), "Guest site"),
+	})
+}
+
 // offlinePlan is the printable "When the internet is down" sheet.
 func (s *Server) offlinePlan(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "admin_offline", http.StatusOK, M{

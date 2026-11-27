@@ -684,6 +684,7 @@ func (s *Server) adminMenuSave(w http.ResponseWriter, r *http.Request) {
 		redirectMsg(w, r, "/admin/menu", nil, "invalid")
 		return
 	}
+	s.live.publish() // open kitchen, stock and order screens show the new menu
 	redirectMsg(w, r, "/admin/menu", nil, "saved")
 }
 
@@ -699,6 +700,7 @@ func (s *Server) adminMenuAvailable(w http.ResponseWriter, r *http.Request) {
 	if _, err := s.Store.SaveMenuItem(item); err != nil {
 		log.Printf("menu available %d: %v", id, err)
 	}
+	s.live.publish()
 	msg := "dishoff"
 	if item.Available {
 		msg = "dishon"
@@ -714,6 +716,7 @@ func (s *Server) adminMenuDelete(w http.ResponseWriter, r *http.Request) {
 	if err := s.Store.DeleteMenuItem(id); err != nil {
 		log.Printf("delete menu item %d: %v", id, err)
 	}
+	s.live.publish()
 	redirectMsg(w, r, "/admin/menu", nil, "deleted")
 }
 

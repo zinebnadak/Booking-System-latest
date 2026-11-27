@@ -31,8 +31,8 @@ func TestButtonsAndTableQROff(t *testing.T) {
 			t.Errorf("Orders still shows %q", gone)
 		}
 	}
-	if !strings.Contains(orders, "Feedback QR code") {
-		t.Error("no link to the feedback QR code")
+	if strings.Contains(orders, "Feedback QR code") {
+		t.Error("Orders still links to the feedback QR code")
 	}
 	table := e.do("GET", "/admin/orders/5", nil, true).Body.String()
 	if strings.Contains(table, `action="/admin/orders/5/qr"`) || strings.Contains(table, "QR orders") {
@@ -52,8 +52,6 @@ func TestFreeTableBooking(t *testing.T) {
 	e := newEnv(t, nil)
 	e.srv.Cfg.TableDeposit = false
 
-	home := e.do("GET", "/", nil, false)
-	e.expect(home, 200, "No payment needed")
 	page := e.do("GET", "/book", nil, false)
 	e.expect(page, 200, "Confirm booking")
 	if strings.Contains(page.Body.String(), "Pay deposit") {
